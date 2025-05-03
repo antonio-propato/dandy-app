@@ -66,7 +66,7 @@ export default function Auth({ mode = 'signin' }) {
           <>
             {/* First & Last Name */}
             <div className="mb-4">
-              <label className="block text-gray-700">First Name</label>
+              <label className="block text-gray-700">NOME</label>
               <input
                 type="text"
                 name="firstName"
@@ -77,7 +77,7 @@ export default function Auth({ mode = 'signin' }) {
               />
             </div>
             <div className="mb-4">
-              <label className="block text-gray-700">Last Name</label>
+              <label className="block text-gray-700">COGNOME</label>
               <input
                 type="text"
                 name="lastName"
@@ -90,7 +90,7 @@ export default function Auth({ mode = 'signin' }) {
 
             {/* Date of Birth */}
             <div className="mb-4">
-              <label className="block text-gray-700">Date of Birth</label>
+              <label className="block text-gray-700">DATA DI NASCITA</label>
               <input
                 type="date"
                 name="dob"
@@ -103,7 +103,7 @@ export default function Auth({ mode = 'signin' }) {
 
             {/* Phone with Country Code */}
             <div className="mb-4">
-              <label className="block text-gray-700">Phone Number</label>
+              <label className="block text-gray-700">CELL</label>
               <div className="flex items-center space-x-2 mt-1">
                 <input
                   type="text"
@@ -158,7 +158,7 @@ export default function Auth({ mode = 'signin' }) {
           disabled={loading}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50"
         >
-          {loading ? 'Please wait...' : mode === 'signup' ? 'Sign Up' : 'Sign In'}
+          {loading ? 'Please wait...' : mode === 'signup' ? 'CONFERMA' : 'ACCEDI'}
         </button>
       </form>
     </div>
