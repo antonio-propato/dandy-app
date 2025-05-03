@@ -53,9 +53,9 @@
 .landing-logo {
   position: absolute;
   top: 6%;
-  left: 34%;
-  width: 120px;
-  height: 120px;
+  left: 29.5%;
+  width: 150px;
+  height: 150px;
   border-radius: 10px;
   object-fit: cover;
   z-index: 10;

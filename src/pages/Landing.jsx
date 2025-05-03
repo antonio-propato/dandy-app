@@ -12,18 +12,42 @@ export default function Landing() {
   const [message, setMessage] = useState(null)
 
   const animations = [
-    { scale: [1, 1.3, 0.8, 1.1, 1], rotate: [0, 10, -10, 5, 0] },
-    { rotate: [0, 360], transition: { duration: 0.8 } },
-    { scale: [1, 1.1, 0.95, 1.05, 1], transition: { duration: 0.5 } },
-    { y: [0, -20, 0], transition: { duration: 0.4 } },
-    { scale: [1, 1.5, 0.5, 1], transition: { duration: 0.6 } },
+    {
+      scale: [1, 1.5, 0.7, 1.2, 1],
+      rotate: [0, -5, 5, -3, 0],
+      transition: { duration: 1, ease: 'easeOut' }
+    },
+    {
+      y: [0, -400, 150, -120, 60, -30, 0],
+      x: [0, 30, -25, 20, -10, 5, 0],
+      transition: { duration: 1.8, ease: 'easeOut' }
+    },
+    {
+      scale: [1, 1.3, 0.9, 1.05, 1],
+      rotate: [0, 20, -20, 10, -10, 0],
+      transition: { duration: 1, ease: 'easeInOut' }
+    },
+    {
+      scale: [1, 2, 0.5, 1.5, 1],
+      opacity: [1, 0.7, 1],
+      transition: { duration: 1.2, ease: 'easeOut' }
+    },
+    {
+      y: [0, -300, 100, -80, 40, -20, 0],
+      x: [0, 20, -15, 10, -5, 0],
+      transition: { duration: 1.5, ease: 'easeOut' }
+    },
+    {
+      scale: [1, 1.6, 1.1, 1.4, 1],
+      transition: { duration: 0.8, ease: 'easeOut' }
+    },
   ]
 
+
   const messages = [
-    'Ricordati che è un caffè Dandy! ☕️',
-    'Un caffè Dandy al giorno toglie il medico di torno! 🩺',
-    'Vieni al Dandy, ca t facim nu bel cafej! ⭐️',
-    'Tempo di una pausa caffè? Me’ e statt angour! ⏰',
+    'Un caffè Dandy al giorno toglie il medico di torno!',
+    'Vieni al Dandy, ca t facim nu bel cafej!',
+    'Tempo di una pausa caffè? Me’ e statt angour!',
   ]
 
   useEffect(() => {
