@@ -1,0 +1,68 @@
+.nav-flyout {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 10rem;
+  background-color: #000000e1;
+  color: #FFFFFF;
+  z-index: 30;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column; /* REQUIRED for margin-top: auto to work */
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.nav-logout {
+  margin-bottom: 3rem;
+  margin-top: auto; /* Pushes the logout button to the bottom */
+}
+
+
+.nav-flyout.open {
+  transform: translateX(0);
+}
+
+.nav-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.nav-link {
+  color: #FFFFFF;
+  font-weight: 500;
+  font-size: 1.1rem;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 0.4rem;
+  margin-top: 2rem;
+}
+
+
+.active-link {
+  color: #ECF0BA;
+  font-weight: bold;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    text-shadow: 0 0 5px #ECF0BA, 0 0 10px #ECF0BA;
+  }
+  50% {
+    text-shadow: 0 0 12px #ECF0BA, 0 0 18px #ECF0BA;
+  }
+}
+
+.pulse-glow {
+  animation: pulse-glow 1.6s infinite ease-in-out;
+}
