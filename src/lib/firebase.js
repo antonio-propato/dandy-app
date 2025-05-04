@@ -4,12 +4,12 @@ import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAc3tx7D9zJGNEFcZmvMXqFVQnS9Y7HAz8",
-  authDomain: "dandyloyaltyapp.firebaseapp.com",
-  projectId: "dandyloyaltyapp",
-  storageBucket: "dandyloyaltyapp.firebasestorage.app",
-  messagingSenderId: "1013359985976",
-  appId: "1:1013359985976:web:f9504952d8883e0b642dcd"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 }
 
 const app = initializeApp(firebaseConfig)

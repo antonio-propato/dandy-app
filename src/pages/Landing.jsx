@@ -110,6 +110,7 @@ export default function Landing() {
       <div className="landing-overlay"></div>
       <div className="shine-effect"></div>
 
+
       <div className="landing-card">
         <motion.img
           src={DandyLogo}
