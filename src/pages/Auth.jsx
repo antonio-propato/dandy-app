@@ -1,4 +1,3 @@
-// src/pages/Auth.jsx
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -7,6 +6,7 @@ import {
 } from 'firebase/auth'
 import { auth, firestore } from '../lib/firebase'
 import { doc, setDoc } from 'firebase/firestore'
+import './Auth.css' // ✅ Make sure to import the CSS
 
 export default function Auth({ mode = 'signin' }) {
   const navigate = useNavigate()
@@ -54,113 +54,108 @@ export default function Auth({ mode = 'signin' }) {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">
-      <form onSubmit={handleSubmit} className="w-full max-w-md bg-white p-8 rounded-lg shadow">
-        <h2 className="text-2xl font-bold mb-6">
-          {mode === 'signup' ? 'Create Account' : 'Welcome Back'}
+    <div className="auth-wrapper">
+      <div className="auth-overlay"></div>
+
+      <div className="auth-card">
+        <h2 className="auth-title">
+          {mode === 'signup' ? 'Crea un Account' : 'Bentornato'}
         </h2>
 
-        {error && <div className="mb-4 text-red-600">{error}</div>}
+        {error && <div className="auth-error">{error}</div>}
 
-        {mode === 'signup' && (
-          <>
-            {/* First & Last Name */}
-            <div className="mb-4">
-              <label className="block text-gray-700">NOME</label>
-              <input
-                type="text"
-                name="firstName"
-                value={form.firstName}
-                onChange={handleChange}
-                required
-                className="w-full mt-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700">COGNOME</label>
-              <input
-                type="text"
-                name="lastName"
-                value={form.lastName}
-                onChange={handleChange}
-                required
-                className="w-full mt-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring"
-              />
-            </div>
-
-            {/* Date of Birth */}
-            <div className="mb-4">
-              <label className="block text-gray-700">DATA DI NASCITA</label>
-              <input
-                type="date"
-                name="dob"
-                value={form.dob}
-                onChange={handleChange}
-                required
-                className="w-full mt-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring"
-              />
-            </div>
-
-            {/* Phone with Country Code */}
-            <div className="mb-4">
-              <label className="block text-gray-700">CELL</label>
-              <div className="flex items-center space-x-2 mt-1">
+        <form onSubmit={handleSubmit} className="auth-form">
+          {mode === 'signup' && (
+            <>
+              <div className="form-group">
+                <label>Nome</label>
                 <input
                   type="text"
-                  name="countryCode"
-                  value={form.countryCode}
+                  name="firstName"
+                  value={form.firstName}
                   onChange={handleChange}
                   required
-                  className="flex-none w-12 max-w-[3rem] px-1 py-2 border rounded-lg focus:outline-none focus:ring text-center"
-                />
-                <input
-                  type="tel"
-                  name="phone"
-                  value={form.phone}
-                  onChange={handleChange}
-                  required
-                  placeholder="123-456-7890"
-                  className="flex-1 min-w-0 px-3 py-2 border rounded-lg focus:outline-none focus:ring"
                 />
               </div>
-            </div>
-          </>
-        )}
 
-        {/* Email */}
-        <div className="mb-4">
-          <label className="block text-gray-700">Email</label>
-          <input
-            type="email"
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            required
-            className="w-full mt-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring"
-          />
-        </div>
+              <div className="form-group">
+                <label>Cognome</label>
+                <input
+                  type="text"
+                  name="lastName"
+                  value={form.lastName}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
 
-        {/* Password */}
-        <div className="mb-6">
-          <label className="block text-gray-700">Password</label>
-          <input
-            type="password"
-            name="password"
-            value={form.password}
-            onChange={handleChange}
-            required
-            className="w-full mt-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring"
-          />
-        </div>
+              <div className="form-group">
+                <label>Data di nascita</label>
+                <input
+                  type="date"
+                  name="dob"
+                  value={form.dob}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50"
-        >
-          {loading ? 'Please wait...' : mode === 'signup' ? 'CONFERMA' : 'ACCEDI'}
-        </button>
-      </form>
+              <div className="form-group phone">
+                <label>Cellulare</label>
+                <div className="phone-fields">
+                  <input
+                    type="text"
+                    name="countryCode"
+                    value={form.countryCode}
+                    onChange={handleChange}
+                    required
+                    className="code"
+                  />
+
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={form.phone}
+                    onChange={handleChange}
+                    required
+                    placeholder="123456789"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="form-group">
+            <label>Email</label>
+            <input
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="auth-button"
+          >
+            {loading ? 'Attendere...' : mode === 'signup' ? 'CONFERMA' : 'ACCEDI'}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }
