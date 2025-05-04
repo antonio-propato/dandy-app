@@ -6,29 +6,26 @@
   background-position: center;
   position: relative;
   font-family: 'Raleway', sans-serif;
-  padding: 6rem 1.5rem 2rem;
-}
-
-.contacts-overlay {
-  position: absolute;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.4);
-  z-index: 0;
+  padding: 6rem 1rem 1rem; /* Reduced padding */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .contacts-content {
   position: relative;
   z-index: 10;
-  max-width: 720px;
+  max-width: 100%; /* Allow full width */
   margin: 0 auto;
   color: #ECF0BA;
+  padding: 0 1rem; /* Add some horizontal padding */
 }
 
 .contacts-title {
-  font-size: 2.4rem;
+  font-size: 2rem; /* Slightly smaller */
   font-weight: 700;
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem; /* Reduced margin */
   color: #ECF0BA;
 }
 
@@ -36,12 +33,14 @@
 .contact-card {
   background-color: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
+  border-radius: 0.8rem; /* Slightly smaller radius */
+  padding: 1rem; /* Reduced padding */
+  margin: 0.5rem; /* Smaller margin */
   backdrop-filter: blur(5px);
-  box-shadow: 0 0 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3); /* Reduced shadow */
   transition: transform 0.3s ease;
+  flex: 1 1 calc(50% - 1rem); /* Responsive layout */
+  box-sizing: border-box;
 }
 
 .contact-card:hover {
@@ -51,14 +50,14 @@
 .contact-label {
   font-weight: 700;
   color: #ffffff;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.3rem; /* Reduced margin */
   display: block;
-  font-size: 1rem;
+  font-size: 0.9rem; /* Slightly smaller */
 }
 
 .contact-value,
 .contact-value a {
-  font-size: 1rem;
+  font-size: 0.9rem; /* Slightly smaller */
   color: #ECF0BA;
   text-decoration: none;
   display: block;
@@ -69,12 +68,21 @@
   color: #ffffff;
 }
 
+/* Responsive grid layout */
+.contacts-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem; /* Space between cards */
+  justify-content: center;
+}
+
 @media (max-width: 480px) {
   .contacts-title {
-    font-size: 1.8rem;
+    font-size: 1.6rem; /* Smaller title */
   }
 
   .contact-card {
-    padding: 1.2rem;
+    padding: 0.8rem; /* Reduced padding */
+    flex: 1 1 100%; /* Full width on small screens */
   }
 }
