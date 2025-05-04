@@ -1,3 +1,66 @@
+import React from 'react'
+import './Contacts.css'
+import Legno from '/images/Legno.png'
+import Nav from '../components/Nav'
+
 export default function Contacts() {
-  return <div className="p-6">Contact Us</div>
+  return (
+    <div className="contacts-wrapper" style={{ backgroundImage: `url(${Legno})` }}>
+      <div className="contacts-overlay"></div>
+
+      <Nav />
+
+      <div className="contacts-content">
+        <h1 className="contacts-title">Contatti</h1>
+
+        <div className="contact-card">
+          <span className="contact-label">Telefono Fisso</span>
+          <span className="contact-value">080 3713173</span>
+        </div>
+
+        <div className="contact-card">
+          <span className="contact-label">WhatsApp</span>
+          <span className="contact-value">+39 392 724 9845</span>
+        </div>
+
+        <div className="contact-card">
+          <span className="contact-label">Instagram</span>
+          <span className="contact-value">
+            <a href="https://www.instagram.com/dandycaffe/?hl=en" target="_blank" rel="noopener noreferrer">
+              @dandycaffe
+            </a>
+          </span>
+        </div>
+
+        <div className="contact-card">
+          <span className="contact-label">Facebook</span>
+          <span className="contact-value">
+            <a href="https://www.facebook.com/p/Dandy-Caff%C3%A8-100063616448651/" target="_blank" rel="noopener noreferrer">
+              Dandy Caffè
+            </a>
+          </span>
+        </div>
+
+        <div className="contact-card">
+          <span className="contact-label">Email</span>
+          <span className="contact-value">
+            <a href="mailto:Dandycaffe@libero.it">Dandycaffe@libero.it</a>
+          </span>
+        </div>
+
+        <div className="contact-card">
+          <span className="contact-label">Indirizzo</span>
+          <span className="contact-value">Via Generale Francesco Planelli, 60, 70032 Bitonto (BA), Italia</span>
+        </div>
+
+        <div className="contact-card">
+          <span className="contact-label">Orari di Apertura</span>
+          <span className="contact-value">
+            Lunedì – Sabato: 06:00 – 21:00<br />
+            Domenica e Festivi: 06:00 – 13:00
+          </span>
+        </div>
+      </div>
+    </div>
+  )
 }
