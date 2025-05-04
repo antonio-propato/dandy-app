@@ -297,7 +297,7 @@ export default function Stamps() {
             className="add-stamp-button"
             style={{ backgroundColor: '#616843' }}
           >
-            Test Reward Modal
+            Test Finestra Riscatto
           </button>
         </div>
       </div>

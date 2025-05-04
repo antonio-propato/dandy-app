@@ -25,6 +25,8 @@
   min-height: 100vh;
   /* Prevent mobile browsers from auto-adjusting text size and zooming */
   -webkit-text-size-adjust: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 .stamps-wrapper::before {
@@ -67,10 +69,11 @@
   z-index: 1;
 }
 
-/* Grid layout: auto-fit makes it responsive, same-sized cells */
+/* Grid layout: explicit 3x3 grid regardless of screen size */
 .stamps-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
   gap: 1.5rem;
   justify-items: center;
   align-items: center;
@@ -81,7 +84,8 @@
   background-color: #616843;
   border: 2px dashed #c7c7c7;
   border-radius: 1rem;
-  width: 120px;
+  width: 100%;
+  max-width: 120px;
   aspect-ratio: 1 / 1;
   display: flex;
   flex-direction: column;
@@ -417,38 +421,34 @@ textarea {
   animation-fill-mode: both;
 }
 
-/* Responsive styles */
+/* Responsive styles - simplified to maintain 3x3 grid */
 @media (max-width: 768px) {
-  .stamps-grid {
-    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-    gap: 1rem;
-  }
-
   .stamp-box {
-    width: 110px;
-    aspect-ratio: 1 / 1;
+    max-width: 110px;
   }
 
   .stamp-cup {
-    width: 70px;
-    height: 70px;
+    width: 65px;
+    height: 65px;
+  }
+
+  .stamp-date {
+    font-size: 1.2rem;
   }
 }
 
 @media (max-width: 480px) {
   .stamps-grid {
-    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
     gap: 0.8rem;
   }
 
   .stamp-box {
-    width: 115px;
-    aspect-ratio: 1 / 1;
+    max-width: 110px;
   }
 
   .stamp-cup {
-    width: 80px;
-    height: 80px;
+    width: 60px;
+    height: 60px;
   }
 
   .stamp-date {

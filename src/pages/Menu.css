@@ -5,10 +5,10 @@
 
 .menu-content {
   background-color: rgba(0, 0, 0, 0.65);
-  padding: 2rem;
+  padding: 0.8rem;
   border-radius: 1rem;
-  max-width: 500px;
-  margin: 6rem auto 2rem; /* Add top margin to account for burger button */
+  max-width: 550px;
+  margin: 2rem -16px 2rem; /* Add top margin to account for burger button */
 }
 
 .menu-section {
@@ -33,7 +33,7 @@
 .menu-item {
   display: flex;
   justify-content: space-between;
-  padding: 0.5rem 0;
+  padding: 0.2rem 0;
   border-bottom: 1px dashed #ECF0BA;
   font-size: 1.1rem;
 }

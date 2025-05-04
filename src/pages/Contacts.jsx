@@ -11,16 +11,26 @@ export default function Contacts() {
       <Nav />
 
       <div className="contacts-content">
-        <h1 className="contacts-title">Contatti</h1>
+        {/* <h1 className="contacts-title">Contatti</h1> */}
 
         <div className="contact-card">
           <span className="contact-label">Telefono Fisso</span>
-          <span className="contact-value">080 3713173</span>
+          <span className="contact-value">
+            <a href="tel:+39 (0)80 3713 173">080 3713173</a>
+          </span>
         </div>
 
         <div className="contact-card">
           <span className="contact-label">WhatsApp</span>
-          <span className="contact-value">+39 392 724 9845</span>
+          <span className="contact-value">
+            <a
+              href="https://wa.me/393927249845"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              +39 392 724 9845
+            </a>
+          </span>
         </div>
 
         <div className="contact-card">
