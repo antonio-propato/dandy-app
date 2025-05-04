@@ -27,8 +27,9 @@
   border-radius: 1rem;
   width: 90%;
   max-width: 420px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  /* box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); */
   box-sizing: border-box;
+  margin-top: -2.5rem; /* Move the card up */
 }
 
 /* Title */
@@ -58,7 +59,7 @@
 .auth-logo-signin {
   display: block;
   max-width: 150px; /* increased from 90px */
-  margin: 0rem auto 8rem auto; /* space from top and bottom */
+  margin: 2rem auto 8rem auto; /* space from top and bottom */
   border-radius: 10px;
   object-fit: cover;
   z-index: 10;
@@ -132,7 +133,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   width: 100%;
-  margin-top: 2.5rem; /* ⬅ Add this line to push it down */
+  margin-top: 0.1rem; /* ⬅ Add this line to push it down */
 }
 
 
