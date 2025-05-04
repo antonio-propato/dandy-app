@@ -1,3 +1,5 @@
+/* First, update your Nav.css file */
+
 .nav-flyout {
   position: fixed;
   top: 0;
@@ -6,12 +8,12 @@
   width: 10rem;
   background-color: #000000e1;
   color: #FFFFFF;
-  z-index: 30;
+  z-index: 40; /* Increased z-index to ensure it's above content */
   transform: translateX(-100%);
   transition: transform 0.3s ease;
-  padding: 1.5rem 1rem;
+  padding: 5rem 1rem 1.5rem; /* Increased top padding to account for button */
   display: flex;
-  flex-direction: column; /* REQUIRED for margin-top: auto to work */
+  flex-direction: column;
   border-top-right-radius: 8px;
   border-bottom-right-radius: 8px;
 }
@@ -20,7 +22,6 @@
   margin-bottom: 3rem;
   margin-top: auto; /* Pushes the logout button to the bottom */
 }
-
 
 .nav-flyout.open {
   transform: translateX(0);
@@ -48,7 +49,6 @@
   margin-top: 2rem;
 }
 
-
 .active-link {
   color: #ECF0BA;
   font-weight: bold;
@@ -65,4 +65,39 @@
 
 .pulse-glow {
   animation: pulse-glow 1.6s infinite ease-in-out;
+}
+
+/* Updated burger button styling - no background */
+.burger-button {
+  position: fixed;
+  top: 1.5rem; /* Consistent positioning from top */
+  left: 1rem; /* Consistent positioning from left */
+  z-index: 50; /* Higher z-index to ensure it's always on top */
+  padding: 0.5rem;
+  background-color: transparent;
+  color: #ffffff;
+  border: none;
+  width: auto;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.burger-button:hover {
+  transform: scale(1.1);
+}
+
+.burger-icon {
+  font-size: 1.8rem; /* Slightly larger icon */
+  color: #ffffff;
+  transition: color 0.3s ease;
+  /* Optional: Add a text shadow to make it more visible against various backgrounds */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.burger-icon:hover {
+  color: #fff;
 }

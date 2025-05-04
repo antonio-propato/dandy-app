@@ -1,19 +1,46 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { signOut } from 'firebase/auth'
 import { auth } from '../lib/firebase'
-import { Menu, X } from 'lucide-react'
 import './Nav.css'
+
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faBars } from '@fortawesome/free-solid-svg-icons'
 
 export default function Nav() {
   const location = useLocation()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
 
+  const buttonRef = useRef(null)
+  const flyoutRef = useRef(null)
+
   const handleLogout = async () => {
     await signOut(auth)
     navigate('/signin')
   }
+
+  // Close if click or tap is outside both button and menu
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        flyoutRef.current &&
+        !flyoutRef.current.contains(event.target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target)
+      ) {
+        setOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('touchstart', handleClickOutside)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+    }
+  }, [])
 
   if (['/', '/signin', '/signup'].includes(location.pathname)) return null
 
@@ -23,34 +50,23 @@ export default function Nav() {
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
-        className="fixed top-4 left-4 z-50 p-2 bg-[#43221B] text-[#ECF0BA] rounded-full shadow-md"
+        ref={buttonRef}
+        onClick={() => setOpen(!open)}
+        className="burger-button"
       >
-        <Menu size={24} />
+        <FontAwesomeIcon icon={faBars} className="burger-icon" />
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-40 bg-black bg-opacity-50" onClick={() => setOpen(false)} />
-      )}
+      <div ref={flyoutRef} className={`nav-flyout ${open ? 'open' : ''}`}>
+        <Link to="/profile" onClick={() => setOpen(false)} className={isActive('/profile')}>Profilo</Link>
+        <Link to="/stamps" onClick={() => setOpen(false)} className={isActive('/stamps')}>Stampi</Link>
+        <Link to="/menu" onClick={() => setOpen(false)} className={isActive('/menu')}>Menu</Link>
+        <Link to="/contacts" onClick={() => setOpen(false)} className={isActive('/contacts')}>Contatti</Link>
 
-<div className={`nav-flyout ${open ? 'open' : ''}`}>
-  <div className="nav-header">
-    <span className="text-lg font-semibold text-[#ECF0BA]">Menu</span>
-    <button onClick={() => setOpen(false)} className="text-white">
-      <X size={20} />
-    </button>
-  </div>
-
-  <Link to="/profile" onClick={() => setOpen(false)} className={isActive('/profile')}>Profilo</Link>
-  <Link to="/stamps" onClick={() => setOpen(false)} className={isActive('/stamps')}>Stampi</Link>
-  <Link to="/menu" onClick={() => setOpen(false)} className={isActive('/menu')}>Menu</Link>
-  <Link to="/contacts" onClick={() => setOpen(false)} className={isActive('/contacts')}>Contatti</Link>
-
-  <div className="nav-logout">
-    <button onClick={handleLogout} className="nav-link logout-button">Log Out</button>
-  </div>
-</div>
-
+        <div className="nav-logout">
+          <button onClick={handleLogout} className="nav-link logout-button">Log Out</button>
+        </div>
+      </div>
     </>
   )
 }

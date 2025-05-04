@@ -1,0 +1,39 @@
+.menu-wrapper {
+  font-family: 'Raleway', sans-serif;
+  color: #ECF0BA;
+}
+
+.menu-content {
+  background-color: rgba(0, 0, 0, 0.65);
+  padding: 2rem;
+  border-radius: 1rem;
+  max-width: 500px;
+  margin: 6rem auto 2rem; /* Add top margin to account for burger button */
+}
+
+.menu-section {
+  margin-bottom: 2rem;
+}
+
+.menu-category {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #ECF0BA;
+  padding-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.menu-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px dashed #ECF0BA;
+  font-size: 1.1rem;
+}

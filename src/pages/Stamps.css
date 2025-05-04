@@ -1,0 +1,56 @@
+.stamps-wrapper {
+  padding: 6rem 1.5rem 2rem; /* Update top padding to be consistent */
+  width: 100%;
+  font-family: 'Raleway', sans-serif;
+  background: url('/images/Couch.jpg') center center / cover no-repeat;
+  position: relative;
+  min-height: 100vh;
+}
+
+.stamps-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.4); /* Optional dark overlay */
+  z-index: 0;
+}
+
+.stamps-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+  color: #ECF0BA;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.stamps-container {
+  background-color: #ffffff;
+  padding: 1rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  max-width: 42rem;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.stamps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  justify-items: center;
+}
+
+.stamp-box {
+  background-color: #f3f3f3;
+  border: 1px solid #ccc;
+  border-radius: 1rem;
+  width: 80px;
+  height: 80px;
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
