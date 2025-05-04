@@ -4,7 +4,6 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { auth, firestore } from '../lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
 import Nav from '../components/Nav'
-import Legno from '/images/Legno.png'
 import './Profile.css'
 
 export default function Profile() {
@@ -29,7 +28,10 @@ export default function Profile() {
   const phoneNumber = numberParts.join(' ')
 
   return (
-    <div className="profile-wrapper" style={{ backgroundImage: `url(${Legno})` }}>
+    <div
+      className="profile-wrapper"
+      style={{ backgroundImage: `url('/images/Legno.png')` }}
+    >
       <div className="profile-overlay"></div>
       <Nav />
 
@@ -48,7 +50,6 @@ export default function Profile() {
 
           {profile.qrCode && (
             <div className="qr-section">
-              {/* <p>Il tuo QR code:</p> */}
               <img src={profile.qrCode} alt="QR Code" className="qr-image" />
             </div>
           )}

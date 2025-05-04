@@ -42,7 +42,7 @@
   transform: translateX(-50%);
   width: 6rem;
   height: 6rem;
-  background: url('public/images/Dandy.jpeg') no-repeat center center;
+  background: url('/images/Dandy.jpeg') no-repeat center center;
   background-size: cover;
   border-radius: 10%;
   border: 1px solid #ECF0BA;
