@@ -6,7 +6,9 @@ import {
 } from 'firebase/auth'
 import { auth, firestore } from '../lib/firebase'
 import { doc, setDoc } from 'firebase/firestore'
+import QRCode from 'qrcode' // ✅ This is the line you need
 import './Auth.css'
+
 
 export default function Auth({ mode = 'signin' }) {
   const navigate = useNavigate()
@@ -33,18 +35,26 @@ export default function Auth({ mode = 'signin' }) {
     try {
       let userCred
       const { email, password, firstName, lastName, dob, countryCode, phone } = form
+
       if (mode === 'signup') {
         userCred = await createUserWithEmailAndPassword(auth, email, password)
+
+        const qrData = `https://dandy.app/profile/${userCred.user.uid}`
+        const qrCodeURL = await QRCode.toDataURL(qrData) // ✅ This generates the QR
+
         await setDoc(doc(firestore, 'users', userCred.user.uid), {
           firstName,
           lastName,
           dob,
           phone: `${countryCode}${phone}`,
           email,
+          qrCode: qrCodeURL, // ✅ Save it to Firestore
         })
+        console.log(qrCodeURL)
       } else {
         userCred = await signInWithEmailAndPassword(auth, email, password)
       }
+
       navigate('/profile')
     } catch (err) {
       setError(err.message)
