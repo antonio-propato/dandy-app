@@ -4,10 +4,12 @@
   min-height: 100vh;
   background: url('/images/Barseat.png') center/cover no-repeat;
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* move content to top */
   justify-content: center;
+  padding-top: 4rem; /* space from the top */
   font-family: 'Raleway', sans-serif;
 }
+
 
 .auth-overlay {
   position: absolute;
@@ -21,7 +23,7 @@
 .auth-card {
   position: relative;
   z-index: 1;
-  padding: 2rem;
+  padding: 1rem;
   border-radius: 1rem;
   width: 90%;
   max-width: 420px;
@@ -42,8 +44,32 @@
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 1.2rem;
+  gap: 1rem;
 }
+
+/* Logo styling */
+.auth-logo {
+  display: block;
+  max-width: 90px;
+  margin: 0 auto 2rem auto;
+  border-radius: 12px;
+}
+
+.auth-logo-signin {
+  display: block;
+  max-width: 150px; /* increased from 90px */
+  margin: 0rem auto 8rem auto; /* space from top and bottom */
+  border-radius: 10px;
+  object-fit: cover;
+  z-index: 10;
+  border: #43221B groove 2px; /* Tailwind blue-600 */
+}
+
+
+/* .auth-card-signin {
+  padding-top: rem;
+} */
+
 
 .form-group {
   display: flex;
@@ -96,17 +122,19 @@
 
 /* Button */
 .auth-button {
-  background: linear-gradient(90deg, #43221B, #6f3a25);
+  background: linear-gradient(97deg, #43221B, #43221bd3);
   color: #ECF0BA;
   font-weight: bold;
-  padding: 0.8rem;
+  padding: 1.2rem;
   border: 1px groove #ECF0BA;
   border-radius: 0.6rem;
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
   width: 100%;
+  margin-top: 2.5rem; /* ⬅ Add this line to push it down */
 }
+
 
 .auth-button:hover {
   filter: brightness(1.1);

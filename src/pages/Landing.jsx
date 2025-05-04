@@ -1,7 +1,7 @@
+// src/pages/Landing.jsx
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useAnimation } from 'framer-motion'
-import DandyLogo from '../assets/images/Dandy.jpeg'
 import './Landing.css'
 
 export default function Landing() {
@@ -43,10 +43,9 @@ export default function Landing() {
     },
   ]
 
-
   const messages = [
     'Un caffè Dandy al giorno toglie il medico di torno!',
-    'Vieni al Dandy, ca t facim nu bel cafej!',
+    'Vieni da Dandy, ca t facim nu bel cafej!',
     'Tempo di una pausa caffè? Me’ e statt angour!',
   ]
 
@@ -110,10 +109,9 @@ export default function Landing() {
       <div className="landing-overlay"></div>
       <div className="shine-effect"></div>
 
-
       <div className="landing-card">
         <motion.img
-          src={DandyLogo}
+          src="/images/Dandy.jpeg" // ✅ STATIC path from /public/images
           alt="Logo Dandy"
           className="landing-logo"
           animate={controls}

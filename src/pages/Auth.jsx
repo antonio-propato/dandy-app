@@ -6,7 +6,7 @@ import {
 } from 'firebase/auth'
 import { auth, firestore } from '../lib/firebase'
 import { doc, setDoc } from 'firebase/firestore'
-import './Auth.css' // ✅ Make sure to import the CSS
+import './Auth.css'
 
 export default function Auth({ mode = 'signin' }) {
   const navigate = useNavigate()
@@ -57,10 +57,16 @@ export default function Auth({ mode = 'signin' }) {
     <div className="auth-wrapper">
       <div className="auth-overlay"></div>
 
-      <div className="auth-card">
-        <h2 className="auth-title">
-          {mode === 'signup' ? 'Crea un Account' : 'Bentornato'}
-        </h2>
+      <div className={`auth-card ${mode === 'signin' ? 'auth-card-signin' : ''}`}>
+        <img
+          src="/images/Dandy.jpeg"
+          alt="Dandy Logo"
+          className={`auth-logo ${mode === 'signin' ? 'auth-logo-signin' : ''}`}
+        />
+
+        {mode === 'signin' && (
+          <h2 className="auth-title">Bentornato</h2>
+        )}
 
         {error && <div className="auth-error">{error}</div>}
 
@@ -90,10 +96,11 @@ export default function Auth({ mode = 'signin' }) {
               </div>
 
               <div className="form-group">
-                <label>Data di nascita</label>
+                <label>Compleanno</label>
                 <input
-                  type="date"
+                  type="text"
                   name="dob"
+                  placeholder="gg/mm"
                   value={form.dob}
                   onChange={handleChange}
                   required
@@ -111,7 +118,6 @@ export default function Auth({ mode = 'signin' }) {
                     required
                     className="code"
                   />
-
                   <input
                     type="tel"
                     name="phone"
@@ -147,13 +153,15 @@ export default function Auth({ mode = 'signin' }) {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="auth-button"
-          >
-            {loading ? 'Attendere...' : mode === 'signup' ? 'CONFERMA' : 'ACCEDI'}
-          </button>
+          <div style={{ marginTop: mode === 'signin' ? '1.5rem' : '2.5rem' }}>
+            <button
+              type="submit"
+              disabled={loading}
+              className="auth-button"
+            >
+              {loading ? 'Attendere...' : mode === 'signup' ? 'CONFERMA' : 'ACCEDI'}
+            </button>
+          </div>
         </form>
       </div>
     </div>
