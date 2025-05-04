@@ -6,9 +6,8 @@ import {
 } from 'firebase/auth'
 import { auth, firestore } from '../lib/firebase'
 import { doc, setDoc } from 'firebase/firestore'
-import QRCode from 'qrcode' // ✅ This is the line you need
+import QRCode from 'qrcode'
 import './Auth.css'
-
 
 export default function Auth({ mode = 'signin' }) {
   const navigate = useNavigate()
@@ -32,29 +31,40 @@ export default function Auth({ mode = 'signin' }) {
     e.preventDefault()
     setError(null)
     setLoading(true)
+
     try {
-      let userCred
       const { email, password, firstName, lastName, dob, countryCode, phone } = form
+      let userCred
 
       if (mode === 'signup') {
+        // 1️⃣ Create the Auth user
         userCred = await createUserWithEmailAndPassword(auth, email, password)
 
+        // 2️⃣ Generate QR code for their profile link
         const qrData = `https://dandy.app/profile/${userCred.user.uid}`
-        const qrCodeURL = await QRCode.toDataURL(qrData) // ✅ This generates the QR
+        const qrCodeURL = await QRCode.toDataURL(qrData)
 
+        // 3️⃣ Save user profile under "users/{uid}"
         await setDoc(doc(firestore, 'users', userCred.user.uid), {
           firstName,
           lastName,
           dob,
           phone: `${countryCode}${phone}`,
           email,
-          qrCode: qrCodeURL, // ✅ Save it to Firestore
+          qrCode: qrCodeURL,
         })
-        console.log(qrCodeURL)
+
+        // 4️⃣ Initialize stamps doc under "stamps/{uid}"
+        await setDoc(doc(firestore, 'stamps', userCred.user.uid), {
+          stamps: [],
+          rewardClaimed: false,
+        })
       } else {
+        // Sign-in flow
         userCred = await signInWithEmailAndPassword(auth, email, password)
       }
 
+      // Redirect into the app
       navigate('/profile')
     } catch (err) {
       setError(err.message)
@@ -74,9 +84,7 @@ export default function Auth({ mode = 'signin' }) {
           className={`auth-logo ${mode === 'signin' ? 'auth-logo-signin' : ''}`}
         />
 
-        {mode === 'signin' && (
-          <h2 className="auth-title">Bentornato</h2>
-        )}
+        {mode === 'signin' && <h2 className="auth-title">Bentornato</h2>}
 
         {error && <div className="auth-error">{error}</div>}
 

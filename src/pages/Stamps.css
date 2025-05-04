@@ -1,56 +1,461 @@
+/* Keep existing styles unchanged */
+.logo-container {
+  position: relative;
+  z-index: 1;        /* above the dark background layer */
+  text-align: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+}
+
+.dandy-logo {
+  display: inline-block;
+  width: 100px;      /* tweak as needed */
+  height: auto;
+  border-radius: 10px;
+  margin-top: -50px;
+}
+
+/* Global wrapper and background */
 .stamps-wrapper {
-  padding: 6rem 1.5rem 2rem; /* Update top padding to be consistent */
+  padding: 8rem 1.5rem 2rem;
   width: 100%;
   font-family: 'Raleway', sans-serif;
   background: url('/images/Couch.jpg') center center / cover no-repeat;
   position: relative;
   min-height: 100vh;
+  /* Prevent mobile browsers from auto-adjusting text size and zooming */
+  -webkit-text-size-adjust: 100%;
 }
 
 .stamps-wrapper::before {
   content: '';
   position: absolute;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.4); /* Optional dark overlay */
+  background-color: rgba(0, 0, 0, 0.4);
   z-index: 0;
 }
 
+/* Titles */
 .stamps-title {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: bold;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
   color: #ECF0BA;
   text-align: center;
   position: relative;
   z-index: 1;
 }
 
+.stamps-subtitle {
+  font-size: 1.1rem;
+  color: #ECF0BA;
+  text-align: center;
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Container */
 .stamps-container {
-  background-color: #ffffff;
+  background-color: rgba(226, 240, 227, 0.7);
   padding: 1rem;
   border-radius: 1rem;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   max-width: 42rem;
   margin: 0 auto;
   position: relative;
   z-index: 1;
 }
 
+/* Grid layout: auto-fit makes it responsive, same-sized cells */
 .stamps-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1.5rem;
   justify-items: center;
+  align-items: center;
 }
 
+/* Stamp box: larger perfect square, flexible size */
 .stamp-box {
-  background-color: #f3f3f3;
-  border: 1px solid #ccc;
+  background-color: #616843;
+  border: 2px dashed #c7c7c7;
   border-radius: 1rem;
-  width: 80px;
-  height: 80px;
-  font-size: 2rem;
+  width: 120px;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.stamp-box.filled {
+  border: 2px solid #43221B;
+  background-color: #616843;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Cup image and 360° spin */
+.stamp-cup {
+  width: 75px;
+  height: 75px;
+  margin-bottom: 6px;
+}
+
+.spinning-cup {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  animation: spin 10s infinite linear;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.stamp-date {
+  font-size: 1.5rem;
+  color: #ECF0BA;
+  font-weight: 700;
+}
+
+/* Ensure form inputs don't trigger zoom on mobile */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+/* Demo button: span full width below grid */
+.add-stamp-button {
+  grid-column: 1 / -1;
+  display: block;
+  margin: 2rem auto 0;
+  background-color: #43221B;
+  color: #ECF0BA;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 2rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.add-stamp-button:hover {
+  background-color: #593025;
+}
+
+/* Popup notification - with auto-close animation */
+.popup-notification {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #43221B;
+  color: #ECF0BA;
+  padding: 1rem 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  animation: slideUp 0.3s ease, fadeOut 0.5s ease 2.5s forwards;
+}
+
+.popup-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.popup-content p {
+  margin: 0;
+  font-weight: 500;
+}
+
+.popup-content button {
+  background-color: transparent;
+  border: 1px solid #ECF0BA;
+  color: #ECF0BA;
+  padding: 0.3rem 0.8rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.popup-content button:hover {
+  background-color: #ECF0BA;
+  color: #43221B;
+}
+
+/* Reward modal - UPDATED to stay open until closed */
+.reward-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 100;
+  transition: opacity 0.3s ease;
+}
+
+/* Remove automatic closing animation from reward modal */
+.reward-modal {
+  background-color: #fff;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  max-width: 90%;
+  width: 300px;
+  animation: popup 0.5s ease;
+  position: relative; /* Added for close button positioning */
+}
+
+/* Add close button for reward modal */
+.modal-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #43221B;
+  font-size: 1.5rem;
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  background-color: rgba(67, 34, 27, 0.1);
+}
+
+/* Only apply closing animation when explicitly triggered */
+.reward-modal-overlay.closing {
+  animation: fadeOut 0.5s forwards;
+}
+
+.reward-modal.closing {
+  animation: fadeOut 0.5s forwards;
+  transform: scale(0.8);
+}
+
+.reward-modal h2 {
+  color: #43221B;
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.reward-modal h3 {
+  color: #43221B;
+  font-size: 1.4rem;
+  margin-bottom: 1.5rem;
+}
+
+.qr-container {
+  display: flex;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+
+.reward-qr {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+  border: 1px solid #eaeaea;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+}
+
+.redeem-button {
+  background-color: #43221B;
+  color: #ECF0BA;
+  border: none;
+  padding: 0.8rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 2rem;
+  margin-top: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.redeem-button:hover {
+  background-color: #593025;
+  transform: scale(1.05);
+}
+
+.loading {
+  color: #ECF0BA;
+  font-size: 1.2rem;
+  text-align: center;
+  padding-top: 5rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Animations */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes slideUp {
+  from { transform: translate(-50%, 100%); opacity: 0; }
+  50%  { transform: translate(-50%, -10%); }
+  70%  { transform: translate(-50%, 5%); }
+  to   { transform: translate(-50%, 0); opacity: 1; }
+}
+
+@keyframes popup {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.1); }
+  80%  { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; visibility: hidden; }
+}
+
+/* Logo bounce, rotate & fade animations */
+@keyframes logoBounce {
+  0%   { transform: translateY(0); }
+  30%  { transform: translateY(-120%); }
+  50%  { transform: translateY(0); }
+  70%  { transform: translateY(-30%); }
+  85%  { transform: translateY(0); }
+  92%  { transform: translateY(-10%); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes logoRotate {
+  0%   { transform: rotate(0deg); }
+  25%  { transform: rotate(180deg); }
+  50%  { transform: rotate(360deg); }
+  75%  { transform: rotate(540deg); }
+  100% { transform: rotate(720deg); }
+}
+
+@keyframes logoFade {
+  0%   { opacity: 1; transform: scale(1); }
+  50%  { opacity: 0.2; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes logoSlide {
+  0%   { transform: translateX(-200%); }
+  60%  { transform: translateX(10%); }
+  75%  { transform: translateX(-5%); }
+  90%  { transform: translateX(2%); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes logoPop {
+  0%   { transform: scale(0); }
+  60%  { transform: scale(1.2); }
+  80%  { transform: scale(0.9); }
+  90%  { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes logoSwing {
+  0%   { transform: rotate(0deg); }
+  20%  { transform: rotate(15deg); }
+  40%  { transform: rotate(-10deg); }
+  60%  { transform: rotate(5deg); }
+  80%  { transform: rotate(-2deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Cup animations */
+@keyframes spinReverse {
+  from { transform: rotate(360deg); }
+  to   { transform: rotate(0deg); }
+}
+
+@keyframes cupBounce {
+  0%   { transform: translateY(0); }
+  40%  { transform: translateY(-20px); }
+  60%  { transform: translateY(10px); }
+  80%  { transform: translateY(-5px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes cupPulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* Cup animation classes */
+.spinning-cup.spin-right {
+  animation: spin 10s infinite linear;
+}
+
+.spinning-cup.spin-left {
+  animation: spinReverse 8s infinite linear;
+}
+
+.spinning-cup.bounce {
+  animation: cupBounce 2s infinite;
+}
+
+.spinning-cup.pulse {
+  animation: cupPulse 1.5s infinite;
+}
+
+/* When this class is applied, it will use one of the animations */
+.dandy-logo.animate {
+  animation-duration: 2s;
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: both;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .stamps-grid {
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 1rem;
+  }
+
+  .stamp-box {
+    width: 110px;
+    aspect-ratio: 1 / 1;
+  }
+
+  .stamp-cup {
+    width: 70px;
+    height: 70px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stamps-grid {
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 0.8rem;
+  }
+
+  .stamp-box {
+    width: 115px;
+    aspect-ratio: 1 / 1;
+  }
+
+  .stamp-cup {
+    width: 80px;
+    height: 80px;
+  }
+
+  .stamp-date {
+    font-size: 0.7rem;
+  }
+
+  .stamps-title {
+    font-size: 1.9rem;
+  }
 }
