@@ -107,7 +107,7 @@ export default function Landing() {
       transition={{ duration: 0.5 }}
     >
       <div className="landing-overlay"></div>
-      <div className="shine-effect"></div>
+      {/* <div className="shine-effect"></div> */}
 
       <div className="landing-card">
         <motion.img
