@@ -1,3 +1,4 @@
+/* ─── GLOBAL & WRAPPER ─────────────────────── */
 .profile-wrapper {
   display: flex;
   align-items: center;
@@ -17,13 +18,14 @@
   z-index: 0;
 }
 
+/* ─── PROFILE CARD ─────────────────────────── */
 .profile-card {
-  position: relative;
+  position: relative;             /* for clipping & shine positioning */
   z-index: 10;
   margin: 5vh auto;
-  width: clamp(120px, 80%, 280px);
-  height: 70vh;
-  background: linear-gradient(135deg, rgb(67, 34, 27, 0.9), rgba(255, 255, 255, 0.306));
+  width: clamp(280px, 80%, 360px); /* wider: min 280px, ideal 80%, max 360px */
+  height: 74vh;
+  background: linear-gradient(135deg, #43221B, rgba(129, 119, 119, 0.176));
   backdrop-filter: blur(20px);
   border: 1px groove rgba(255, 255, 255, 0.7);
   border-radius: 2.5rem;
@@ -32,8 +34,26 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;               /* clip the shine inside */
 }
 
+/* ─── SHINE EFFECT (inside the card) ─────── */
+.shine-effect {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 25%;                    /* thickness of the gleam */
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0)   0%,
+    rgba(255,255,255,0.4) 50%,
+    rgba(255,255,255,0)   100%
+  );
+  animation: diamondShine 1.8s ease-in-out infinite;
+  z-index: 1;                     /* under content */
+}
+
+/* ─── PROFILE CONTENT ───────────────────────── */
 .profile-card::before {
   content: '';
   position: absolute;
@@ -51,6 +71,8 @@
 }
 
 .profile-content {
+  position: relative;
+  z-index: 2;                     /* above shine */
   text-align: center;
   color: #ECF0BA;
   margin-top: 30px;
@@ -96,9 +118,41 @@
   border: 2px solid #43221B;
 }
 
+/* ─── LOADING STATE ────────────────────────── */
 .loading {
   color: #ECF0BA;
   font-size: 1.25rem;
   text-align: center;
   margin-top: 2rem;
+}
+
+/* ─── DIAGONAL BLING ───────────────────────── */
+.shine-effect {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200%;    /* ensure it fully crosses the card */
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0) 45%,
+    rgba(159, 169, 121, 0.3) 50%,
+    rgba(102, 92, 92, 0) 55%
+  );
+  /* start off bottom-left */
+  transform: translate(-100%, 100%);
+  animation: diagonalShine 8s ease-in-out infinite;
+  z-index: 1;
+  pointer-events: none;
+}
+
+@keyframes diagonalShine {
+  /* hold off-screen bottom-left */
+  0%, 15%   { transform: translate(-100%, 100%); }
+  /* glide to off-screen top-right */
+  45%       { transform: translate(100%, -100%); }
+  /* pause there */
+  55%       { transform: translate(100%, -100%); }
+  /* return */
+  100%      { transform: translate(-100%, 100%); }
 }

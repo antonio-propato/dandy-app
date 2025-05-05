@@ -6,7 +6,7 @@
   background-position: center;
   position: relative;
   font-family: 'Raleway', sans-serif;
-  padding: 6rem 1rem 1rem; /* Reduced padding */
+  padding: 6rem 2rem 2rem; /* Increased horizontal padding for better margin */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -15,31 +15,38 @@
 .contacts-content {
   position: relative;
   z-index: 10;
-  max-width: 100%; /* Allow full width */
+  width: 100%;
+  max-width: 1200px; /* Set a max-width for large screens */
   margin: 0 auto;
   color: #ECF0BA;
-  padding: 0 1rem; /* Add some horizontal padding */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem; /* Consistent spacing between cards */
+  height: 100%;
 }
 
 .contacts-title {
-  font-size: 2rem; /* Slightly smaller */
+  font-size: 2.2rem;
   font-weight: 700;
   text-align: center;
-  margin-bottom: 1.5rem; /* Reduced margin */
+  margin-bottom: 2rem;
   color: #ECF0BA;
+  width: 100%; /* Ensure title spans full width */
 }
 
 /* Card layout */
 .contact-card {
   background-color: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.8rem; /* Slightly smaller radius */
-  padding: 1rem; /* Reduced padding */
-  margin: 0.5rem; /* Smaller margin */
+  border-radius: 0.8rem;
+  padding: 1.5rem;
   backdrop-filter: blur(5px);
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3); /* Reduced shadow */
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
   transition: transform 0.3s ease;
-  flex: 1 1 calc(50% - 1rem); /* Responsive layout */
+  flex: 1 1 calc(50% - 1rem); /* Equal sizing with consistent gap */
+  min-width: 280px; /* Minimum width for better visibility */
+  max-width: calc(50% - 1rem); /* Ensure cards don't get too wide */
   box-sizing: border-box;
 }
 
@@ -50,14 +57,14 @@
 .contact-label {
   font-weight: 700;
   color: #ffffff;
-  margin-bottom: 0.3rem; /* Reduced margin */
+  margin-bottom: 0.5rem;
   display: block;
-  font-size: 0.9rem; /* Slightly smaller */
+  font-size: 1rem;
 }
 
 .contact-value,
 .contact-value a {
-  font-size: 0.9rem; /* Slightly smaller */
+  font-size: 1rem;
   color: #ECF0BA;
   text-decoration: none;
   display: block;
@@ -68,21 +75,69 @@
   color: #ffffff;
 }
 
-/* Responsive grid layout */
-.contacts-content {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem; /* Space between cards */
-  justify-content: center;
-}
-
-@media (max-width: 480px) {
-  .contacts-title {
-    font-size: 1.6rem; /* Smaller title */
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .contacts-content {
+    padding: 0 1rem;
   }
 
   .contact-card {
-    padding: 0.8rem; /* Reduced padding */
-    flex: 1 1 100%; /* Full width on small screens */
+    flex: 1 1 calc(100% - 1rem);
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .contacts-wrapper {
+    padding: 5rem 1rem 1rem;
+  }
+
+  .contacts-title {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .contact-card {
+    padding: 1.2rem;
+  }
+}
+
+/* 1) global box-sizing so padding doesn’t blow out your width */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* 2) on phones, stack & center with no hidden overflow */
+@media (max-width: 768px) {
+  html, body {
+    overflow-x: hidden;
+  }
+
+  .contacts-wrapper {
+    /* equal 1rem side-padding, let width be exactly 100% */
+    padding: 5rem 1rem 1rem;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .contacts-content {
+    display: flex;
+    flex-direction: column;      /* stack cards top→bottom */
+    flex-wrap: nowrap;           /* no wrapping into new “columns” */
+    align-items: center;         /* center each card */
+    justify-content: flex-start; /* start at top */
+    height: auto;                /* allow content to grow */
+    width: 100%;
+    padding: 0;                  /* remove any inner padding */
+    gap: 0.1rem;                   /* vertical spacing */
+  }
+
+  .contact-card {
+    flex: none;                  /* don’t grow or shrink */
+    width: 100%;                 /* fill the inner width */
+    max-width: 360px;            /* cap so it isn’t edge-to-edge on large phones */
+    margin: 0.5rem 0;            /* vertical gutter between cards */
   }
 }
