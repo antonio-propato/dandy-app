@@ -32,10 +32,13 @@ export default function Profile() {
       className="profile-wrapper"
       style={{ backgroundImage: `url('/images/Legno.png')` }}
     >
-      <div className="profile-overlay"></div>
+      <div className="profile-overlay" />
       <Nav />
 
       <div className="profile-card">
+        {/* Diamond‐bling shine lives inside the card */}
+        <div className="shine-effect" />
+
         <div className="profile-content">
           <h1 className="profile-name">
             {profile.firstName} {profile.lastName}

@@ -55,13 +55,14 @@
 .landing-logo {
   position: absolute;
   top: 6%;
-  left: 30%;
-  width: 150px;
-  height: 150px;
+  left: 50%;
+  transform: translateX(-50%); /* Center horizontally */
+  width: 120px;
+  height: 120px;
   border-radius: 10px;
   object-fit: cover;
   z-index: 10;
-  border: #43221B groove 2px; /* Tailwind blue-600 */
+  border: #43221B groove 2px;
 }
 
 .landing-button {
