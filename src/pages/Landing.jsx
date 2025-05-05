@@ -45,7 +45,7 @@ export default function Landing() {
 
   const messages = [
     'Un caffè Dandy al giorno toglie il medico di torno!',
-    'Vieni da Dandy, ca t facim nu bel cafej!',
+    'Vieni al Dandy, ca t facim nu bel cafej!',
     'Tempo di una pausa caffè? Me’ e statt angour!',
   ]
 

@@ -1,0 +1,213 @@
+/* Preloader styles */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #0c0806;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+/* Animated background wave effect */
+.loading-screen::before {
+  content: '';
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  top: -50%;
+  left: -50%;
+  background: radial-gradient(ellipse at center, rgba(67, 34, 27, 0.3) 0%, rgba(12, 8, 6, 0) 70%);
+  animation: wave 8s infinite linear;
+  z-index: -1;
+}
+
+@keyframes wave {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Coffee steam effect */
+.steam {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 100px;
+  z-index: 5;
+}
+
+.steam-particle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background-color: rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  filter: blur(5px);
+}
+
+.steam-particle:nth-child(1) {
+  left: 20px;
+  animation: steam 3s infinite ease-out 0.2s;
+}
+
+.steam-particle:nth-child(2) {
+  left: 30px;
+  animation: steam 3s infinite ease-out 0.6s;
+}
+
+.steam-particle:nth-child(3) {
+  left: 40px;
+  animation: steam 3s infinite ease-out 1s;
+}
+
+@keyframes steam {
+  0% {
+    opacity: 0.8;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-60px) scale(1.8);
+  }
+}
+
+/* Cup container styles */
+.cup-container {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 30px rgba(236, 240, 186, 0.4);
+  border: 3px solid #43221B;
+  position: relative;
+  margin-bottom: 40px;
+}
+
+.cup-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Cup spinning animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(90deg); }
+  50% { transform: rotate(180deg); }
+  75% { transform: rotate(270deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.rotating-cup {
+  animation: spin 3s cubic-bezier(0.4, 0.1, 0.6, 0.9) infinite;
+}
+
+/* Loading bar container */
+.loading-bar-container {
+  width: 200px;
+  height: 6px;
+  background-color: rgba(236, 240, 186, 0.2);
+  border-radius: 10px;
+  margin-top: 30px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Loading bar progress */
+.loading-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ECF0BA, #43221B);
+  border-radius: 10px;
+  transition: width 0.1s linear;
+  animation: fillBar 3s linear forwards;
+}
+
+@keyframes fillBar {
+  0% { width: 0%; }
+  10% { width: 15%; }
+  20% { width: 25%; }
+  50% { width: 50%; }
+  70% { width: 75%; }
+  90% { width: 90%; }
+  100% { width: 100%; }
+}
+
+/* Loading percentage text */
+.loading-text {
+  color: #ECF0BA;
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 12px;
+  letter-spacing: 1px;
+}
+
+/* Sparkle effects around the cup */
+.sparkles {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  pointer-events: none;
+}
+
+.sparkle {
+  position: absolute;
+  background-color: #ECF0BA;
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.sparkle:nth-child(1) {
+  width: 8px;
+  height: 8px;
+  top: 20%;
+  left: 80%;
+  animation: sparkleAnimation 2s infinite ease-in-out 0.3s;
+}
+
+.sparkle:nth-child(2) {
+  width: 6px;
+  height: 6px;
+  top: 70%;
+  left: 20%;
+  animation: sparkleAnimation 2s infinite ease-in-out 0.7s;
+}
+
+.sparkle:nth-child(3) {
+  width: 10px;
+  height: 10px;
+  top: 30%;
+  left: 30%;
+  animation: sparkleAnimation 2s infinite ease-in-out 1.1s;
+}
+
+.sparkle:nth-child(4) {
+  width: 4px;
+  height: 4px;
+  top: 60%;
+  left: 75%;
+  animation: sparkleAnimation 2s infinite ease-in-out 1.5s;
+}
+
+@keyframes sparkleAnimation {
+  0% { transform: scale(0); opacity: 0; }
+  20% { transform: scale(1); opacity: 0.8; }
+  40% { transform: scale(0.5); opacity: 0.4; }
+  60% { transform: scale(1.2); opacity: 0.9; }
+  100% { transform: scale(0); opacity: 0; }
+}
+
+/* Hide original page until loaded */
+.landing-wrapper.hidden {
+  display: none;
+}
