@@ -5,7 +5,7 @@ import {
   signInWithEmailAndPassword,
 } from 'firebase/auth'
 import { auth, firestore } from '../lib/firebase'
-import { doc, setDoc } from 'firebase/firestore'
+import { doc, setDoc, getDoc } from 'firebase/firestore'
 import QRCode from 'qrcode'
 import './Auth.css'
 
@@ -44,6 +44,9 @@ export default function Auth({ mode = 'signin' }) {
         const qrData = `https://dandy.app/profile/${userCred.user.uid}`
         const qrCodeURL = await QRCode.toDataURL(qrData)
 
+        // Determine if this is a superuser account
+        const isSuperUser = email === 'antonio@propato.co.uk'
+
         // 3️⃣ Save user profile under "users/{uid}"
         await setDoc(doc(firestore, 'users', userCred.user.uid), {
           firstName,
@@ -52,19 +55,31 @@ export default function Auth({ mode = 'signin' }) {
           phone: `${countryCode}${phone}`,
           email,
           qrCode: qrCodeURL,
+          role: isSuperUser ? 'superuser' : 'customer',
         })
 
         // 4️⃣ Initialize stamps doc under "stamps/{uid}"
-        await setDoc(doc(firestore, 'stamps', userCred.user.uid), {
-          stamps: [],
-          rewardClaimed: false,
-        })
+        if (!isSuperUser) {
+          await setDoc(doc(firestore, 'stamps', userCred.user.uid), {
+            stamps: [],
+            rewardClaimed: false,
+          })
+        }
       } else {
         // Sign-in flow
         userCred = await signInWithEmailAndPassword(auth, email, password)
+
+        // Check if this is a superuser account
+        const userDoc = await getDoc(doc(firestore, 'users', userCred.user.uid))
+        const userData = userDoc.data()
+
+        if (userData && userData.role === 'superuser') {
+          navigate('/scan')
+          return
+        }
       }
 
-      // Redirect into the app
+      // Redirect regular users to profile
       navigate('/profile')
     } catch (err) {
       setError(err.message)

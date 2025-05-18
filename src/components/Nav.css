@@ -1,4 +1,4 @@
-/* First, update your Nav.css file */
+/* Nav.css - Combined version */
 
 .nav-flyout {
   position: fixed;
@@ -21,6 +21,8 @@
 .nav-logout {
   margin-bottom: 7rem;
   margin-top: auto; /* Pushes the logout button to the bottom */
+  border-top: 1px solid #333;
+  padding-top: 15px;
 }
 
 .nav-flyout.open {
@@ -47,6 +49,13 @@
   padding: 0;
   margin-bottom: 0.4rem;
   margin-top: 2rem;
+  display: flex;
+  align-items: center;
+}
+
+.nav-icon {
+  margin-right: 10px;
+  width: 20px;
 }
 
 .active-link {
@@ -100,4 +109,30 @@
 
 .burger-icon:hover {
   color: #fff;
+}
+
+.logout-button {
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 1rem;
+  font-family: inherit;
+  color: #d32f2f;
+  padding: 15px 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.logout-button:hover {
+  color: #ff5252;
+}
+
+@media (max-width: 600px) {
+  .nav-flyout {
+    width: 100%;
+    border-radius: 0;
+  }
 }
