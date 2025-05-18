@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
-import { doc, getDoc, updateDoc, setDoc, onSnapshot } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, setDoc, onSnapshot, addDoc, collection, increment } from 'firebase/firestore'
 import { auth, firestore } from '../lib/firebase'
 import Nav from '../components/Nav'
 import Confetti from 'react-confetti'
 import './Stamps.css'
+import { updateStampCounters, updateRedemptionCounters } from '../lib/firebase-counters';
 
 export default function Stamps() {
   const [user, setUser] = useState(null)
@@ -50,30 +51,88 @@ export default function Stamps() {
     setShowCongratulationsModal(true)
   }
 
-  // Reset stamps after reward is claimed
+  // Reset stamps after reward is claimed - UPDATED WITH COUNTERS AND LIFETIME TRACKING
   const resetStamps = async () => {
     if (!user) return
 
     try {
       const stampsRef = doc(firestore, 'stamps', user.uid)
-      await updateDoc(stampsRef, {
-        stamps: [],
-        rewardClaimed: true
-      })
 
-      setPopupMessage('Caffè gratis riscattato! Inizia nuovi timbri.')
-      setShowPopup(true)
-      setShowConfetti(false)
-      setShowCongratulationsModal(false)
+      // First get the current stamps document
+      const stampsSnap = await getDoc(stampsRef)
 
-      // State will be updated by the onSnapshot listener
+      if (stampsSnap.exists()) {
+        const stampsData = stampsData = stampsSnap.data()
+        const currentStamps = stampsData.stamps || []
+        const currentCount = currentStamps.length
+
+        // Get existing redeemed count if any
+        const existingRedeemed = stampsData.redeemedStamps || 0
+
+        // Get total lifetime stamps if any
+        const lifetimeStamps = stampsData.lifetimeStamps || 0
+
+        // Calculate new lifetime total
+        const newLifetimeTotal = lifetimeStamps + currentCount
+
+        // Update the document with empty stamps array and updated stamp metrics
+        await updateDoc(stampsRef, {
+          stamps: [], // Reset current stamps
+          redeemedStamps: existingRedeemed + currentCount, // Add to redeemed count
+          lifetimeStamps: newLifetimeTotal, // Track lifetime stamps for loyalty
+          redeemDate: new Date().toISOString() // Store redemption date
+        })
+
+        // Update global redemption counters
+        await updateRedemptionCounters(currentCount)
+
+        // Also create a record in the stampResetLogs collection for analytics
+        try {
+          const resetLog = {
+            userId: user.uid,
+            firstName: user.displayName || '',
+            email: user.email || '',
+            stampsRedeemed: currentCount,
+            previousRedeemed: existingRedeemed,
+            newRedeemedTotal: existingRedeemed + currentCount,
+            lifetimeTotal: newLifetimeTotal,
+            resetDate: new Date().toISOString(),
+            activityType: 'redemption' // Explicitly mark this as a redemption activity
+          }
+
+          // Add to logs collection
+          await addDoc(collection(firestore, 'stampResetLogs'), resetLog)
+          console.log('Created reset log for analytics')
+
+          // Also update user's profile with loyalty data, if needed
+          try {
+            const userRef = doc(firestore, 'users', user.uid)
+            await updateDoc(userRef, {
+              totalStampsEarned: newLifetimeTotal,
+              totalRedemptions: increment(1),
+              lastRedemptionDate: new Date().toISOString()
+            })
+          } catch (userErr) {
+            console.error('Failed to update user profile with loyalty data', userErr)
+          }
+        } catch (logErr) {
+          console.error('Failed to create reset log, but stamps were reset', logErr)
+        }
+
+        setPopupMessage('Caffè gratis riscattato! Inizia nuovi timbri.')
+        setShowPopup(true)
+        setShowConfetti(false)
+        setShowCongratulationsModal(false)
+      } else {
+        console.error('No stamps document found for reset')
+      }
     } catch (err) {
       console.error('resetStamps error', err)
       alert('Errore durante il reset: ' + err.message)
     }
   }
 
-  // Add Free Stamps to NEW users only - improved version
+  // Add Free Stamps to NEW users only - UPDATED WITH COUNTERS
   const addFreeStampsForNewUser = async (userId) => {
     console.log('Checking if user should receive free welcome stamps:', userId);
 
@@ -95,8 +154,13 @@ export default function Stamps() {
           // Add 2 free stamps
           await updateDoc(stampsRef, {
             stamps: [{ date: now }, { date: now }],
-            receivedFreeStamps: true
+            receivedFreeStamps: true,
+            lifetimeStamps: 2 // Initialize lifetime stamps counter
           });
+
+          // Update global stamp counters - 2 stamps
+          await updateStampCounters(true);
+          await updateStampCounters(true);
 
           // Show welcome message
           setPopupMessage('Benvenuto! Hai ricevuto 2 timbri omaggio!');
@@ -116,8 +180,13 @@ export default function Stamps() {
         await setDoc(stampsRef, {
           stamps: [{ date: now }, { date: now }],
           rewardClaimed: false,
-          receivedFreeStamps: true
+          receivedFreeStamps: true,
+          lifetimeStamps: 2 // Initialize lifetime stamps counter
         });
+
+        // Update global stamp counters - 2 stamps
+        await updateStampCounters(true);
+        await updateStampCounters(true);
 
         // Show welcome message
         setPopupMessage('Benvenuto! Hai ricevuto 2 timbri omaggio!');
@@ -201,18 +270,61 @@ export default function Stamps() {
       if (newStamps.length > totalSlots) {
         console.log('Detected more than 9 stamps, resetting to 0')
         try {
+          // Get current stamps data for proper reset
+          const stampsData = docSnap.data();
+          const currentStamps = stampsData.stamps || [];
+          const currentCount = currentStamps.length;
+
+          // Get existing redeemed count and lifetime stamps
+          const existingRedeemed = stampsData.redeemedStamps || 0;
+          const lifetimeStamps = stampsData.lifetimeStamps || 0;
+
+          // Calculate new totals
+          const newLifetimeTotal = lifetimeStamps + currentCount;
+
+          // Update document with proper tracking
           await updateDoc(stampsRef, {
             stamps: [],
-            rewardClaimed: true
-          })
-          setPopupMessage('Caffè gratis riscattato! Inizia nuovi timbri.')
-          setShowPopup(true)
-          setShowConfetti(false)
-          setShowCongratulationsModal(false)
+            redeemedStamps: existingRedeemed + currentCount,
+            lifetimeStamps: newLifetimeTotal,
+            redeemDate: new Date().toISOString()
+          });
+
+          // Update global counters
+          await updateRedemptionCounters(currentCount);
+
+          // Create log entry for dashboard activity
+          try {
+            const now = new Date().toISOString();
+            const resetLog = {
+              userId: user.uid,
+              firstName: user.displayName || '',
+              email: user.email || '',
+              stampsRedeemed: currentCount,
+              previousRedeemed: existingRedeemed,
+              newRedeemedTotal: existingRedeemed + currentCount,
+              lifetimeTotal: newLifetimeTotal,
+              resetDate: now,
+              activityType: 'redemption',
+              timestamp: now
+            };
+
+            await addDoc(collection(firestore, 'stampResetLogs'), resetLog);
+            console.log('Auto-reset logged for dashboard activity');
+          } catch (logErr) {
+            console.error('Failed to log auto-reset', logErr);
+          }
+
+          // Update UI
+          setPopupMessage('Caffè gratis riscattato! Inizia nuovi timbri.');
+          setShowPopup(true);
+          setShowConfetti(false);
+          setShowCongratulationsModal(false);
+
           // The next update from Firebase will have 0 stamps
-          return
+          return;
         } catch (err) {
-          console.error('Auto-reset error', err)
+          console.error('Auto-reset error', err);
         }
       }
 
@@ -283,7 +395,7 @@ export default function Stamps() {
     return unsubscribe;
   }, []);
 
-  // add a new stamp
+  // add a new stamp - UPDATED WITH COUNTERS
   const addStamp = async () => {
     if (!user) return
 
@@ -293,39 +405,135 @@ export default function Stamps() {
       const snap = await getDoc(stampsRef)
 
       if (snap.exists()) {
-        const currentStamps = snap.data().stamps || []
+        const stampsData = snap.data();
+        const currentStamps = stampsData.stamps || [];
 
         // If already at 9 stamps, reset instead of adding
         if (currentStamps.length >= totalSlots) {
+          // Get existing metrics
+          const existingRedeemed = stampsData.redeemedStamps || 0;
+          const lifetimeStamps = stampsData.lifetimeStamps || 0;
+
+          // Calculate new totals
+          const currentCount = currentStamps.length;
+          const newLifetimeTotal = lifetimeStamps + currentCount;
+
+          // Update document with full stamp data
           await updateDoc(stampsRef, {
             stamps: [],
-            rewardClaimed: true
-          })
+            redeemedStamps: existingRedeemed + currentCount,
+            lifetimeStamps: newLifetimeTotal,
+            redeemDate: new Date().toISOString()
+          });
 
-          setPopupMessage('Caffè gratis riscattato! Inizia nuovi timbri.')
-          setShowPopup(true)
-          return
+          // Update redemption counters
+          await updateRedemptionCounters(currentCount);
+
+          // Create reset log with activity type
+          try {
+            const resetLog = {
+              userId: user.uid,
+              firstName: user.displayName || '',
+              email: user.email || '',
+              stampsRedeemed: currentCount,
+              previousRedeemed: existingRedeemed,
+              newRedeemedTotal: existingRedeemed + currentCount,
+              lifetimeTotal: newLifetimeTotal,
+              resetDate: new Date().toISOString(),
+              activityType: 'redemption' // Explicitly mark this as a redemption activity
+            };
+
+            await addDoc(collection(firestore, 'stampResetLogs'), resetLog);
+            console.log('Created redemption activity log');
+
+            // Update user profile
+            try {
+              const userRef = doc(firestore, 'users', user.uid);
+              await updateDoc(userRef, {
+                totalStampsEarned: newLifetimeTotal,
+                totalRedemptions: increment(1),
+                lastRedemptionDate: new Date().toISOString()
+              });
+            } catch (userErr) {
+              console.error('Failed to update user profile', userErr);
+            }
+          } catch (logErr) {
+            console.error('Failed to create reset log', logErr);
+          }
+
+          setPopupMessage('Caffè gratis riscattato! Inizia nuovi timbri.');
+          setShowPopup(true);
+          return;
         }
 
         // Otherwise add a new stamp
-        const newStamp = { date: new Date().toISOString() }
-        const updated = [...currentStamps, newStamp]
-        await updateDoc(stampsRef, { stamps: updated })
+        const now = new Date().toISOString();
+        const newStamp = {
+          date: now,
+          activityType: 'add_stamp' // Mark this as a regular stamp activity
+        };
+        const updated = [...currentStamps, newStamp];
+
+        // Update lifetime stamps if field exists
+        const updateData = { stamps: updated };
+        if (stampsData.lifetimeStamps !== undefined) {
+          updateData.lifetimeStamps = (stampsData.lifetimeStamps || 0) + 1;
+        }
+
+        await updateDoc(stampsRef, updateData);
+
+        // Update global stamp counter
+        await updateStampCounters(true);
+
+        // Also log this activity for the dashboard
+        try {
+          await addDoc(collection(firestore, 'stampActivities'), {
+            userId: user.uid,
+            timestamp: now,
+            activityType: 'add_stamp',
+            currentCount: updated.length,
+            lifetimeCount: (stampsData.lifetimeStamps || 0) + 1
+          });
+        } catch (actErr) {
+          console.error('Failed to log stamp activity', actErr);
+        }
       } else {
         // Document doesn't exist - create with one stamp
-        const newStamp = { date: new Date().toISOString() }
+        const now = new Date().toISOString();
+        const newStamp = {
+          date: now,
+          activityType: 'add_stamp'
+        };
+
         await setDoc(stampsRef, {
           stamps: [newStamp],
+          lifetimeStamps: 1,
           rewardClaimed: false
-        })
+        });
+
+        // Update global stamp counter
+        await updateStampCounters(true);
+
+        // Log the first stamp activity
+        try {
+          await addDoc(collection(firestore, 'stampActivities'), {
+            userId: user.uid,
+            timestamp: now,
+            activityType: 'add_stamp',
+            currentCount: 1,
+            lifetimeCount: 1
+          });
+        } catch (actErr) {
+          console.error('Failed to log first stamp activity', actErr);
+        }
       }
 
       // We don't need to setStamps here because the onSnapshot will update it
-      setPopupMessage('Timbro aggiunto!')
-      setShowPopup(true)
+      setPopupMessage('Timbro aggiunto!');
+      setShowPopup(true);
     } catch (err) {
-      console.error('addStamp error', err)
-      alert('Errore: ' + err.message)
+      console.error('addStamp error', err);
+      alert('Errore: ' + err.message);
     }
   }
 
