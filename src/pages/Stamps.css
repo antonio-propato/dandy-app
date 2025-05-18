@@ -50,7 +50,7 @@
   font-size: 1.1rem;
   color: #ECF0BA;
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   position: relative;
   z-index: 1;
 }
@@ -62,10 +62,9 @@
   border-radius: 1rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   max-width: 30rem;
-  margin: 0 auto;
+  margin: 1.5rem auto 0; /* Added top margin to separate from QR code */
   position: relative;
   z-index: 1;
-  top:5px;
 }
 
 /* Grid layout: auto-fit makes it responsive, same-sized cells */
@@ -127,23 +126,94 @@ textarea {
   font-size: 16px;
 }
 
-/* Demo button: span full width below grid */
-.add-stamp-button {
-  grid-column: 1 / -1;
-  display: block;
-  margin: 1rem auto 0;
+.qr-button-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 1.5rem;
+  position: relative;
+}
+
+.qr-button {
   background-color: #43221B;
   color: #ECF0BA;
   border: none;
-  padding: 0.9rem 0.8rem;
+  padding: 0.5rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 500;
   border-radius: 2rem;
   cursor: pointer;
-  font-weight: 500;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 2;
+  display: block;
+  margin: 1rem auto 0 auto; /* Added margin-top */
 }
 
-.add-stamp-button:hover {
+.qr-button:hover {
   background-color: #593025;
+  transform: scale(1.05);
+}
+
+/* New inline QR modal */
+.qr-modal {
+  background-color: white;
+  border-radius: 1rem;
+  padding: 1rem;
+  width: 90%;
+  max-width: 250px;
+  margin: 0.8rem auto 0;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  animation: fadeInDown 0.3s ease;
+  text-align: center;
+}
+
+.qr-container {
+  display: flex;
+  justify-content: center;
+
+}
+
+.profile-qr {
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  background-color: white;
+  border-radius: 0.5rem;
+  border: 1px solid #eaeaea;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: none;
+  border: none;
+  color: #43221B;
+  font-size: 1.2rem;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  background-color: rgba(67, 34, 27, 0.1);
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Popup notification - with auto-close animation */
@@ -189,6 +259,67 @@ textarea {
   color: #43221B;
 }
 
+/* Congratulations Modal - NEW */
+.congratulations-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  cursor: pointer; /* Indicate clickable area */
+  animation: fadeIn 0.5s ease;
+}
+
+.congratulations-modal {
+  background-color: #fff;
+  padding: 2.5rem 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  max-width: 90%;
+  width: 280px;
+  animation: popup 0.5s ease;
+  position: relative;
+  border: 2px solid #FFD700; /* Gold border */
+}
+
+.congratulations-modal h2 {
+  color: #43221B;
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(to right, #B8860B, #FFD700, #B8860B);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-fill-color: transparent;
+}
+
+.congratulations-modal h3 {
+  color: #43221B;
+  font-size: 1.4rem;
+  margin-bottom: 1.5rem;
+}
+
+.congratulations-modal p {
+  color: #777;
+  font-size: 0.9rem;
+  margin-top: 1.5rem;
+  font-style: italic;
+}
+
+/* Add a golden glow to the modal */
+@keyframes goldGlow {
+  0% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+  50% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.8); }
+  100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+}
+
+.congratulations-modal {
+  animation: popup 0.5s ease, goldGlow 2s infinite;
+}
+
 /* Reward modal - UPDATED to stay open until closed */
 .reward-modal-overlay {
   position: fixed;
@@ -215,26 +346,13 @@ textarea {
 }
 
 /* Add close button for reward modal */
-.modal-close-btn {
+.reward-modal .modal-close-btn {
   position: absolute;
   top: 10px;
   right: 10px;
-  background: none;
-  border: none;
-  color: #43221B;
   font-size: 1.5rem;
-  cursor: pointer;
   width: 30px;
   height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: background-color 0.2s ease;
-}
-
-.modal-close-btn:hover {
-  background-color: rgba(67, 34, 27, 0.1);
 }
 
 /* Only apply closing animation when explicitly triggered */
@@ -259,9 +377,7 @@ textarea {
   margin-bottom: 1.5rem;
 }
 
-.qr-container {
-  display: flex;
-  justify-content: center;
+.reward-modal .qr-container {
   margin: 1.5rem 0;
 }
 
@@ -301,6 +417,18 @@ textarea {
   z-index: 1;
 }
 
+/* New stamp highlight effect */
+.new-stamp-highlight {
+  animation: cupHighlight 1.5s ease-in-out;
+  box-shadow: 0 0 15px 5px #FFD700 !important;
+}
+
+@keyframes cupHighlight {
+  0%   { transform: scale(1); box-shadow: 0 0 5px 2px #FFD700; }
+  50%  { transform: scale(1.15); box-shadow: 0 0 20px 10px #FFD700; }
+  100% { transform: scale(1); box-shadow: 0 0 5px 2px #FFD700; }
+}
+
 /* Animations */
 @keyframes spin {
   from { transform: rotate(0deg); }
@@ -324,6 +452,22 @@ textarea {
 @keyframes fadeOut {
   from { opacity: 1; }
   to   { opacity: 0; visibility: hidden; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Logo bounce, rotate & fade animations */
@@ -436,12 +580,34 @@ textarea {
     width: 60px;
     height: 60px;
   }
+
+  .profile-qr {
+    width: 130px;
+    height: 130px;
+  }
+
+  .qr-modal {
+    max-width: 220px;
+  }
+
+  .congratulations-modal {
+    width: 250px;
+    padding: 2rem 1.5rem;
+  }
+
+  .congratulations-modal h2 {
+    font-size: 1.6rem;
+  }
+
+  .congratulations-modal h3 {
+    font-size: 1.2rem;
+  }
 }
 
 @media (max-width: 480px) {
   .stamps-grid {
     grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-    gap: 0.2rem;
+    gap: 0.4rem;
   }
 
   .stamp-box {
@@ -466,5 +632,45 @@ textarea {
     padding: 1.2rem;
     margin-left: 1.5rem;
     margin-right: 1.5rem;
+  }
+
+  .profile-qr {
+    width: 130px;
+    height: 130px;
+  }
+
+  .qr-modal {
+    max-width: 10px;
+    padding: 0.3rem;
+  }
+
+  .qr-button {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .qr-modal h3 {
+    font-size: 1rem;
+  }
+
+  .qr-modal p {
+    font-size: 0.7rem;
+  }
+
+  .congratulations-modal {
+    width: 220px;
+    padding: 1.5rem 1rem;
+  }
+
+  .congratulations-modal h2 {
+    font-size: 1.4rem;
+  }
+
+  .congratulations-modal h3 {
+    font-size: 1.1rem;
+  }
+
+  .congratulations-modal p {
+    font-size: 0.8rem;
   }
 }

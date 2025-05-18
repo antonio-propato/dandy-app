@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
-import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, setDoc, onSnapshot } from 'firebase/firestore'
 import { auth, firestore } from '../lib/firebase'
 import Nav from '../components/Nav'
 import Confetti from 'react-confetti'
@@ -13,15 +13,18 @@ export default function Stamps() {
   const [showPopup, setShowPopup] = useState(false)
   const [popupMessage, setPopupMessage] = useState('')
   const [showConfetti, setShowConfetti] = useState(false)
-  const [showRewardModal, setShowRewardModal] = useState(false)
+  const [showCongratulationsModal, setShowCongratulationsModal] = useState(false)
+  const [showQRModal, setShowQRModal] = useState(false)
   const [qrCode, setQrCode] = useState(null)
   const [winSize, setWinSize] = useState({ width: 0, height: 0 })
   const [tapCount, setTapCount] = useState(0)
   const logoRef = useRef(null)
   const cupsRef = useRef([])
   const popupRef = useRef(null)
-  const modalRef = useRef(null)
+  const congratulationsModalRef = useRef(null)
+  const qrModalRef = useRef(null)
   const totalSlots = 9
+  const lastStampCountRef = useRef(0)
 
   // messages for double-tap
   const dandyMessages = [
@@ -57,9 +60,12 @@ export default function Stamps() {
       if (sSnap.exists()) {
         const data = sSnap.data()
         setStamps(data.stamps || [])
-        if (data.stamps?.length === totalSlots && !data.rewardClaimed) {
+        lastStampCountRef.current = data.stamps?.length || 0
+
+        // Show congratulations modal if user has exactly 9 stamps
+        if (data.stamps?.length === totalSlots) {
           setShowConfetti(true)
-          setShowRewardModal(true)
+          setShowCongratulationsModal(true)
         }
       } else {
         // new user → 2 free stamps
@@ -67,6 +73,7 @@ export default function Stamps() {
         const initial = [{ date: now }, { date: now }]
         await setDoc(stampsRef, { stamps: initial, rewardClaimed: false })
         setStamps(initial)
+        lastStampCountRef.current = 2
         setPopupMessage('Benvenuto! Hai ricevuto 2 timbri omaggio!')
         setShowPopup(true)
       }
@@ -76,6 +83,63 @@ export default function Stamps() {
       setLoading(false)
     }
   }
+
+  // Set up real-time listener for stamps changes
+  useEffect(() => {
+    if (!user) return
+
+    const stampsRef = doc(firestore, 'stamps', user.uid)
+    const unsubscribe = onSnapshot(stampsRef, (docSnap) => {
+      if (!docSnap.exists()) return
+
+      const data = docSnap.data()
+      const newStamps = data.stamps || []
+
+      // Check if stamps were reset (redemption)
+      if (lastStampCountRef.current === totalSlots && newStamps.length === 0) {
+        // Stamps reset - user redeemed their free coffee
+        setShowConfetti(false)
+        setShowCongratulationsModal(false)
+        setPopupMessage('Caffè gratis riscattato! Inizia nuovi timbri.')
+        setShowPopup(true)
+      }
+      // Check if a new stamp was added
+      else if (newStamps.length > lastStampCountRef.current) {
+        // New stamp added!
+        setPopupMessage('Congratulazioni, ecco il tuo nuovo timbro!')
+        setShowPopup(true)
+
+        // Apply highlight animation to the newest stamp
+        setTimeout(() => {
+          const newestStampIndex = newStamps.length - 1;
+          if (cupsRef.current[newestStampIndex]) {
+            cupsRef.current[newestStampIndex].classList.add('new-stamp-highlight');
+
+            // Remove class after animation completes
+            setTimeout(() => {
+              if (cupsRef.current[newestStampIndex]) {
+                cupsRef.current[newestStampIndex].classList.remove('new-stamp-highlight');
+              }
+            }, 1500);
+          }
+        }, 300);
+
+        // Check if we've reached the reward threshold
+        if (newStamps.length === totalSlots) {
+          setShowConfetti(true)
+          setShowCongratulationsModal(true)
+        }
+      }
+
+      setStamps(newStamps)
+      // Update the reference count
+      lastStampCountRef.current = newStamps.length
+    }, (error) => {
+      console.error("Error in stamps listener:", error)
+    })
+
+    return () => unsubscribe()
+  }, [user])
 
   // auth listener
   useEffect(() => {
@@ -92,9 +156,17 @@ export default function Stamps() {
     return unsubscribe
   }, [])
 
-  // add a new stamp
+  // add a new stamp (this won't add a 10th stamp if we already have 9)
   const addStamp = async () => {
     if (!user) return
+
+    // If we already have 9 stamps, don't add more
+    if (stamps.length >= totalSlots) {
+      setShowConfetti(true)
+      setShowCongratulationsModal(true)
+      return
+    }
+
     try {
       const newStamp = { date: new Date().toISOString() }
       const updated = [...stamps, newStamp]
@@ -105,49 +177,21 @@ export default function Stamps() {
       } else {
         await setDoc(ref, { stamps: updated, rewardClaimed: false })
       }
-      setStamps(updated)
-      if (updated.length === totalSlots) {
-        setShowConfetti(true)
-        setShowRewardModal(true)
-      } else {
-        setPopupMessage('Timbro aggiunto!')
-        setShowPopup(true)
-      }
+
+      // We don't need to setStamps here because the onSnapshot will update it
+      // But we can show the popup message
+      setPopupMessage('Timbro aggiunto!')
+      setShowPopup(true)
     } catch (err) {
       console.error('addStamp error', err)
       alert('Errore: ' + err.message)
     }
   }
 
-  // reset stamps after redeem
-  const resetStamps = async () => {
-    if (!user) return
-    try {
-      const ref = doc(firestore, 'stamps', user.uid)
-      await updateDoc(ref, { stamps: [], rewardClaimed: true })
-      setStamps([])
-      setShowRewardModal(false)
-      setShowConfetti(false)
-      setPopupMessage('Caffè gratis riscattato! Inizia nuovi timbri.')
-      setShowPopup(true)
-    } catch (err) {
-      console.error('resetStamps error', err)
-    }
-  }
-
-  // For demo mode - allows adding stamps without authentication
-  const addDemoStamp = () => {
-    const newStamp = { date: new Date().toISOString() }
-    const updated = [...stamps, newStamp]
-    setStamps(updated)
-
-    if (updated.length === totalSlots) {
-      setShowConfetti(true)
-      setShowRewardModal(true)
-    } else {
-      setPopupMessage('Timbro di demo aggiunto!')
-      setShowPopup(true)
-    }
+  // Close congratulations modal
+  const closeCongratulationsModal = () => {
+    setShowCongratulationsModal(false)
+    setShowConfetti(false)
   }
 
   // Enhanced logo animation function
@@ -193,8 +237,6 @@ export default function Stamps() {
     }
   }, [showPopup])
 
-  // REMOVED: Auto-close for reward modal - we want it to stay open until user closes it
-
   // handle logo taps for animation & double-tap message
   const handleLogoTap = () => {
     // Trigger a random animation
@@ -212,11 +254,14 @@ export default function Stamps() {
     })
   }
 
-  // Close reward modal
-  const closeRewardModal = () => {
-    setShowRewardModal(false)
-    // Optionally stop confetti too
-    setShowConfetti(false)
+  // Toggle QR Modal
+  const toggleQRModal = () => {
+    setShowQRModal(!showQRModal)
+  }
+
+  // Close QR modal
+  const closeQRModal = () => {
+    setShowQRModal(false)
   }
 
   const formatDate = (d) => {
@@ -280,27 +325,27 @@ export default function Stamps() {
           ))}
         </div>
 
-        {/* Demo buttons */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '20px' }}>
-          {stamps.length < totalSlots && (
-            <button onClick={user ? addStamp : addDemoStamp} className="add-stamp-button">
-              {user ? '+ Aggiungi Timbro' : '+ Aggiungi Timbro (Demo)'}
-            </button>
-          )}
-
-          {/* Test buttons for modals */}
-          <button
-            onClick={() => {
-              setShowRewardModal(true);
-              setShowConfetti(true);
-            }}
-            className="add-stamp-button"
-            style={{ backgroundColor: '#616843' }}
-          >
-            Test Finestra Riscatto
+        {/* QR Code Button */}
+        {qrCode && user && (
+          <button onClick={toggleQRModal} className="qr-button">
+            Mostra QR Code
           </button>
-        </div>
+        )}
       </div>
+
+      {/* QR Code Modal */}
+      {showQRModal && qrCode && (
+        <div className="qr-modal-overlay" ref={qrModalRef} onClick={(e) => {
+          if (e.target === qrModalRef.current) closeQRModal();
+        }}>
+          <div className="qr-modal">
+            <button className="modal-close-btn" onClick={closeQRModal}>&times;</button>
+            <div className="qr-container">
+              <img src={qrCode} alt="Il tuo QR Code personale" className="profile-qr" />
+            </div>
+          </div>
+        </div>
+      )}
 
       {showPopup && (
         <div className="popup-notification" ref={popupRef}>
@@ -311,24 +356,16 @@ export default function Stamps() {
         </div>
       )}
 
-      {showRewardModal && (
-        <div className="reward-modal-overlay" ref={modalRef} onClick={(e) => {
-          // Close modal when clicking outside the modal content
-          if (e.target === modalRef.current) closeRewardModal();
-        }}>
-          <div className="reward-modal">
-            {/* Add close button */}
-            <button className="modal-close-btn" onClick={closeRewardModal}>&times;</button>
-
+      {/* Congratulations Modal - tappable anywhere to close */}
+      {showCongratulationsModal && (
+        <div
+          className="congratulations-modal-overlay"
+          onClick={closeCongratulationsModal}
+        >
+          <div className="congratulations-modal">
             <h2>Congratulazioni!</h2>
-            <h3>Il tuo prossimo caffè è gratis!</h3>
-            {qrCode && (
-              <div className="qr-container">
-                <img src={qrCode} alt="QR Code" className="reward-qr" />
-              </div>
-            )}
-            <p>Mostra questo QR code al barista per riscattare.</p>
-            <button onClick={resetStamps} className="redeem-button">Riscatta</button>
+            <h3>Goditi il tuo decimo caffè gratis!</h3>
+            <p>Tocca per chiudere e mostra il tuo QR code al barista</p>
           </div>
         </div>
       )}
