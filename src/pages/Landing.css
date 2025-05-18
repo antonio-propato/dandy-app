@@ -51,18 +51,16 @@
 } */
 
 
-/* Position the logo at the top using absolute positioning */
 .landing-logo {
-  position: absolute;
-  top: 6%;
-  left: 50%;
-  transform: translateX(-50%); /* Center horizontally */
   width: 120px;
   height: 120px;
   border-radius: 10px;
   object-fit: cover;
   z-index: 10;
   border: #43221B groove 2px;
+  cursor: pointer;
+  display: block;
+  margin: 0 auto;
 }
 
 .landing-button {
