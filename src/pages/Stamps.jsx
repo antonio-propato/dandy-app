@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
-import { doc, getDoc, updateDoc, setDoc, onSnapshot } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, setDoc, onSnapshot, increment } from 'firebase/firestore'
 import { auth, firestore } from '../lib/firebase'
 import Nav from '../components/Nav'
 import Confetti from 'react-confetti'
@@ -9,6 +9,10 @@ import './Stamps.css'
 export default function Stamps() {
   const [user, setUser] = useState(null)
   const [stamps, setStamps] = useState([])
+  const [lifetimeStats, setLifetimeStats] = useState({
+    lifetimeStamps: 0,
+    rewardsEarned: 0
+  })
   const [loading, setLoading] = useState(true)
   const [showPopup, setShowPopup] = useState(false)
   const [popupMessage, setPopupMessage] = useState('')
@@ -46,8 +50,12 @@ export default function Stamps() {
 
   // Show congratulations modal helper function
   const showRewardModal = () => {
-    setShowConfetti(true)
-    setShowCongratulationsModal(true)
+    console.log('Showing reward modal - user has reached 9 stamps');
+    // Add small delay to ensure state updates properly
+    setTimeout(() => {
+      setShowConfetti(true);
+      setShowCongratulationsModal(true);
+    }, 300);
   }
 
   // Reset stamps after reward is claimed
@@ -58,7 +66,9 @@ export default function Stamps() {
       const stampsRef = doc(firestore, 'stamps', user.uid)
       await updateDoc(stampsRef, {
         stamps: [],
-        rewardClaimed: true
+        rewardsEarned: increment(1),
+        rewardClaimed: true,
+        lastRedemptionDate: new Date().toISOString() // Store redemption date
       })
 
       setPopupMessage('Caffè gratis riscattato! Inizia nuovi timbri.')
@@ -92,9 +102,10 @@ export default function Stamps() {
           console.log('User has 0 stamps - adding 2 free welcome stamps');
           const now = new Date().toISOString();
 
-          // Add 2 free stamps
+          // Add 2 free stamps and update lifetime stats
           await updateDoc(stampsRef, {
             stamps: [{ date: now }, { date: now }],
+            lifetimeStamps: increment(2),
             receivedFreeStamps: true
           });
 
@@ -115,6 +126,8 @@ export default function Stamps() {
         // Create the stamps document with 2 stamps and mark they've received free stamps
         await setDoc(stampsRef, {
           stamps: [{ date: now }, { date: now }],
+          lifetimeStamps: 2,
+          rewardsEarned: 0,
           rewardClaimed: false,
           receivedFreeStamps: true
         });
@@ -158,23 +171,57 @@ export default function Stamps() {
         const userStamps = data.stamps || [];
         console.log('User has', userStamps.length, 'stamps');
 
+        // Get lifetime stats - fix if inconsistent
+        let lifetimeStampsCount = data.lifetimeStamps || 0;
+        const rewardsEarnedCount = data.rewardsEarned || 0;
+
+        // Calculate expected lifetime stamps (rewards * 9 + current stamps)
+        const expectedLifetimeStamps = (rewardsEarnedCount * 9) + userStamps.length;
+
+        // Fix inconsistency - lifetimeStamps should include all earned stamps
+        if (lifetimeStampsCount < expectedLifetimeStamps) {
+          console.log(`Fixing inconsistent data: lifetimeStamps is ${lifetimeStampsCount} but should be ${expectedLifetimeStamps}`);
+          lifetimeStampsCount = expectedLifetimeStamps;
+
+          // Update Firebase with corrected value
+          await updateDoc(stampsRef, {
+            lifetimeStamps: expectedLifetimeStamps
+          });
+        }
+
+        setLifetimeStats({
+          lifetimeStamps: lifetimeStampsCount,
+          rewardsEarned: rewardsEarnedCount
+        });
+
         // Update local state
         setStamps(userStamps);
         lastStampCountRef.current = userStamps.length;
 
         // Show congratulations modal if user has exactly 9 stamps
         if (userStamps.length === totalSlots) {
-          showRewardModal();
+          console.log('User already has 9 stamps, showing reward modal on initial load');
+          setTimeout(() => {
+            showRewardModal();
+          }, 500);
         }
       } else {
         // This should never happen as we create the document in auth listener
         console.error('No stamps document found - this should not happen');
         setStamps([]);
+        setLifetimeStats({
+          lifetimeStamps: 0,
+          rewardsEarned: 0
+        });
       }
     } catch (err) {
       console.error('fetchStamps error:', err);
       // Fallback to empty array
       setStamps([]);
+      setLifetimeStats({
+        lifetimeStamps: 0,
+        rewardsEarned: 0
+      });
     } finally {
       setLoading(false);
     }
@@ -188,72 +235,88 @@ export default function Stamps() {
 
     const stampsRef = doc(firestore, 'stamps', user.uid)
     const unsubscribe = onSnapshot(stampsRef, async (docSnap) => {
-      if (!docSnap.exists()) {
-        console.log('Stamps document does not exist in listener')
-        return
-      }
+      try {
+        if (!docSnap.exists()) {
+          console.log('Stamps document does not exist in listener')
+          return
+        }
 
-      const data = docSnap.data()
-      let newStamps = data.stamps || []
-      console.log('Stamps update from Firestore:', newStamps.length, 'stamps')
+        const data = docSnap.data()
+        let newStamps = data.stamps || []
+        console.log('Stamps update from Firestore:', newStamps.length, 'stamps')
 
-      // Critical check: if stamps exceed totalSlots, reset them automatically
-      if (newStamps.length > totalSlots) {
-        console.log('Detected more than 9 stamps, resetting to 0')
-        try {
-          await updateDoc(stampsRef, {
-            stamps: [],
-            rewardClaimed: true
-          })
-          setPopupMessage('Caffè gratis riscattato! Inizia nuovi timbri.')
-          setShowPopup(true)
+        // Update lifetime stats
+        setLifetimeStats({
+          lifetimeStamps: data.lifetimeStamps || 0,
+          rewardsEarned: data.rewardsEarned || 0
+        });
+
+        // Critical check: if stamps exceed totalSlots, reset them automatically
+        if (newStamps.length > totalSlots) {
+          console.log('Detected more than 9 stamps, resetting to 0')
+          try {
+            await updateDoc(stampsRef, {
+              stamps: [],
+              rewardsEarned: increment(1),
+              rewardClaimed: true
+            })
+            setPopupMessage('Caffè gratis riscattato! Inizia nuovi timbri.')
+            setShowPopup(true)
+            setShowConfetti(false)
+            setShowCongratulationsModal(false)
+            // The next update from Firebase will have 0 stamps
+            return
+          } catch (err) {
+            console.error('Auto-reset error', err)
+          }
+        }
+
+        // Check if stamps were reset (redemption)
+        if (lastStampCountRef.current === totalSlots && newStamps.length === 0) {
+          // Stamps reset - user redeemed their free coffee
           setShowConfetti(false)
           setShowCongratulationsModal(false)
-          // The next update from Firebase will have 0 stamps
-          return
-        } catch (err) {
-          console.error('Auto-reset error', err)
+          setPopupMessage('Caffè gratis riscattato! Inizia nuovi timbri.')
+          setShowPopup(true)
+        }
+        // Check if user just reached the reward threshold (9 stamps)
+        else if (newStamps.length === totalSlots && lastStampCountRef.current < totalSlots) {
+          console.log('User just reached 9 stamps, showing reward modal');
+          showRewardModal();
+        }
+        // Check if a new stamp was added but not yet at 9
+        else if (newStamps.length > lastStampCountRef.current && newStamps.length < totalSlots) {
+          // New stamp added!
+          setPopupMessage('Congratulazioni, ecco il tuo nuovo timbro!')
+          setShowPopup(true)
+
+          // Apply highlight animation to the newest stamp
+          setTimeout(() => {
+            const newestStampIndex = newStamps.length - 1;
+            if (cupsRef.current[newestStampIndex]) {
+              cupsRef.current[newestStampIndex].classList.add('new-stamp-highlight');
+
+              // Remove class after animation completes
+              setTimeout(() => {
+                if (cupsRef.current[newestStampIndex]) {
+                  cupsRef.current[newestStampIndex].classList.remove('new-stamp-highlight');
+                }
+              }, 1500);
+            }
+          }, 300);
+        }
+
+        // Set stamps state - do this for all conditions
+        setStamps(newStamps)
+        // Update the reference count
+        lastStampCountRef.current = newStamps.length
+      } catch (error) {
+        console.error("Error processing stamps update:", error);
+        // Ensure we have a fallback view to prevent blank screen
+        if (stamps.length === 0) {
+          setStamps([]);
         }
       }
-
-      // Check if stamps were reset (redemption)
-      if (lastStampCountRef.current === totalSlots && newStamps.length === 0) {
-        // Stamps reset - user redeemed their free coffee
-        setShowConfetti(false)
-        setShowCongratulationsModal(false)
-        setPopupMessage('Caffè gratis riscattato! Inizia nuovi timbri.')
-        setShowPopup(true)
-      }
-      // Check if a new stamp was added
-      else if (newStamps.length > lastStampCountRef.current) {
-        // New stamp added!
-        setPopupMessage('Congratulazioni, ecco il tuo nuovo timbro!')
-        setShowPopup(true)
-
-        // Apply highlight animation to the newest stamp
-        setTimeout(() => {
-          const newestStampIndex = newStamps.length - 1;
-          if (cupsRef.current[newestStampIndex]) {
-            cupsRef.current[newestStampIndex].classList.add('new-stamp-highlight');
-
-            // Remove class after animation completes
-            setTimeout(() => {
-              if (cupsRef.current[newestStampIndex]) {
-                cupsRef.current[newestStampIndex].classList.remove('new-stamp-highlight');
-              }
-            }, 1500);
-          }
-        }, 300);
-
-        // Check if we've reached the reward threshold
-        if (newStamps.length === totalSlots) {
-          showRewardModal()
-        }
-      }
-
-      setStamps(newStamps)
-      // Update the reference count
-      lastStampCountRef.current = newStamps.length
     }, (error) => {
       console.error("Error in stamps listener:", error)
     })
@@ -277,63 +340,15 @@ export default function Stamps() {
         console.log('User signed out');
         setUser(null);
         setStamps([]);
+        setLifetimeStats({
+          lifetimeStamps: 0,
+          rewardsEarned: 0
+        });
         setLoading(false);
       }
     });
     return unsubscribe;
   }, []);
-
-  // add a new stamp
-  const addStamp = async () => {
-    if (!user) return
-
-    try {
-      // First check current stamps to see if reset is needed
-      const stampsRef = doc(firestore, 'stamps', user.uid)
-      const snap = await getDoc(stampsRef)
-
-      if (snap.exists()) {
-        const currentStamps = snap.data().stamps || []
-
-        // If already at 9 stamps, reset instead of adding
-        if (currentStamps.length >= totalSlots) {
-          await updateDoc(stampsRef, {
-            stamps: [],
-            rewardClaimed: true
-          })
-
-          setPopupMessage('Caffè gratis riscattato! Inizia nuovi timbri.')
-          setShowPopup(true)
-          return
-        }
-
-        // Otherwise add a new stamp
-        const newStamp = { date: new Date().toISOString() }
-        const updated = [...currentStamps, newStamp]
-        await updateDoc(stampsRef, { stamps: updated })
-      } else {
-        // Document doesn't exist - create with one stamp
-        const newStamp = { date: new Date().toISOString() }
-        await setDoc(stampsRef, {
-          stamps: [newStamp],
-          rewardClaimed: false
-        })
-      }
-
-      // We don't need to setStamps here because the onSnapshot will update it
-      setPopupMessage('Timbro aggiunto!')
-      setShowPopup(true)
-    } catch (err) {
-      console.error('addStamp error', err)
-      alert('Errore: ' + err.message)
-    }
-  }
-
-  // Close congratulations modal without resetting (user wants to save it)
-  const closeCongratulationsModal = () => {
-    setShowCongratulationsModal(false)
-    setShowConfetti(false)
-  }
 
   // Enhanced logo animation function
   const animateLogo = () => {
@@ -466,6 +481,12 @@ export default function Stamps() {
           ))}
         </div>
 
+        {/* Lifetime Stats */}
+        <div className="lifetime-stats">
+          <p>Timbri Totali: {lifetimeStats.lifetimeStamps}</p>
+          <p>Premi Riscattati: {lifetimeStats.rewardsEarned}</p>
+        </div>
+
         {/* QR Code Button */}
         {qrCode && user && (
           <button onClick={toggleQRModal} className="qr-button">
@@ -505,11 +526,34 @@ export default function Stamps() {
             <h3>Goditi il tuo decimo caffè gratis!</h3>
             <p>Mostra questa schermata al barista</p>
             <div className="modal-buttons">
-              <button onClick={closeCongratulationsModal} className="secondary-button">
+              <button
+                onClick={() => {
+                  setShowCongratulationsModal(false);
+                  setShowConfetti(false);
+                }}
+                className="primary-button"
+              >
                 Chiudi
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Emergency backup UI if the above fails */}
+      {stamps.length === totalSlots && !showCongratulationsModal && (
+        <div className="emergency-reward-notice">
+          <h3>Congratulazioni! Hai 9 timbri</h3>
+          <p>Hai guadagnato un caffè gratis!</p>
+          <button
+            onClick={() => {
+              setShowConfetti(true);
+              setShowCongratulationsModal(true);
+            }}
+            className="retry-button"
+          >
+            Mostra Premio
+          </button>
         </div>
       )}
     </div>
