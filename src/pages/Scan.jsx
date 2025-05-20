@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5Qrcode } from 'html5-qrcode';
-import { doc, getDoc, updateDoc, arrayUnion, Timestamp, setDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, Timestamp, setDoc, increment } from 'firebase/firestore';
 import { firestore, auth } from '../lib/firebase';
 import './Scan.css';
 
@@ -204,25 +204,116 @@ export default function Scan() {
               console.log("Stamps doc exists:", stampsDoc.exists());
               console.log("Stamps data:", stampsDoc.exists() ? stampsDoc.data() : null);
 
-              // Now attempt to add the stamp
-              const now = new Date().toISOString();
+              // Get the current stamps data
+              const stampsData = stampsDoc.exists() ? stampsDoc.data() : {};
+              const currentStamps = stampsData.stamps || [];
+              const lifetimeStamps = stampsData.lifetimeStamps || 0;
+              const rewardsEarned = stampsData.rewardsEarned || 0;
 
-              if (stampsDoc.exists()) {
-                console.log("Updating existing stamps document...");
-                const currentStamps = stampsDoc.data().stamps || [];
-                const updatedStamps = [...currentStamps, { date: now }];
+              // Check if user already has 9 stamps - in this case, we should reset stamps and increment rewards
+              if (currentStamps.length >= 9) {
+                console.log("User has 9+ stamps, redeeming reward and resetting stamps...");
+
+                // We should NOT add an additional stamp to lifetimeStamps when redeeming,
+                // but we SHOULD ensure that all 9 redeemed stamps are counted in lifetimeStamps
+
+                // Check if we need to update lifetimeStamps first
+                let updatedLifetimeStamps = lifetimeStamps;
+                const expectedLifetimeStamps = (rewardsEarned * 9) + currentStamps.length;
+
+                if (lifetimeStamps < expectedLifetimeStamps) {
+                  // User's lifetimeStamps is incorrect, update it
+                  updatedLifetimeStamps = expectedLifetimeStamps;
+                  console.log(`Correcting lifetimeStamps from ${lifetimeStamps} to ${updatedLifetimeStamps}`);
+                }
 
                 await updateDoc(stampsRef, {
-                  stamps: updatedStamps
+                  stamps: [],
+                  rewardsEarned: increment(1),
+                  rewardClaimed: true,
+                  lastRedemptionDate: new Date().toISOString(), // Store the redemption date
+                  lifetimeStamps: updatedLifetimeStamps  // Set the corrected lifetime stamps
                 });
-                console.log("Successfully updated stamps!");
+
+                console.log("Successfully reset stamps and incremented rewards!");
+                setCustomerInfo(prev => ({
+                  ...prev,
+                  stampsReset: true,
+                  newRewardsTotal: rewardsEarned + 1,
+                  newLifetimeTotal: updatedLifetimeStamps // Show corrected lifetime total
+                }));
               } else {
-                console.log("Creating new stamps document...");
-                await setDoc(stampsRef, {
-                  stamps: [{ date: now }],
-                  rewardClaimed: false
-                });
-                console.log("Successfully created stamps document!");
+                // User has less than 9 stamps, add a new one and increment lifetime count
+                console.log("Adding new stamp and incrementing lifetime count...");
+                const now = new Date().toISOString();
+
+                if (stampsDoc.exists()) {
+                  console.log("Updating existing stamps document...");
+                  const updatedStamps = [...currentStamps, { date: now }];
+
+                  // Create a calculated best-estimate of lifetimeStamps if it's missing
+                  if (lifetimeStamps === undefined || lifetimeStamps === null) {
+                    // Calculate based on rewards earned and current stamps
+                    const rewardsEarned = stampsData.rewardsEarned || 0;
+                    // Each reward required 9 stamps, plus current stamps + 1 for this new stamp
+                    const calculatedLifetimeStamps = (rewardsEarned * 9) + updatedStamps.length;
+
+                    console.log(`Setting missing lifetimeStamps to calculated value: ${calculatedLifetimeStamps}`);
+                    await updateDoc(stampsRef, {
+                      stamps: updatedStamps,
+                      lifetimeStamps: calculatedLifetimeStamps
+                    });
+
+                    setCustomerInfo(prev => ({
+                      ...prev,
+                      newStampCount: updatedStamps.length,
+                      newLifetimeTotal: calculatedLifetimeStamps
+                    }));
+                  } else if (lifetimeStamps < updatedStamps.length) {
+                    // Make sure lifetimeStamps at least matches current stamps count
+                    console.log("Fixing lifetimeStamps to match actual stamp count");
+                    await updateDoc(stampsRef, {
+                      stamps: updatedStamps,
+                      lifetimeStamps: updatedStamps.length // Set to match actual count
+                    });
+
+                    setCustomerInfo(prev => ({
+                      ...prev,
+                      newStampCount: updatedStamps.length,
+                      newLifetimeTotal: updatedStamps.length
+                    }));
+                  } else {
+                    // Normal case - just increment lifetimeStamps
+                    await updateDoc(stampsRef, {
+                      stamps: updatedStamps,
+                      lifetimeStamps: increment(1)
+                    });
+
+                    setCustomerInfo(prev => ({
+                      ...prev,
+                      newStampCount: updatedStamps.length,
+                      newLifetimeTotal: lifetimeStamps + 1
+                    }));
+                  }
+
+                  console.log("Successfully updated stamps!");
+                } else {
+                  console.log("Creating new stamps document...");
+                  // Make sure we create with the right count of stamps (1)
+                  await setDoc(stampsRef, {
+                    stamps: [{ date: now }],
+                    lifetimeStamps: 1,
+                    rewardsEarned: 0,
+                    rewardClaimed: false
+                  });
+
+                  console.log("Successfully created stamps document!");
+                  setCustomerInfo(prev => ({
+                    ...prev,
+                    newStampCount: 1,
+                    newLifetimeTotal: 1
+                  }));
+                }
               }
 
               setSuccess(true);
@@ -330,10 +421,22 @@ export default function Scan() {
 
       {success && customerInfo && (
         <div className="success-message">
-          <h2>Stamp Added Successfully!</h2>
+          <h2>
+            {customerInfo.stampsReset
+              ? 'Premio Riscattato!'
+              : 'Timbro Aggiunto con Successo!'}
+          </h2>
           <div className="customer-info">
-            <p><strong>Customer:</strong> {customerInfo.name}</p>
+            <p><strong>Cliente:</strong> {customerInfo.name}</p>
             <p><strong>Email:</strong> {customerInfo.email}</p>
+            {customerInfo.stampsReset ? (
+              <p><strong>Premi Totali Riscattati:</strong> {customerInfo.newRewardsTotal}</p>
+            ) : (
+              <>
+                <p><strong>Timbri Attuali:</strong> {customerInfo.newStampCount}/9</p>
+                <p><strong>Timbri Totali:</strong> {customerInfo.newLifetimeTotal}</p>
+              </>
+            )}
           </div>
           <button className="scan-again-button" onClick={startScanner}>
             Scan Another

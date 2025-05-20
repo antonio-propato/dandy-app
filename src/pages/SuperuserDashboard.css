@@ -1,3 +1,19 @@
+/* Global scrolling fix */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  overflow-y: auto; /* Enable vertical scrolling */
+}
+
+/* Root app container should also allow scrolling */
+#root, .app-container {
+  min-height: 100%;
+  height: auto;
+  overflow-y: auto;
+}
+
 .dashboard-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -8,6 +24,9 @@
   background-attachment: fixed;
   min-height: 100vh;
   color: #fff;
+  overflow-y: auto; /* Ensure vertical scrolling is enabled */
+  height: auto; /* Allow container to expand with content */
+  position: relative; /* Establish positioning context */
 }
 
 .dashboard-header {
@@ -43,6 +62,7 @@
   margin-bottom: 30px;
   display: flex;
   justify-content: center;
+  gap: 15px;
 }
 
 .action-button {
@@ -77,6 +97,14 @@
 
 .scan-button:hover {
   background-color: rgba(56, 142, 60, 0.95);
+}
+
+.refresh-button {
+  background-color: rgba(33, 150, 243, 0.9);
+}
+
+.refresh-button:hover {
+  background-color: rgba(25, 118, 210, 0.95);
 }
 
 .dashboard-stats {
@@ -124,6 +152,7 @@
   padding: 20px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 40px; /* Add bottom margin for scrolling space */
 }
 
 .recent-activity h2 {
@@ -148,12 +177,13 @@
   padding: 15px;
   border-radius: 6px;
   background-color: rgba(255, 255, 255, 0.1);
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, transform 0.2s;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .activity-item:hover {
   background-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
 }
 
 .activity-content {
@@ -177,6 +207,13 @@
 
 .activity-stamps {
   color: #8dea92;
+  font-weight: 500;
+  font-size: 14px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.activity-lifetime {
+  color: #ffd700;
   font-weight: 500;
   font-size: 14px;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
@@ -219,7 +256,41 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Note: Menu flyout should be styled separately to take 30% of screen width */
+/* Emergency reward notice styling */
+.emergency-reward-notice {
+  background-color: rgba(255, 215, 0, 0.15);
+  backdrop-filter: blur(5px);
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+  text-align: center;
+  border: 2px solid #FFD700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.emergency-reward-notice h3 {
+  color: #FFD700;
+  margin-top: 0;
+  font-size: 18px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.retry-button {
+  background-color: #FFD700;
+  color: #000;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  margin-top: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.retry-button:hover {
+  background-color: #FFC800;
+  transform: translateY(-2px);
+}
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
@@ -248,4 +319,23 @@
     text-align: left;
     align-self: flex-start;
   }
+}
+
+/* Enhanced styling for lifetime stats in Stamps.css */
+.lifetime-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 20px;
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(5px);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.lifetime-stats p {
+  color: #ffd700;
+  font-weight: 500;
+  margin: 5px 0;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
