@@ -209,25 +209,24 @@ export default function SuperuserDashboard() {
   return (
     <div className="dashboard-container" ref={scrollRef}>
       <div className="dashboard-header">
-        <h1>Dandy - Pannello di Controllo</h1>
+        <h1>Pannello di Controllo</h1>
         <div className="staff-info">
-          <p>Ciao, {userData?.firstName} {userData?.lastName}</p>
+          <p>Ciao {userData?.firstName} </p>
         </div>
       </div>
 
       {/* Action buttons */}
       <div className="dashboard-actions">
         <button className="action-button scan-button" onClick={() => navigate('/scan')}>
-          <span className="action-icon">📷</span>
-          Scansiona QR Cliente
+          Scan QR
         </button>
+
         <button
           className="action-button refresh-button"
           onClick={handleRefresh}
           disabled={refreshing}
         >
-          <span className="action-icon">🔄</span>
-          {refreshing ? 'Aggiornamento...' : 'Aggiorna Dati'}
+          {refreshing ? 'Aggiornamento...' : 'Aggiorna'}
         </button>
       </div>
 
@@ -245,36 +244,46 @@ export default function SuperuserDashboard() {
           <div className="stat-value">{stats.stampsToday}</div>
         </div>
         <div className="stat-card">
-          <h3>Premi Riscattati</h3>
+          <h3>Caffè Riscattati</h3>
           <div className="stat-value">{stats.totalRewards}</div>
         </div>
       </div>
 
-      <div className="recent-activity">
-        <h2>Attività Recenti</h2>
-        <div className="activity-list">
-          {recentScans.length > 0 ? (
-            recentScans.map((scan, index) => (
-              <div className="activity-item" key={index}>
-                <div className="activity-content">
-                  <p className="activity-title">Timbro Aggiunto</p>
-                  <p className="activity-user">Cliente: {scan.userName}</p>
-                  <p className="activity-stamps">Timbri Attuali: {scan.currentStamps}/9</p>
-                  <p className="activity-lifetime">
-                    Timbri Totali: {scan.lifetimeStamps} |
-                    Premi Riscattati: {scan.rewardsEarned}
-                  </p>
-                </div>
-                <div className="activity-time">
-                  {formatDate(scan.date)}
-                </div>
+
+
+    <div className="recent-activity">
+      <h2>Attività Recenti</h2>
+      <div className="activity-list">
+        {recentScans.length > 0 ? (
+          recentScans.map((scan, index) => (
+            <div className="activity-item" key={index}>
+              <div className="activity-content">
+                {/* Name on top in bold */}
+                <p className="activity-user">{scan.userName}</p>
+
+                {/* Date and timestamp below name, not bold and smaller */}
+                <p className="activity-title">Timbro Aggiunto {formatDate(scan.date)}</p>
+
+                {/* Timbri Attuali stays green */}
+                <p className="activity-stamps">Timbri Attuali: {scan.currentStamps}</p>
+
+                {/* Timbri Totali stays yellow */}
+                <p className="activity-lifetime">
+                  Timbri Totali: {scan.lifetimeStamps}
+                </p>
+
+                {/* Premi Riscattati with different color (orange) */}
+                <p className="activity-lifetime premi-riscattati">
+                  Premi Riscattati: {scan.rewardsEarned}
+                </p>
               </div>
-            ))
-          ) : (
-            <p className="no-activity">Nessuna attività recente</p>
-          )}
-        </div>
+            </div>
+          ))
+        ) : (
+          <p className="no-activity">Nessuna attività recente</p>
+        )}
       </div>
+    </div>
     </div>
   );
 }

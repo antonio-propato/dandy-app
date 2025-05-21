@@ -357,12 +357,12 @@ export default function Scan() {
 
   return (
     <div className="scan-container">
-      <h1>Scan Customer QR Code</h1>
+      <h1>April il QR Code Scanner</h1>
 
       {!scanning && !result && (
         <>
           <button className="scan-button" onClick={startScanner}>
-            Start Scanner
+            Scanner
           </button>
 
           {availableCameras.length > 1 && (
@@ -446,13 +446,7 @@ export default function Scan() {
 
       <div className="nav-buttons">
         <button className="back-button" onClick={() => navigate('/superuser-dashboard')}>
-          Dashboard
-        </button>
-        <button className="logout-button" onClick={() => {
-          auth.signOut();
-          navigate('/signin');
-        }}>
-          Logout
+          Torna alla Dashboard
         </button>
       </div>
     </div>
