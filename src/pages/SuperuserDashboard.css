@@ -20,7 +20,7 @@ html, body {
   padding: 70px 20px 20px 20px; /* Added extra top padding (70px) to avoid menu overlap */
   font-family: 'Poppins', sans-serif;
   background-image: url('/images/Legno.png');
-  background-size: cover;
+  background-size: fill;
   background-attachment: fixed;
   min-height: 100vh;
   color: #fff;
@@ -57,40 +57,57 @@ html, body {
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* Moved up in layout and styled to match wood background */
+
+/* Fixed dashboard actions container with better responsiveness */
 .dashboard-actions {
-  margin-bottom: 30px;
+  margin: 30px auto;
   display: flex;
-  justify-content: center;
-  gap: 15px;
+  flex-direction: row; /* Force horizontal layout */
+  justify-content: space-around; /* Distribute space evenly */
+  align-items: center;
+  width: 100%;
+  max-width: 600px; /* Limit maximum width */
+  padding: 0px; /* Add padding on smaller screens */
+  box-sizing: border-box;
 }
 
+/* Fixed action button sizes with better overflow handling */
 .action-button {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
   background-color: rgba(76, 175, 80, 0.9);
   color: white;
   border: none;
-  padding: 15px 30px;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.3s, transform 0.2s;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+  width: 45%; /* Percentage-based width */
+  max-width: 220px; /* Maximum width */
+  height: 55px;
+  margin: 0; /* Remove any margin */
+  padding: 0 10px;
+  text-align: center;
+  white-space: nowrap; /* Prevent text wrapping */
+  overflow: hidden; /* Hide overflow */
+  text-overflow: ellipsis; /* Add ellipsis for overflow text */
 }
 
 .action-button:hover {
-  background-color: rgba(56, 142, 60, 0.95);
   transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
 }
 
 .action-icon {
   font-size: 20px;
+  margin-right: 8px;
+  flex-shrink: 0; /* Prevent icon from shrinking */
 }
 
+/* Specific button styles */
 .scan-button {
   background-color: rgba(76, 175, 80, 0.9);
 }
@@ -118,7 +135,7 @@ html, body {
   background-color: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(5px);
   border-radius: 8px;
-  padding: 20px;
+  padding: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   text-align: center;
   transition: transform 0.3s;
@@ -133,7 +150,7 @@ html, body {
 .stat-card h3 {
   color: rgba(255, 255, 255, 0.9);
   font-size: 16px;
-  margin: 0 0 15px 0;
+  margin: 0 0 10px 0;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -170,11 +187,12 @@ html, body {
   gap: 15px;
 }
 
+/* Updated Activity Item Styling */
 .activity-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px;
+  padding: 10px;
   border-radius: 6px;
   background-color: rgba(255, 255, 255, 0.1);
   transition: background-color 0.2s, transform 0.2s;
@@ -189,20 +207,25 @@ html, body {
 .activity-content {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 3px; /* Reduced gap between elements */
 }
 
-.activity-title {
-  font-weight: 600;
+/* Updated: Name on top in bold */
+.activity-user {
+  font-weight: 700; /* Bold */
   color: #fff;
   margin: 0;
+  font-size: 16px;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  order: -1; /* Move to the top */
 }
 
-.activity-user, .activity-staff {
-  margin: 0;
+/* Updated: Date below name, smaller and not bold */
+.activity-title {
+  font-weight: 400; /* Not bold */
   color: rgba(255, 255, 255, 0.9);
-  font-size: 14px;
+  margin: 0;
+  font-size: 14px; /* Smaller size */
 }
 
 .activity-stamps {
@@ -210,6 +233,8 @@ html, body {
   font-weight: 500;
   font-size: 14px;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  margin: 0; /* Remove margin to reduce gap */
+  padding-top: 10px; /* Add padding to separate from the title */
 }
 
 .activity-lifetime {
@@ -217,12 +242,12 @@ html, body {
   font-weight: 500;
   font-size: 14px;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  margin: 0; /* Remove margin to reduce gap */
 }
 
-.activity-time {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 14px;
-  text-align: right;
+/* Updated: Change color for Premi Riscattati */
+.premi-riscattati {
+  color: #ff9800; /* Orange color for Premi Riscattati */
 }
 
 .no-activity {
@@ -298,6 +323,7 @@ html, body {
     flex-direction: column;
     align-items: flex-start;
     gap: 15px;
+    padding-left: 4px; /* Added padding for better alignment */
   }
 
   .staff-info {
@@ -338,4 +364,18 @@ html, body {
   font-weight: 500;
   margin: 5px 0;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 480px) {
+  .dashboard-actions {
+    display: flex;
+    flex-direction: center;
+    gap: 15px;
+    margin-bottom: 30px;
+  }
+
+  .action-button {
+    width: 100%;
+    max-width: 100%;
+  }
 }
