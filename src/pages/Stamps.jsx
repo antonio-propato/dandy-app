@@ -482,10 +482,10 @@ export default function Stamps() {
         </div>
 
         {/* Lifetime Stats */}
-        <div className="lifetime-stats">
+        {/* <div className="lifetime-stats">
           <p>Timbri Totali: {lifetimeStats.lifetimeStamps}</p>
           <p>Premi Riscattati: {lifetimeStats.rewardsEarned}</p>
-        </div>
+        </div> */}
 
         {/* QR Code Button */}
         {qrCode && user && (
