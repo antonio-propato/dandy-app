@@ -10,7 +10,6 @@
   font-family: 'Raleway', sans-serif;
 }
 
-
 .auth-overlay {
   position: absolute;
   inset: 0;
@@ -66,12 +65,6 @@
   border: #43221B groove 2px; /* Tailwind blue-600 */
 }
 
-
-/* .auth-card-signin {
-  padding-top: rem;
-} */
-
-
 .form-group {
   display: flex;
   flex-direction: column;
@@ -121,6 +114,46 @@
   box-sizing: border-box;
 }
 
+/* GDPR Section */
+.gdpr-section {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.gdpr-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.gdpr-checkbox input[type="checkbox"] {
+  width: auto;
+  min-width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: #43221B;
+}
+
+.gdpr-label {
+  font-size: 0.85rem;
+  color: #ECF0BA;
+  line-height: 1.4;
+  cursor: pointer;
+  margin-bottom: 0;
+}
+
+.privacy-link {
+  color: #FFD700;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.privacy-link:hover {
+  color: #FFED4A;
+}
+
 /* Button */
 .auth-button {
   background: linear-gradient(97deg, #43221B, #43221bd3);
@@ -133,12 +166,16 @@
   cursor: pointer;
   transition: all 0.3s ease;
   width: 100%;
-  margin-top: 0.1rem; /* ⬅ Add this line to push it down */
+  margin-top: 0.1rem;
 }
-
 
 .auth-button:hover {
   filter: brightness(1.1);
+}
+
+.auth-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 /* Error message */
@@ -147,4 +184,198 @@
   font-size: 0.9rem;
   margin-bottom: 1rem;
   text-align: center;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+/* GDPR Warning Modal */
+.gdpr-warning-modal {
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.gdpr-warning-modal h3 {
+  color: #43221B;
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+}
+
+.gdpr-warning-modal p {
+  color: #333;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.gdpr-continue-btn {
+  background-color: #43221B;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.gdpr-continue-btn:hover {
+  background-color: #5a2f26;
+}
+
+.gdpr-cancel-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.gdpr-cancel-btn:hover {
+  background-color: #5a6268;
+}
+
+/* Privacy Policy Modal */
+.privacy-policy-modal {
+  background: white;
+  border-radius: 1rem;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem 1rem 2rem;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-header h3 {
+  color: #43221B;
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  color: #333;
+}
+
+.modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem 2rem;
+}
+
+.privacy-text {
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #333;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.modal-footer {
+  padding: 1rem 2rem 1.5rem 2rem;
+  border-top: 1px solid #eee;
+  text-align: center;
+}
+
+.privacy-close-btn {
+  background-color: #43221B;
+  color: white;
+  border: none;
+  padding: 0.8rem 2rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.privacy-close-btn:hover {
+  background-color: #5a2f26;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .auth-wrapper {
+    padding-top: 2rem;
+  }
+
+  .auth-card {
+    width: 95%;
+    padding: 0.8rem;
+  }
+
+  .privacy-policy-modal {
+    max-width: 95%;
+    max-height: 90vh;
+  }
+
+  .modal-header,
+  .modal-content,
+  .modal-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .gdpr-warning-modal {
+    max-width: 95%;
+    padding: 1.5rem;
+  }
+
+  .modal-buttons {
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .gdpr-continue-btn,
+  .gdpr-cancel-btn {
+    width: 100%;
+  }
 }
