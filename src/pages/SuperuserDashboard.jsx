@@ -132,7 +132,10 @@ export default function SuperuserDashboard() {
             date: latestStamp.date,
             currentStamps,
             lifetimeStamps,
-            rewardsEarned
+            rewardsEarned,
+            addedBy: latestStamp.addedBy || 'unknown',
+            addedByUser: latestStamp.addedByUser || null,
+            addedByName: latestStamp.addedByName || null
           });
         }
       }
@@ -143,24 +146,53 @@ export default function SuperuserDashboard() {
       // Get top 10 most recent activities
       const recentActivities = recentActivity.slice(0, 10);
 
-      // Fetch user names for the recent activities
+      // Fetch user names for the recent activities and who added the stamps
       const enrichedActivities = await Promise.all(
         recentActivities.map(async (activity) => {
           try {
-            // Get user info
+            // Get customer info
             const userDoc = await getDoc(doc(firestore, 'users', activity.userId));
+            const customerName = userDoc.exists()
+              ? `${userDoc.data().firstName} ${userDoc.data().lastName}`
+              : 'Utente Sconosciuto';
+
+            // Determine who added the stamp
+            let addedByText = '';
+            if (activity.addedByName) {
+              // Use the stored name if available
+              addedByText = activity.addedByName;
+            } else if (activity.addedByUser && activity.addedBy === 'manual') {
+              // Try to fetch the staff member's name
+              try {
+                const staffDoc = await getDoc(doc(firestore, 'users', activity.addedByUser));
+                if (staffDoc.exists()) {
+                  const staffData = staffDoc.data();
+                  addedByText = `${staffData.firstName} ${staffData.lastName}`;
+                } else {
+                  addedByText = 'Staff';
+                }
+              } catch (err) {
+                addedByText = 'Staff';
+              }
+            } else if (activity.addedBy === 'qr') {
+              addedByText = 'QR Scan';
+            } else if (activity.addedBy === 'manual') {
+              addedByText = 'Staff';
+            } else {
+              addedByText = 'Sistema';
+            }
 
             return {
               ...activity,
-              userName: userDoc.exists()
-                ? `${userDoc.data().firstName} ${userDoc.data().lastName}`
-                : 'Utente Sconosciuto',
+              userName: customerName,
+              addedByText: addedByText
             };
           } catch (err) {
             console.error('Error fetching activity details:', err);
             return {
               ...activity,
               userName: 'Utente Sconosciuto',
+              addedByText: 'Sistema'
             };
           }
         })
@@ -249,41 +281,41 @@ export default function SuperuserDashboard() {
         </div>
       </div>
 
+      <div className="recent-activity">
+        <h2>Attività Recenti</h2>
+        <div className="activity-list">
+          {recentScans.length > 0 ? (
+            recentScans.map((scan, index) => (
+              <div className="activity-item" key={index}>
+                <div className="activity-content">
+                  {/* Name on top in bold */}
+                  <p className="activity-user">{scan.userName}</p>
 
+                  {/* Date and timestamp with who added it */}
+                  <p className="activity-title">
+                    Timbro Aggiunto da {scan.addedByText} - {formatDate(scan.date)}
+                  </p>
 
-    <div className="recent-activity">
-      <h2>Attività Recenti</h2>
-      <div className="activity-list">
-        {recentScans.length > 0 ? (
-          recentScans.map((scan, index) => (
-            <div className="activity-item" key={index}>
-              <div className="activity-content">
-                {/* Name on top in bold */}
-                <p className="activity-user">{scan.userName}</p>
+                  {/* Timbri Attuali stays green */}
+                  <p className="activity-stamps">Timbri Attuali: {scan.currentStamps}</p>
 
-                {/* Date and timestamp below name, not bold and smaller */}
-                <p className="activity-title">Timbro Aggiunto {formatDate(scan.date)}</p>
+                  {/* Timbri Totali stays yellow */}
+                  <p className="activity-lifetime">
+                    Timbri Totali: {scan.lifetimeStamps}
+                  </p>
 
-                {/* Timbri Attuali stays green */}
-                <p className="activity-stamps">Timbri Attuali: {scan.currentStamps}</p>
-
-                {/* Timbri Totali stays yellow */}
-                <p className="activity-lifetime">
-                  Timbri Totali: {scan.lifetimeStamps}
-                </p>
-
-                {/* Premi Riscattati with different color (orange) */}
-                <p className="activity-lifetime premi-riscattati">
-                  Premi Riscattati: {scan.rewardsEarned}
-                </p>
+                  {/* Premi Riscattati with different color (orange) */}
+                  <p className="activity-lifetime premi-riscattati">
+                    Premi Riscattati: {scan.rewardsEarned}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))
-        ) : (
-          <p className="no-activity">Nessuna attività recente</p>
-        )}
+            ))
+          ) : (
+            <p className="no-activity">Nessuna attività recente</p>
+          )}
+        </div>
       </div>
-    </div>
     </div>
   );
 }

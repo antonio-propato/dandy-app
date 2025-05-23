@@ -6,7 +6,7 @@ import { doc, getDoc } from 'firebase/firestore'
 import './Nav.css'
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBars, faQrcode, faChartLine, faSignOutAlt } from '@fortawesome/free-solid-svg-icons'
+import { faBars, faQrcode, faChartLine, faSignOutAlt, faUsers } from '@fortawesome/free-solid-svg-icons'
 
 export default function Nav() {
   const location = useLocation()
@@ -100,6 +100,14 @@ export default function Nav() {
             >
               <FontAwesomeIcon icon={faQrcode} className="nav-icon" />
               Scan QR
+            </Link>
+            <Link
+              to="/client-management"
+              onClick={() => setOpen(false)}
+              className={isActive('/client-management')}
+            >
+              <FontAwesomeIcon icon={faUsers} className="nav-icon" />
+              Gestisci Clienti
             </Link>
           </>
         ) : (
