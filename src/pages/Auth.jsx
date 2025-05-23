@@ -7,7 +7,18 @@ import {
 import { auth, firestore } from '../lib/firebase'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 import QRCode from 'qrcode'
+import PrivacyPolicy from './PrivacyPolicy'
 import './Auth.css'
+
+// Utility function to capitalize names properly
+const capitalizeName = (name) => {
+  if (!name) return ''
+  return name
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
 
 export default function Auth({ mode = 'signin' }) {
   const navigate = useNavigate()
@@ -22,14 +33,31 @@ export default function Auth({ mode = 'signin' }) {
   })
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [gdprAccepted, setGdprAccepted] = useState(true)
+  const [showGdprWarning, setShowGdprWarning] = useState(false)
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false)
 
   const handleChange = e => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
+  const handleGdprChange = (e) => {
+    setGdprAccepted(e.target.checked)
+    if (e.target.checked) {
+      setShowGdprWarning(false)
+    }
+  }
+
   const handleSubmit = async e => {
     e.preventDefault()
     setError(null)
+
+    // Check GDPR consent for signup
+    if (mode === 'signup' && !gdprAccepted) {
+      setShowGdprWarning(true)
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -47,15 +75,22 @@ export default function Auth({ mode = 'signin' }) {
         // Determine if this is a superuser account
         const isSuperUser = email === 'antonio@propato.co.uk'
 
-        // 3️⃣ Save user profile under "users/{uid}"
+        // 3️⃣ Save user profile under "users/{uid}" with GDPR consent
         await setDoc(doc(firestore, 'users', userCred.user.uid), {
-          firstName,
-          lastName,
+          firstName: capitalizeName(firstName),
+          lastName: capitalizeName(lastName),
           dob,
           phone: `${countryCode}${phone}`,
-          email,
+          email: email.toLowerCase(), // Also ensure email is lowercase
           qrCode: qrCodeURL,
           role: isSuperUser ? 'superuser' : 'customer',
+          gdprConsent: {
+            accepted: true,
+            acceptedAt: new Date().toISOString(),
+            version: '1.0',
+            marketingConsent: true,
+            pushNotificationConsent: true
+          }
         })
 
         // 4️⃣ Initialize stamps doc under "stamps/{uid}"
@@ -63,6 +98,8 @@ export default function Auth({ mode = 'signin' }) {
           await setDoc(doc(firestore, 'stamps', userCred.user.uid), {
             stamps: [],
             rewardClaimed: false,
+            lifetimeStamps: 0,
+            rewardsEarned: 0
           })
         }
       } else {
@@ -80,6 +117,61 @@ export default function Auth({ mode = 'signin' }) {
       }
 
       // Redirect regular users to profile
+      navigate('/profile')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGdprWarningContinue = async () => {
+    setGdprAccepted(true)
+    setShowGdprWarning(false)
+    setLoading(true)
+
+    try {
+      const { email, password, firstName, lastName, dob, countryCode, phone } = form
+
+      // Create the Auth user
+      const userCred = await createUserWithEmailAndPassword(auth, email, password)
+
+      // Generate QR code for their profile link
+      const qrData = `https://dandy.app/profile/${userCred.user.uid}`
+      const qrCodeURL = await QRCode.toDataURL(qrData)
+
+      // Determine if this is a superuser account
+      const isSuperUser = email === 'antonio@propato.co.uk'
+
+      // Save user profile under "users/{uid}" with GDPR consent
+      await setDoc(doc(firestore, 'users', userCred.user.uid), {
+        firstName: capitalizeName(firstName),
+        lastName: capitalizeName(lastName),
+        dob,
+        phone: `${countryCode}${phone}`,
+        email: email.toLowerCase(), // Also ensure email is lowercase
+        qrCode: qrCodeURL,
+        role: isSuperUser ? 'superuser' : 'customer',
+        gdprConsent: {
+          accepted: true,
+          acceptedAt: new Date().toISOString(),
+          version: '1.0',
+          marketingConsent: true,
+          pushNotificationConsent: true
+        }
+      })
+
+      // Initialize stamps doc under "stamps/{uid}"
+      if (!isSuperUser) {
+        await setDoc(doc(firestore, 'stamps', userCred.user.uid), {
+          stamps: [],
+          rewardClaimed: false,
+          lifetimeStamps: 0,
+          rewardsEarned: 0
+        })
+      }
+
+      // Redirect to profile
       navigate('/profile')
     } catch (err) {
       setError(err.message)
@@ -186,7 +278,31 @@ export default function Auth({ mode = 'signin' }) {
             />
           </div>
 
-          <div style={{ marginTop: mode === 'signin' ? '1.5rem' : '2.5rem' }}>
+          {/* GDPR Checkbox for signup only */}
+          {mode === 'signup' && (
+            <div className="gdpr-section">
+              <div className="gdpr-checkbox">
+                <input
+                  type="checkbox"
+                  id="gdpr-consent"
+                  checked={gdprAccepted}
+                  onChange={handleGdprChange}
+                />
+                <label htmlFor="gdpr-consent" className="gdpr-label">
+                  Accetto l'{' '}
+                  <span
+                    className="privacy-link"
+                    onClick={() => setShowPrivacyPolicy(true)}
+                  >
+                    Informativa Privacy
+                  </span>
+                  {' '}e acconsento al trattamento dei miei dati personali per finalità di marketing, notifiche push e comunicazioni promozionali.
+                </label>
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginTop: mode === 'signin' ? '1.5rem' : '1.5rem' }}>
             <button
               type="submit"
               disabled={loading}
@@ -197,6 +313,41 @@ export default function Auth({ mode = 'signin' }) {
           </div>
         </form>
       </div>
+
+      {/* GDPR Warning Modal */}
+      {showGdprWarning && (
+        <div className="modal-overlay">
+          <div className="gdpr-warning-modal">
+            <h3>Consenso Privacy Richiesto</h3>
+            <p>
+              Per procedere con la registrazione è necessario accettare l'informativa privacy
+              e acconsentire al trattamento dei dati personali per finalità di marketing e notifiche push.
+            </p>
+            <p>
+              Cliccando "Continua" accetti automaticamente questi termini.
+            </p>
+            <div className="modal-buttons">
+              <button
+                className="gdpr-continue-btn"
+                onClick={handleGdprWarningContinue}
+              >
+                Continua
+              </button>
+              <button
+                className="gdpr-cancel-btn"
+                onClick={() => setShowGdprWarning(false)}
+              >
+                Annulla
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Privacy Policy Modal */}
+      {showPrivacyPolicy && (
+        <PrivacyPolicy onClose={() => setShowPrivacyPolicy(false)} />
+      )}
     </div>
   )
 }
