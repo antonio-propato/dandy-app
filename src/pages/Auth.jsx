@@ -198,7 +198,7 @@ export default function Auth({ mode = 'signin' }) {
         <form onSubmit={handleSubmit} className="auth-form">
           {mode === 'signup' && (
             <>
-              <div className="form-group">
+              <div className="auth-form-group">
                 <label>Nome</label>
                 <input
                   type="text"
@@ -209,7 +209,7 @@ export default function Auth({ mode = 'signin' }) {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="auth-form-group">
                 <label>Cognome</label>
                 <input
                   type="text"
@@ -220,7 +220,7 @@ export default function Auth({ mode = 'signin' }) {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="auth-form-group">
                 <label>Compleanno</label>
                 <input
                   type="text"
@@ -232,16 +232,16 @@ export default function Auth({ mode = 'signin' }) {
                 />
               </div>
 
-              <div className="form-group phone">
+              <div className="auth-form-group phone">
                 <label>Cellulare</label>
-                <div className="phone-fields">
+                <div className="auth-phone-fields">
                   <input
                     type="text"
                     name="countryCode"
                     value={form.countryCode}
                     onChange={handleChange}
                     required
-                    className="code"
+                    className="auth-phone-code"
                   />
                   <input
                     type="tel"
@@ -256,7 +256,7 @@ export default function Auth({ mode = 'signin' }) {
             </>
           )}
 
-          <div className="form-group">
+          <div className="auth-form-group">
             <label>Email</label>
             <input
               type="email"
@@ -267,7 +267,7 @@ export default function Auth({ mode = 'signin' }) {
             />
           </div>
 
-          <div className="form-group">
+          <div className="auth-form-group">
             <label>Password</label>
             <input
               type="password"
@@ -280,18 +280,18 @@ export default function Auth({ mode = 'signin' }) {
 
           {/* GDPR Checkbox for signup only */}
           {mode === 'signup' && (
-            <div className="gdpr-section">
-              <div className="gdpr-checkbox">
+            <div className="auth-gdpr-section">
+              <div className="auth-gdpr-checkbox">
                 <input
                   type="checkbox"
                   id="gdpr-consent"
                   checked={gdprAccepted}
                   onChange={handleGdprChange}
                 />
-                <label htmlFor="gdpr-consent" className="gdpr-label">
+                <label htmlFor="gdpr-consent" className="auth-gdpr-label">
                   Accetto l'{' '}
                   <span
-                    className="privacy-link"
+                    className="auth-privacy-link"
                     onClick={() => setShowPrivacyPolicy(true)}
                   >
                     Informativa Privacy
@@ -302,7 +302,7 @@ export default function Auth({ mode = 'signin' }) {
             </div>
           )}
 
-          <div style={{ marginTop: mode === 'signin' ? '1.5rem' : '1.5rem' }}>
+          <div className="auth-button-container">
             <button
               type="submit"
               disabled={loading}
@@ -316,8 +316,8 @@ export default function Auth({ mode = 'signin' }) {
 
       {/* GDPR Warning Modal */}
       {showGdprWarning && (
-        <div className="modal-overlay">
-          <div className="gdpr-warning-modal">
+        <div className="auth-modal-overlay">
+          <div className="auth-gdpr-warning-modal">
             <h3>Consenso Privacy Richiesto</h3>
             <p>
               Per procedere con la registrazione è necessario accettare l'informativa privacy
@@ -326,15 +326,15 @@ export default function Auth({ mode = 'signin' }) {
             <p>
               Cliccando "Continua" accetti automaticamente questi termini.
             </p>
-            <div className="modal-buttons">
+            <div className="auth-modal-buttons">
               <button
-                className="gdpr-continue-btn"
+                className="auth-gdpr-continue-btn"
                 onClick={handleGdprWarningContinue}
               >
                 Continua
               </button>
               <button
-                className="gdpr-cancel-btn"
+                className="auth-gdpr-cancel-btn"
                 onClick={() => setShowGdprWarning(false)}
               >
                 Annulla
