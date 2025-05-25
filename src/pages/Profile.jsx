@@ -20,7 +20,52 @@ export default function Profile() {
     return unsubscribe
   }, [])
 
-  if (!profile) return <div className="loading">Caricamento profilo...</div>
+  useEffect(() => {
+    // Lock the page when component mounts
+    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.width = '100%'
+    document.body.style.height = '100%'
+
+    // Add meta tag for orientation lock (if not already present)
+    const orientationMeta = document.querySelector('meta[name="viewport"]')
+    if (orientationMeta) {
+      const currentContent = orientationMeta.content
+      // Store original viewport content to restore later
+      orientationMeta.setAttribute('data-original-content', currentContent)
+      orientationMeta.content = 'width=device-width, initial-scale=1.0, user-scalable=no'
+    }
+
+    // Cleanup when component unmounts
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+      document.body.style.height = ''
+
+      // Restore original viewport settings
+      const orientationMeta = document.querySelector('meta[name="viewport"]')
+      if (orientationMeta) {
+        const originalContent = orientationMeta.getAttribute('data-original-content')
+        if (originalContent) {
+          orientationMeta.content = originalContent
+          orientationMeta.removeAttribute('data-original-content')
+        }
+      }
+    }
+  }, [])
+
+  if (!profile) {
+    return (
+      <div
+        className="profile-wrapper"
+        style={{ backgroundImage: `url('/images/Legno.png')` }}
+      >
+        <div className="profile-overlay" />
+        <div className="loading">Caricamento profilo...</div>
+      </div>
+    )
+  }
 
   // Format phone as international: prepend + if missing, split code/number
   const rawPhone = profile.phone.startsWith('+') ? profile.phone : `+${profile.phone}`

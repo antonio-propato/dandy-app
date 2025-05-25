@@ -3,7 +3,7 @@
 .client-management-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 70px 20px 20px 20px;
+  padding: 60px 50px 20px 50px; /* Increased top padding for burger menu */
   font-family: 'Poppins', sans-serif;
   background-image: url('/images/Legno.png');
   background-size: cover;
@@ -706,17 +706,18 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .client-management-container {
-    padding: 60px 15px 15px 15px;
+    padding: 60px 30px 25px 30px; /* Increased top padding for mobile burger menu */
   }
 
   .client-management-header {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
+    align-items: center; /* Center align for mobile */
+    gap: 20px;
+    text-align: center; /* Center text for mobile */
   }
 
   .client-management-header h1 {
-    font-size: 20px;
+    font-size: 25px;
   }
 
   .clients-list {

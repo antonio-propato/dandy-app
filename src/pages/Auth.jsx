@@ -1,16 +1,13 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
-  PhoneAuthProvider,
-  PhoneMultiFactorGenerator,
-  multiFactor,
-  RecaptchaVerifier,
+  sendEmailVerification,
 } from 'firebase/auth'
 import { auth, firestore } from '../lib/firebase'
-import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { doc, setDoc, getDoc, query, collection, where, getDocs } from 'firebase/firestore'
 import QRCode from 'qrcode'
 import PrivacyPolicy from './PrivacyPolicy'
 import './Auth.css'
@@ -23,6 +20,62 @@ const capitalizeName = (name) => {
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')
+}
+
+// Get time-based greeting using user's local timezone
+const getTimeBasedGreeting = () => {
+  const now = new Date()
+  const hour = now.getHours() // Uses user's local time automatically
+
+  if (hour >= 5 && hour < 12) {
+    return 'Buongiorno!'
+  } else if (hour >= 12 && hour < 18) {
+    return 'Buon Pomeriggio!'
+  } else {
+    return 'Buonasera!'
+  }
+}
+
+// Validation functions
+const validateCompleanno = (dob) => {
+  const regex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])$/
+  return regex.test(dob)
+}
+
+const validateMobile = (phone, countryCode) => {
+  // Remove spaces and special characters
+  const cleanPhone = phone.replace(/[\s\-\(\)]/g, '')
+
+  // Italian mobile validation for +39
+  if (countryCode === '+39') {
+    // Italian mobile: 10 digits starting with 3
+    return /^3\d{9}$/.test(cleanPhone)
+  }
+
+  // Basic validation for other countries (7-15 digits)
+  return /^\d{7,15}$/.test(cleanPhone)
+}
+
+const checkEmailExists = async (email) => {
+  try {
+    const q = query(collection(firestore, 'users'), where('email', '==', email.toLowerCase()))
+    const querySnapshot = await getDocs(q)
+    return !querySnapshot.empty
+  } catch (error) {
+    console.error('Error checking email:', error)
+    return false
+  }
+}
+
+const checkPhoneExists = async (phone) => {
+  try {
+    const q = query(collection(firestore, 'users'), where('phone', '==', phone))
+    const querySnapshot = await getDocs(q)
+    return !querySnapshot.empty
+  } catch (error) {
+    console.error('Error checking phone:', error)
+    return false
+  }
 }
 
 export default function Auth({ mode = 'signin' }) {
@@ -44,15 +97,107 @@ export default function Auth({ mode = 'signin' }) {
   const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [resetEmail, setResetEmail] = useState('')
   const [resetMessage, setResetMessage] = useState('')
+  const [emailVerificationSent, setEmailVerificationSent] = useState(false)
+  const [justCreatedUser, setJustCreatedUser] = useState(null)
+  const [validationErrors, setValidationErrors] = useState({})
 
-  // MFA States
-  const [showMfaVerification, setShowMfaVerification] = useState(false)
-  const [mfaCode, setMfaCode] = useState('')
-  const [mfaResolver, setMfaResolver] = useState(null)
-  const [recaptchaVerifier, setRecaptchaVerifier] = useState(null)
+  // Auto-check email verification status with proper role-based redirect
+  useEffect(() => {
+    let intervalId
+
+    if (emailVerificationSent && justCreatedUser) {
+      intervalId = setInterval(async () => {
+        try {
+          await justCreatedUser.reload()
+          if (justCreatedUser.emailVerified) {
+            // Update Firestore with verification status
+            await setDoc(doc(firestore, 'users', justCreatedUser.uid), {
+              emailVerified: true
+            }, { merge: true })
+
+            // Check user role and redirect appropriately
+            const userDoc = await getDoc(doc(firestore, 'users', justCreatedUser.uid))
+            const userData = userDoc.data()
+
+            clearInterval(intervalId)
+
+            // Redirect based on role
+            if (userData && userData.role === 'superuser') {
+              navigate('/scan')  // Superuser goes to scan page
+            } else {
+              navigate('/profile')  // Regular users go to profile
+            }
+          }
+        } catch (error) {
+          console.error('Error checking verification status:', error)
+        }
+      }, 3000) // Check every 3 seconds
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId)
+    }
+  }, [emailVerificationSent, justCreatedUser, navigate])
+
+  useEffect(() => {
+    // Lock the page when component mounts
+    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.width = '100%'
+    document.body.style.height = '100%'
+
+    // Add meta tag for orientation lock (if not already present)
+    const orientationMeta = document.querySelector('meta[name="viewport"]')
+    if (orientationMeta) {
+      const currentContent = orientationMeta.content
+      // Store original viewport content to restore later
+      orientationMeta.setAttribute('data-original-content', currentContent)
+      orientationMeta.content = 'width=device-width, initial-scale=1.0, user-scalable=no'
+    }
+
+    // Cleanup when component unmounts
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+      document.body.style.height = ''
+
+      // Restore original viewport settings
+      const orientationMeta = document.querySelector('meta[name="viewport"]')
+      if (orientationMeta) {
+        const originalContent = orientationMeta.getAttribute('data-original-content')
+        if (originalContent) {
+          orientationMeta.content = originalContent
+          orientationMeta.removeAttribute('data-original-content')
+        }
+      }
+    }
+  }, [])
 
   const handleChange = e => {
-    setForm({ ...form, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    setForm({ ...form, [name]: value })
+
+    // Clear validation error when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors({ ...validationErrors, [name]: null })
+    }
+  }
+
+  const handleDobChange = (e) => {
+    let value = e.target.value.replace(/\D/g, '') // Remove non-digits
+
+    // Format as DD/MM
+    if (value.length >= 3) {
+      value = value.slice(0, 2) + '/' + value.slice(2, 4)
+    }
+
+    setForm({ ...form, dob: value })
+
+    // Clear validation error
+    if (validationErrors.dob) {
+      setValidationErrors({ ...validationErrors, dob: null })
+    }
   }
 
   const handleGdprChange = (e) => {
@@ -62,55 +207,40 @@ export default function Auth({ mode = 'signin' }) {
     }
   }
 
-  // Initialize reCAPTCHA verifier
-  const initializeRecaptcha = () => {
-    if (!recaptchaVerifier) {
-      const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-        callback: (response) => {
-          // reCAPTCHA solved
-        }
-      })
-      setRecaptchaVerifier(verifier)
-      return verifier
-    }
-    return recaptchaVerifier
-  }
+  const validateForm = async () => {
+    const errors = {}
 
-  // Handle MFA verification
-  const handleMfaVerification = async (e) => {
-    e.preventDefault()
-    if (!mfaCode || !mfaResolver) return
-
-    setLoading(true)
-    setError(null)
-
-    try {
-      const phoneCredential = PhoneAuthProvider.credential(
-        mfaResolver.hints[0].uid,
-        mfaCode
-      )
-      const multiFactorAssertion = PhoneMultiFactorGenerator.assertion(phoneCredential)
-
-      const userCredential = await mfaResolver.resolveSignIn(multiFactorAssertion)
-
-      // Check if superuser and redirect accordingly
-      const userDoc = await getDoc(doc(firestore, 'users', userCredential.user.uid))
-      const userData = userDoc.data()
-
-      if (userData && userData.role === 'superuser') {
-        navigate('/scan')
-      } else {
-        navigate('/profile')
+    if (mode === 'signup') {
+      // Validate compleanno
+      if (!validateCompleanno(form.dob)) {
+        errors.dob = 'Formato compleanno non valido. Usa GG/MM (es: 15/03)'
       }
 
-      setShowMfaVerification(false)
-    } catch (err) {
-      setError('Codice di verifica non valido. Riprova.')
-      console.error('MFA verification error:', err)
-    } finally {
-      setLoading(false)
+      // Validate mobile
+      if (!validateMobile(form.phone, form.countryCode)) {
+        if (form.countryCode === '+39') {
+          errors.phone = 'Numero di cellulare non valido. Deve iniziare con 3 e avere 10 cifre'
+        } else {
+          errors.phone = 'Numero di cellulare non valido'
+        }
+      }
+
+      // Check email uniqueness
+      const emailExists = await checkEmailExists(form.email)
+      if (emailExists) {
+        errors.email = 'Questa email è già registrata'
+      }
+
+      // Check phone uniqueness
+      const fullPhone = `${form.countryCode}${form.phone}`
+      const phoneExists = await checkPhoneExists(fullPhone)
+      if (phoneExists) {
+        errors.phone = 'Questo numero di cellulare è già registrato'
+      }
     }
+
+    setValidationErrors(errors)
+    return Object.keys(errors).length === 0
   }
 
   const handleForgotPassword = async (e) => {
@@ -135,6 +265,58 @@ export default function Auth({ mode = 'signin' }) {
     }
   }
 
+  const handleResendVerification = async () => {
+    if (!justCreatedUser) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      await sendEmailVerification(justCreatedUser)
+      setResetMessage('Email di verifica inviata nuovamente!')
+    } catch (err) {
+      setError('Errore nell\'invio dell\'email di verifica.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCheckVerification = async () => {
+    if (!justCreatedUser) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Reload user to get latest emailVerified status
+      await justCreatedUser.reload()
+
+      if (justCreatedUser.emailVerified) {
+        // Update Firestore with verification status
+        await setDoc(doc(firestore, 'users', justCreatedUser.uid), {
+          emailVerified: true
+        }, { merge: true })
+
+        // Check user role and redirect appropriately
+        const userDoc = await getDoc(doc(firestore, 'users', justCreatedUser.uid))
+        const userData = userDoc.data()
+
+        // Redirect based on role
+        if (userData && userData.role === 'superuser') {
+          navigate('/scan')  // Superuser goes to scan page
+        } else {
+          navigate('/profile')  // Regular users go to profile
+        }
+      } else {
+        setError('Email non ancora verificata. Controlla la tua casella di posta e clicca sul link.')
+      }
+    } catch (err) {
+      setError('Errore durante la verifica. Riprova.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleSubmit = async e => {
     e.preventDefault()
     setError(null)
@@ -147,6 +329,15 @@ export default function Auth({ mode = 'signin' }) {
 
     setLoading(true)
 
+    // Validate form for signup
+    if (mode === 'signup') {
+      const isValid = await validateForm()
+      if (!isValid) {
+        setLoading(false)
+        return
+      }
+    }
+
     try {
       const { email, password, firstName, lastName, dob, countryCode, phone } = form
       let userCred
@@ -155,14 +346,17 @@ export default function Auth({ mode = 'signin' }) {
         // 1️⃣ Create the Auth user
         userCred = await createUserWithEmailAndPassword(auth, email, password)
 
-        // 2️⃣ Generate QR code for their profile link
+        // 2️⃣ Send email verification immediately
+        await sendEmailVerification(userCred.user)
+
+        // 3️⃣ Generate QR code for their profile link
         const qrData = `https://dandy.app/profile/${userCred.user.uid}`
         const qrCodeURL = await QRCode.toDataURL(qrData)
 
         // Determine if this is a superuser account
         const isSuperUser = email === 'antonio@propato.co.uk'
 
-        // 3️⃣ Save user profile under "users/{uid}" with GDPR consent
+        // 4️⃣ Save user profile under "users/{uid}" with GDPR consent
         await setDoc(doc(firestore, 'users', userCred.user.uid), {
           firstName: capitalizeName(firstName),
           lastName: capitalizeName(lastName),
@@ -171,6 +365,8 @@ export default function Auth({ mode = 'signin' }) {
           email: email.toLowerCase(),
           qrCode: qrCodeURL,
           role: isSuperUser ? 'superuser' : 'customer',
+          emailVerified: false,
+          createdAt: new Date().toISOString(),
           gdprConsent: {
             accepted: true,
             acceptedAt: new Date().toISOString(),
@@ -180,7 +376,7 @@ export default function Auth({ mode = 'signin' }) {
           }
         })
 
-        // 4️⃣ Initialize stamps doc under "stamps/{uid}"
+        // 5️⃣ Initialize stamps doc under "stamps/{uid}" - ONLY for customers
         if (!isSuperUser) {
           await setDoc(doc(firestore, 'stamps', userCred.user.uid), {
             stamps: [],
@@ -190,47 +386,46 @@ export default function Auth({ mode = 'signin' }) {
           })
         }
 
-        // For signup, redirect directly (MFA is typically set up after initial signup)
-        navigate('/profile')
+        // Store user and show verification screen
+        setJustCreatedUser(userCred.user)
+        setEmailVerificationSent(true)
+        setLoading(false)
+        return
       } else {
-        // Sign-in flow with MFA support
-        try {
-          userCred = await signInWithEmailAndPassword(auth, email, password)
+        // Sign-in flow
+        userCred = await signInWithEmailAndPassword(auth, email, password)
 
-          // Check if this is a superuser account
-          const userDoc = await getDoc(doc(firestore, 'users', userCred.user.uid))
-          const userData = userDoc.data()
+        // Check email verification status
+        if (!userCred.user.emailVerified) {
+          setError('Email non verificata. Controlla la tua casella di posta e clicca sul link di verifica.')
+          setLoading(false)
+          return
+        }
 
-          if (userData && userData.role === 'superuser') {
-            navigate('/scan')
-          } else {
-            navigate('/profile')
-          }
-        } catch (err) {
-          // Check if this is an MFA error
-          if (err.code === 'auth/multi-factor-auth-required') {
-            const resolver = err.resolver
-            setMfaResolver(resolver)
+        // Check if this is a superuser account
+        const userDoc = await getDoc(doc(firestore, 'users', userCred.user.uid))
+        const userData = userDoc.data()
 
-            // Initialize reCAPTCHA and send SMS
-            const verifier = initializeRecaptcha()
-            const phoneInfoOptions = {
-              multiFactorHint: resolver.hints[0],
-              session: resolver.session
-            }
-
-            const phoneAuthProvider = new PhoneAuthProvider(auth)
-            const verificationId = await phoneAuthProvider.verifyPhoneNumber(phoneInfoOptions, verifier)
-
-            setShowMfaVerification(true)
-            setError(null)
-          } else {
-            throw err // Re-throw if it's not an MFA error
-          }
+        if (userData && userData.role === 'superuser') {
+          navigate('/scan')
+        } else {
+          navigate('/profile')
         }
       }
     } catch (err) {
-      setError(err.message)
+      if (err.code === 'auth/email-already-in-use') {
+        setError('Questa email è già registrata. Prova ad accedere invece.')
+      } else if (err.code === 'auth/weak-password') {
+        setError('La password deve essere di almeno 6 caratteri.')
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Indirizzo email non valido.')
+      } else if (err.code === 'auth/user-not-found') {
+        setError('Account non trovato. Verifica email e password.')
+      } else if (err.code === 'auth/wrong-password') {
+        setError('Password non corretta.')
+      } else {
+        setError(err.message)
+      }
     } finally {
       setLoading(false)
     }
@@ -239,63 +434,58 @@ export default function Auth({ mode = 'signin' }) {
   const handleGdprWarningContinue = async () => {
     setGdprAccepted(true)
     setShowGdprWarning(false)
-    setLoading(true)
+    // Trigger the normal submit flow
+    handleSubmit({ preventDefault: () => {} })
+  }
 
-    try {
-      const { email, password, firstName, lastName, dob, countryCode, phone } = form
-
-      // Create the Auth user
-      const userCred = await createUserWithEmailAndPassword(auth, email, password)
-
-      // Generate QR code for their profile link
-      const qrData = `https://dandy.app/profile/${userCred.user.uid}`
-      const qrCodeURL = await QRCode.toDataURL(qrData)
-
-      // Determine if this is a superuser account
-      const isSuperUser = email === 'antonio@propato.co.uk'
-
-      // Save user profile under "users/{uid}" with GDPR consent
-      await setDoc(doc(firestore, 'users', userCred.user.uid), {
-        firstName: capitalizeName(firstName),
-        lastName: capitalizeName(lastName),
-        dob,
-        phone: `${countryCode}${phone}`,
-        email: email.toLowerCase(),
-        qrCode: qrCodeURL,
-        role: isSuperUser ? 'superuser' : 'customer',
-        gdprConsent: {
-          accepted: true,
-          acceptedAt: new Date().toISOString(),
-          version: '1.0',
-          marketingConsent: true,
-          pushNotificationConsent: true
-        }
-      })
-
-      // Initialize stamps doc under "stamps/{uid}"
-      if (!isSuperUser) {
-        await setDoc(doc(firestore, 'stamps', userCred.user.uid), {
-          stamps: [],
-          rewardClaimed: false,
-          lifetimeStamps: 0,
-          rewardsEarned: 0
-        })
-      }
-
-      // Redirect to profile
-      navigate('/profile')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
+  // Show email verification screen after signup
+  if (emailVerificationSent) {
+    return (
+      <div className="auth-wrapper">
+        <div className="auth-overlay"></div>
+        <div className="auth-card">
+          <img
+            src="/images/Dandy.jpeg"
+            alt="Dandy Logo"
+            className="auth-logo"
+          />
+          <div className="auth-verification-message">
+            <h2>Verifica la tua Email</h2>
+            <p>
+              Abbiamo inviato un link di verifica a<br />
+              <strong>{form.email}</strong>
+            </p>
+            <p>
+              Clicca sul link nell'email per attivare il tuo account.
+              La verifica avverrà automaticamente.
+            </p>
+            <div className="auth-verification-buttons">
+              <button
+                className="auth-continue-btn"
+                onClick={handleCheckVerification}
+                disabled={loading}
+              >
+                {loading ? 'Verifica...' : 'Continua'}
+              </button>
+              <button
+                className="auth-resend-btn"
+                onClick={handleResendVerification}
+                disabled={loading}
+              >
+                {loading ? 'Invio...' : 'Invia di nuovo'}
+              </button>
+            </div>
+            {resetMessage && <div className="auth-success">{resetMessage}</div>}
+            {error && <div className="auth-error">{error}</div>}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="auth-wrapper">
       <div className="auth-overlay"></div>
-      {/* Hidden reCAPTCHA container */}
-      <div id="recaptcha-container"></div>
 
       <div className={`auth-card ${mode === 'signin' ? 'auth-card-signin' : ''}`}>
         <img
@@ -304,7 +494,7 @@ export default function Auth({ mode = 'signin' }) {
           className={`auth-logo ${mode === 'signin' ? 'auth-logo-signin' : ''}`}
         />
 
-        {mode === 'signin' && <h2 className="auth-title">Bentornato</h2>}
+        {mode === 'signin' && <h2 className="auth-title">{getTimeBasedGreeting()}</h2>}
 
         {error && <div className="auth-error">{error}</div>}
         {resetMessage && <div className="auth-success">{resetMessage}</div>}
@@ -339,11 +529,16 @@ export default function Auth({ mode = 'signin' }) {
                 <input
                   type="text"
                   name="dob"
-                  placeholder="gg/mm"
+                  placeholder="15/03"
                   value={form.dob}
-                  onChange={handleChange}
+                  onChange={handleDobChange}
+                  maxLength="5"
                   required
+                  className={validationErrors.dob ? 'auth-input-error' : ''}
                 />
+                {validationErrors.dob && (
+                  <div className="auth-field-error">{validationErrors.dob}</div>
+                )}
               </div>
 
               <div className="auth-form-group phone">
@@ -363,9 +558,13 @@ export default function Auth({ mode = 'signin' }) {
                     value={form.phone}
                     onChange={handleChange}
                     required
-                    placeholder="123456789"
+                    placeholder="3123456789"
+                    className={validationErrors.phone ? 'auth-input-error' : ''}
                   />
                 </div>
+                {validationErrors.phone && (
+                  <div className="auth-field-error">{validationErrors.phone}</div>
+                )}
               </div>
             </>
           )}
@@ -378,7 +577,11 @@ export default function Auth({ mode = 'signin' }) {
               value={form.email}
               onChange={handleChange}
               required
+              className={validationErrors.email ? 'auth-input-error' : ''}
             />
+            {validationErrors.email && (
+              <div className="auth-field-error">{validationErrors.email}</div>
+            )}
           </div>
 
           <div className="auth-form-group">
@@ -389,6 +592,7 @@ export default function Auth({ mode = 'signin' }) {
               value={form.password}
               onChange={handleChange}
               required
+              minLength="6"
             />
           </div>
 
@@ -440,54 +644,6 @@ export default function Auth({ mode = 'signin' }) {
           </div>
         </form>
       </div>
-
-      {/* MFA Verification Modal */}
-      {showMfaVerification && (
-        <div className="auth-modal-overlay">
-          <div className="auth-mfa-modal">
-            <div className="auth-modal-header">
-              <h3>Verifica SMS</h3>
-            </div>
-            <div className="auth-modal-content">
-              <p>Abbiamo inviato un codice di verifica al tuo telefono. Inserisci il codice qui sotto.</p>
-              <form onSubmit={handleMfaVerification}>
-                <div className="auth-form-group">
-                  <label>Codice di Verifica</label>
-                  <input
-                    type="text"
-                    value={mfaCode}
-                    onChange={(e) => setMfaCode(e.target.value)}
-                    required
-                    placeholder="123456"
-                    maxLength="6"
-                  />
-                </div>
-                <div className="auth-modal-buttons">
-                  <button
-                    type="submit"
-                    className="auth-verify-btn"
-                    disabled={loading}
-                  >
-                    {loading ? 'Verifica...' : 'Verifica'}
-                  </button>
-                  <button
-                    type="button"
-                    className="auth-cancel-btn"
-                    onClick={() => {
-                      setShowMfaVerification(false)
-                      setMfaCode('')
-                      setMfaResolver(null)
-                      setError(null)
-                    }}
-                  >
-                    Annulla
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Forgot Password Modal */}
       {showForgotPassword && (

@@ -329,7 +329,7 @@ export default function ClientManagement() {
                   Modifica
                 </button>
                 <button onClick={() => openStampsModal(client)} className="client-stamps-btn">
-                  Gestisci Timbri
+                  Timbri
                 </button>
                 <button onClick={() => showDeleteConfirmation(client.id, `${client.firstName} ${client.lastName}`)} className="client-delete-btn">
                   Elimina
