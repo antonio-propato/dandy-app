@@ -57,8 +57,8 @@
 
 .auth-logo-signin {
   display: block;
-  max-width: 120px; /* increased from 90px */
-  margin: 3rem auto 5rem auto; /* increased top and bottom margins */
+  max-width: 90px; /* increased from 90px */
+  margin: 3rem auto 8rem auto; /* increased top and bottom margins */
   border-radius: 10px;
   object-fit: cover;
   z-index: 10;
@@ -75,7 +75,7 @@
   font-weight: 600;
   font-size: 0.9rem;
   color: #ECF0BA !important; /* Force the color */
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.2rem;
   text-transform: none !important; /* Prevent capitalization */
   letter-spacing: normal !important; /* Reset letter spacing */
 }
@@ -195,13 +195,10 @@
   margin-top: 2rem;
 }
 
-/* Button */
+/* Base button styles (shared between both) */
 .auth-button {
-  background: linear-gradient(97deg, #43221B, #43221bd3);
-  color: #ECF0BA;
   font-weight: bold;
   height: 56px;
-  border: 1px groove #ECF0BA;
   border-radius: 0.6rem;
   font-size: 1rem;
   cursor: pointer;
@@ -213,19 +210,43 @@
   letter-spacing: 1px;
 }
 
+/* Signup button (CONFERMA) specific styles */
+.auth-button-signup {
+  background: linear-gradient(97deg, #43221B, #43221bd3);
+  color: #ECF0BA;
+  border: 1px groove #ECF0BA;
+}
+
+.auth-button-signup:hover {
+  filter: brightness(1.1);
+}
+
+/* Signin button (ACCEDI) specific styles */
+.auth-button-signin {
+  background: linear-gradient(97deg, #43221B, #43221bd3);
+  color: #ECF0BA;
+  border: 1px groove #ECF0BA;
+  margin-top: 30px;
+}
+
+.auth-button-signin:hover {
+  filter: brightness(1.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(44, 95, 65, 0.3);
+}
+
+/* Disabled state for both buttons */
+.auth-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 /* Remove the override that was adding padding */
 .auth-form > div:last-child {
   margin: 0;
   padding: 0;
-}
-
-.auth-button:hover {
-  filter: brightness(1.1);
-}
-
-.auth-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
 }
 
 /* Error message */
@@ -403,7 +424,7 @@
   }
 
   .auth-form {
-    gap: 1.25rem;
+    gap: 1rem;
   }
 
   .auth-form-group input,
@@ -441,6 +462,139 @@
 
   .auth-gdpr-continue-btn,
   .auth-gdpr-cancel-btn {
+    width: 100%;
+  }
+}
+
+/* Forgot Password Section */
+.auth-forgot-password {
+  text-align: center;
+  margin-top: -0.5rem;
+  margin-bottom: 0;
+}
+
+.auth-forgot-link {
+  background: none;
+  border: none;
+  color: #FFD700;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s;
+  padding: 0;
+}
+
+.auth-forgot-link:hover {
+  color: #FFED4A;
+}
+
+/* Success message */
+.auth-success {
+  color: #28a745;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  background-color: rgba(40, 167, 69, 0.1);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+/* Forgot Password Modal */
+.auth-forgot-modal {
+  background: white;
+  border-radius: 1rem;
+  max-width: 450px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.auth-forgot-modal .auth-modal-content {
+  padding: 1.5rem 2rem 2rem 2rem;
+}
+
+.auth-forgot-modal .auth-modal-content p {
+  color: #333;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.auth-forgot-modal .auth-form-group {
+  margin-bottom: 1.5rem;
+}
+
+.auth-forgot-modal .auth-form-group label {
+  color: #333 !important;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.auth-forgot-modal .auth-form-group input {
+  border: 1px solid #ddd;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.auth-forgot-modal .auth-form-group input:focus {
+  border-color: #43221B;
+  box-shadow: 0 0 0 2px rgba(67, 34, 27, 0.2);
+}
+
+.auth-reset-btn {
+  background-color: #43221B;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.auth-reset-btn:hover {
+  background-color: #5a2f26;
+}
+
+.auth-reset-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.auth-cancel-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.auth-cancel-btn:hover {
+  background-color: #5a6268;
+}
+
+/* Mobile responsiveness for forgot password */
+@media (max-width: 480px) {
+  .auth-forgot-modal {
+    max-width: 95%;
+    margin: 1rem;
+  }
+
+  .auth-forgot-modal .auth-modal-content {
+    padding: 1rem;
+  }
+
+  .auth-forgot-modal .auth-modal-buttons {
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .auth-reset-btn,
+  .auth-cancel-btn {
     width: 100%;
   }
 }

@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  PhoneAuthProvider,
+  PhoneMultiFactorGenerator,
+  multiFactor,
+  RecaptchaVerifier,
 } from 'firebase/auth'
 import { auth, firestore } from '../lib/firebase'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
@@ -36,6 +41,15 @@ export default function Auth({ mode = 'signin' }) {
   const [gdprAccepted, setGdprAccepted] = useState(true)
   const [showGdprWarning, setShowGdprWarning] = useState(false)
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetMessage, setResetMessage] = useState('')
+
+  // MFA States
+  const [showMfaVerification, setShowMfaVerification] = useState(false)
+  const [mfaCode, setMfaCode] = useState('')
+  const [mfaResolver, setMfaResolver] = useState(null)
+  const [recaptchaVerifier, setRecaptchaVerifier] = useState(null)
 
   const handleChange = e => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -45,6 +59,79 @@ export default function Auth({ mode = 'signin' }) {
     setGdprAccepted(e.target.checked)
     if (e.target.checked) {
       setShowGdprWarning(false)
+    }
+  }
+
+  // Initialize reCAPTCHA verifier
+  const initializeRecaptcha = () => {
+    if (!recaptchaVerifier) {
+      const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+        callback: (response) => {
+          // reCAPTCHA solved
+        }
+      })
+      setRecaptchaVerifier(verifier)
+      return verifier
+    }
+    return recaptchaVerifier
+  }
+
+  // Handle MFA verification
+  const handleMfaVerification = async (e) => {
+    e.preventDefault()
+    if (!mfaCode || !mfaResolver) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const phoneCredential = PhoneAuthProvider.credential(
+        mfaResolver.hints[0].uid,
+        mfaCode
+      )
+      const multiFactorAssertion = PhoneMultiFactorGenerator.assertion(phoneCredential)
+
+      const userCredential = await mfaResolver.resolveSignIn(multiFactorAssertion)
+
+      // Check if superuser and redirect accordingly
+      const userDoc = await getDoc(doc(firestore, 'users', userCredential.user.uid))
+      const userData = userDoc.data()
+
+      if (userData && userData.role === 'superuser') {
+        navigate('/scan')
+      } else {
+        navigate('/profile')
+      }
+
+      setShowMfaVerification(false)
+    } catch (err) {
+      setError('Codice di verifica non valido. Riprova.')
+      console.error('MFA verification error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault()
+    if (!resetEmail) {
+      setError('Inserisci il tuo indirizzo email')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      await sendPasswordResetEmail(auth, resetEmail)
+      setResetMessage('Email di reset inviata! Controlla la tua casella di posta.')
+      setError(null)
+    } catch (err) {
+      setError('Errore nell\'invio dell\'email di reset. Verifica che l\'email sia corretta.')
+      setResetMessage('')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -81,7 +168,7 @@ export default function Auth({ mode = 'signin' }) {
           lastName: capitalizeName(lastName),
           dob,
           phone: `${countryCode}${phone}`,
-          email: email.toLowerCase(), // Also ensure email is lowercase
+          email: email.toLowerCase(),
           qrCode: qrCodeURL,
           role: isSuperUser ? 'superuser' : 'customer',
           gdprConsent: {
@@ -102,22 +189,46 @@ export default function Auth({ mode = 'signin' }) {
             rewardsEarned: 0
           })
         }
+
+        // For signup, redirect directly (MFA is typically set up after initial signup)
+        navigate('/profile')
       } else {
-        // Sign-in flow
-        userCred = await signInWithEmailAndPassword(auth, email, password)
+        // Sign-in flow with MFA support
+        try {
+          userCred = await signInWithEmailAndPassword(auth, email, password)
 
-        // Check if this is a superuser account
-        const userDoc = await getDoc(doc(firestore, 'users', userCred.user.uid))
-        const userData = userDoc.data()
+          // Check if this is a superuser account
+          const userDoc = await getDoc(doc(firestore, 'users', userCred.user.uid))
+          const userData = userDoc.data()
 
-        if (userData && userData.role === 'superuser') {
-          navigate('/scan')
-          return
+          if (userData && userData.role === 'superuser') {
+            navigate('/scan')
+          } else {
+            navigate('/profile')
+          }
+        } catch (err) {
+          // Check if this is an MFA error
+          if (err.code === 'auth/multi-factor-auth-required') {
+            const resolver = err.resolver
+            setMfaResolver(resolver)
+
+            // Initialize reCAPTCHA and send SMS
+            const verifier = initializeRecaptcha()
+            const phoneInfoOptions = {
+              multiFactorHint: resolver.hints[0],
+              session: resolver.session
+            }
+
+            const phoneAuthProvider = new PhoneAuthProvider(auth)
+            const verificationId = await phoneAuthProvider.verifyPhoneNumber(phoneInfoOptions, verifier)
+
+            setShowMfaVerification(true)
+            setError(null)
+          } else {
+            throw err // Re-throw if it's not an MFA error
+          }
         }
       }
-
-      // Redirect regular users to profile
-      navigate('/profile')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -149,7 +260,7 @@ export default function Auth({ mode = 'signin' }) {
         lastName: capitalizeName(lastName),
         dob,
         phone: `${countryCode}${phone}`,
-        email: email.toLowerCase(), // Also ensure email is lowercase
+        email: email.toLowerCase(),
         qrCode: qrCodeURL,
         role: isSuperUser ? 'superuser' : 'customer',
         gdprConsent: {
@@ -183,6 +294,8 @@ export default function Auth({ mode = 'signin' }) {
   return (
     <div className="auth-wrapper">
       <div className="auth-overlay"></div>
+      {/* Hidden reCAPTCHA container */}
+      <div id="recaptcha-container"></div>
 
       <div className={`auth-card ${mode === 'signin' ? 'auth-card-signin' : ''}`}>
         <img
@@ -194,6 +307,7 @@ export default function Auth({ mode = 'signin' }) {
         {mode === 'signin' && <h2 className="auth-title">Bentornato</h2>}
 
         {error && <div className="auth-error">{error}</div>}
+        {resetMessage && <div className="auth-success">{resetMessage}</div>}
 
         <form onSubmit={handleSubmit} className="auth-form">
           {mode === 'signup' && (
@@ -278,6 +392,19 @@ export default function Auth({ mode = 'signin' }) {
             />
           </div>
 
+          {/* Forgot Password Link - Only show on signin */}
+          {mode === 'signin' && (
+            <div className="auth-forgot-password">
+              <button
+                type="button"
+                className="auth-forgot-link"
+                onClick={() => setShowForgotPassword(true)}
+              >
+                Hai dimenticato la tua password?
+              </button>
+            </div>
+          )}
+
           {/* GDPR Checkbox for signup only */}
           {mode === 'signup' && (
             <div className="auth-gdpr-section">
@@ -306,13 +433,119 @@ export default function Auth({ mode = 'signin' }) {
             <button
               type="submit"
               disabled={loading}
-              className="auth-button"
+              className={`auth-button ${mode === 'signup' ? 'auth-button-signup' : 'auth-button-signin'}`}
             >
               {loading ? 'Attendere...' : mode === 'signup' ? 'CONFERMA' : 'ACCEDI'}
             </button>
           </div>
         </form>
       </div>
+
+      {/* MFA Verification Modal */}
+      {showMfaVerification && (
+        <div className="auth-modal-overlay">
+          <div className="auth-mfa-modal">
+            <div className="auth-modal-header">
+              <h3>Verifica SMS</h3>
+            </div>
+            <div className="auth-modal-content">
+              <p>Abbiamo inviato un codice di verifica al tuo telefono. Inserisci il codice qui sotto.</p>
+              <form onSubmit={handleMfaVerification}>
+                <div className="auth-form-group">
+                  <label>Codice di Verifica</label>
+                  <input
+                    type="text"
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value)}
+                    required
+                    placeholder="123456"
+                    maxLength="6"
+                  />
+                </div>
+                <div className="auth-modal-buttons">
+                  <button
+                    type="submit"
+                    className="auth-verify-btn"
+                    disabled={loading}
+                  >
+                    {loading ? 'Verifica...' : 'Verifica'}
+                  </button>
+                  <button
+                    type="button"
+                    className="auth-cancel-btn"
+                    onClick={() => {
+                      setShowMfaVerification(false)
+                      setMfaCode('')
+                      setMfaResolver(null)
+                      setError(null)
+                    }}
+                  >
+                    Annulla
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="auth-modal-overlay">
+          <div className="auth-forgot-modal">
+            <div className="auth-modal-header">
+              <h3>Reset Password</h3>
+              <button
+                className="auth-modal-close"
+                onClick={() => {
+                  setShowForgotPassword(false)
+                  setResetEmail('')
+                  setResetMessage('')
+                  setError(null)
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div className="auth-modal-content">
+              <p>Inserisci il tuo indirizzo email per ricevere il link di reset della password.</p>
+              <form onSubmit={handleForgotPassword}>
+                <div className="auth-form-group">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    required
+                    placeholder="La tua email"
+                  />
+                </div>
+                <div className="auth-modal-buttons">
+                  <button
+                    type="submit"
+                    className="auth-reset-btn"
+                    disabled={loading}
+                  >
+                    {loading ? 'Invio...' : 'Invia Reset'}
+                  </button>
+                  <button
+                    type="button"
+                    className="auth-cancel-btn"
+                    onClick={() => {
+                      setShowForgotPassword(false)
+                      setResetEmail('')
+                      setResetMessage('')
+                      setError(null)
+                    }}
+                  >
+                    Annulla
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* GDPR Warning Modal */}
       {showGdprWarning && (
