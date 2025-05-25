@@ -1,4 +1,4 @@
-/* Nav.css - Combined version */
+/* Nav.css - Mobile-optimized with partial overlay */
 
 .nav-flyout {
   position: fixed;
@@ -8,10 +8,10 @@
   width: 10rem;
   background-color: #000000e1;
   color: #FFFFFF;
-  z-index: 40; /* Increased z-index to ensure it's above content */
+  z-index: 40;
   transform: translateX(-100%);
   transition: transform 0.3s ease;
-  padding: 5rem 1rem 1.5rem; /* Increased top padding to account for button */
+  padding: 5rem 1rem 1.5rem;
   display: flex;
   flex-direction: column;
   border-top-right-radius: 8px;
@@ -20,7 +20,7 @@
 
 .nav-logout {
   margin-bottom: 7rem;
-  margin-top: auto; /* Pushes the logout button to the bottom */
+  margin-top: auto;
   border-top: 1px solid #333;
   padding-top: 15px;
 }
@@ -76,12 +76,11 @@
   animation: pulse-glow 1.6s infinite ease-in-out;
 }
 
-/* Updated burger button styling - no background */
 .burger-button {
   position: fixed;
-  top: 1.5rem; /* Consistent positioning from top */
-  left: 1rem; /* Consistent positioning from left */
-  z-index: 50; /* Higher z-index to ensure it's always on top */
+  top: 1.5rem;
+  left: 1rem;
+  z-index: 50;
   padding: 0.5rem;
   background-color: transparent;
   color: #ffffff;
@@ -100,10 +99,9 @@
 }
 
 .burger-icon {
-  font-size: 1.8rem; /* Slightly larger icon */
+  font-size: 1.8rem;
   color: #ffffff;
   transition: color 0.3s ease;
-  /* Optional: Add a text shadow to make it more visible against various backgrounds */
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
@@ -124,15 +122,71 @@
   margin: 0;
   display: flex;
   align-items: center;
+  margin-bottom: -40px;
 }
 
 .logout-button:hover {
   color: #ff5252;
 }
 
-@media (max-width: 600px) {
+/* Overlay for tap-to-close functionality */
+.nav-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 30;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.nav-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
   .nav-flyout {
-    width: 100%;
+    width: 70%; /* Takes up 70% of screen width on mobile */
+    max-width: 280px; /* Maximum width to prevent it from being too wide */
     border-radius: 0;
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+  }
+
+  .nav-link {
+    font-size: 1rem;
+    margin-top: 1.5rem;
+    padding: 0.5rem 0;
+  }
+
+  .nav-icon {
+    width: 18px;
+    margin-right: 12px;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  .nav-flyout {
+    width: 55%;
+    max-width: 260px;
+  }
+
+  .nav-link {
+    font-size: 0.95rem;
+  }
+
+  .burger-button {
+    top: 1rem;
+    left: 0.75rem;
+  }
+
+  .burger-icon {
+    font-size: 1.6rem;
   }
 }

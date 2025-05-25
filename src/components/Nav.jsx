@@ -114,7 +114,7 @@ export default function Nav() {
           // Customer Navigation
           <>
             <Link to="/profile" onClick={() => setOpen(false)} className={isActive('/profile')}>Profilo</Link>
-            <Link to="/stamps" onClick={() => setOpen(false)} className={isActive('/stamps')}>Stampi</Link>
+            <Link to="/stamps" onClick={() => setOpen(false)} className={isActive('/stamps')}>Timbri</Link>
             <Link to="/menu" onClick={() => setOpen(false)} className={isActive('/menu')}>Menu</Link>
             <Link to="/contacts" onClick={() => setOpen(false)} className={isActive('/contacts')}>Contatti</Link>
           </>

@@ -1,12 +1,15 @@
-/* Page background */
+/* ========================================
+   BASE LAYOUT & WRAPPER
+   ======================================== */
+
 .auth-wrapper {
   position: relative;
   min-height: 100vh;
   background: url('/images/Barseat.png') center/cover no-repeat;
   display: flex;
-  align-items: flex-start; /* move content to top */
+  align-items: flex-start;
   justify-content: center;
-  padding-top: 4rem; /* space from the top */
+  padding-top: 4rem;
   font-family: 'Raleway', sans-serif;
 }
 
@@ -18,7 +21,10 @@
   z-index: 0;
 }
 
-/* Card container */
+/* ========================================
+   CARD CONTAINER
+   ======================================== */
+
 .auth-card {
   position: relative;
   z-index: 1;
@@ -27,27 +33,13 @@
   width: 90%;
   max-width: 420px;
   box-sizing: border-box;
-  margin-top: -2.5rem; /* Move the card up */
+  margin-top: -2.5rem;
 }
 
-/* Title */
-.auth-title {
-  font-size: 1.8rem;
-  font-weight: bold;
-  margin-bottom: 2rem;
-  text-align: center;
-  color: #ECF0BA !important;
-}
+/* ========================================
+   LOGO & TITLE
+   ======================================== */
 
-/* Form */
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  width: 100%;
-}
-
-/* Logo styling */
 .auth-logo {
   display: block;
   max-width: 90px;
@@ -57,12 +49,31 @@
 
 .auth-logo-signin {
   display: block;
-  max-width: 90px; /* increased from 90px */
-  margin: 3rem auto 8rem auto; /* increased top and bottom margins */
+  max-width: 90px;
+  margin: 3rem auto 8rem auto;
   border-radius: 10px;
   object-fit: cover;
   z-index: 10;
   border: #43221B groove 2px;
+}
+
+.auth-title {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-bottom: 2rem;
+  text-align: center;
+  color: #ECF0BA !important;
+}
+
+/* ========================================
+   FORM ELEMENTS
+   ======================================== */
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
 }
 
 .auth-form-group {
@@ -74,10 +85,10 @@
 .auth-form-group label {
   font-weight: 600;
   font-size: 0.9rem;
-  color: #ECF0BA !important; /* Force the color */
+  color: #ECF0BA !important;
   margin-bottom: 0.2rem;
-  text-transform: none !important; /* Prevent capitalization */
-  letter-spacing: normal !important; /* Reset letter spacing */
+  text-transform: none !important;
+  letter-spacing: normal !important;
 }
 
 .auth-form-group input {
@@ -98,7 +109,27 @@
   box-shadow: 0 0 0 2px rgba(67, 34, 27, 0.2);
 }
 
-/* Phone inputs */
+/* ========================================
+   FORM VALIDATION STYLES
+   ======================================== */
+
+.auth-input-error {
+  border-color: #e63946 !important;
+  box-shadow: 0 0 0 2px rgba(230, 57, 70, 0.2) !important;
+}
+
+.auth-field-error {
+  color: #e63946;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+  line-height: 1.3;
+}
+
+/* ========================================
+   PHONE INPUT FIELDS
+   ======================================== */
+
 .auth-phone-fields {
   display: flex;
   gap: 0.5rem;
@@ -142,7 +173,10 @@
   box-shadow: 0 0 0 2px rgba(67, 34, 27, 0.2);
 }
 
-/* GDPR Section */
+/* ========================================
+   GDPR SECTION
+   ======================================== */
+
 .auth-gdpr-section {
   margin-top: 0;
   margin-bottom: 0;
@@ -184,18 +218,45 @@
   color: #FFED4A;
 }
 
-/* Button Container */
+/* ========================================
+   FORGOT PASSWORD SECTION
+   ======================================== */
+
+.auth-forgot-password {
+  text-align: center;
+  margin-top: -0.5rem;
+  margin-bottom: 0;
+}
+
+.auth-forgot-link {
+  background: none;
+  border: none;
+  color: #FFD700;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s;
+  padding: 0;
+}
+
+.auth-forgot-link:hover {
+  color: #FFED4A;
+}
+
+/* ========================================
+   BUTTONS
+   ======================================== */
+
 .auth-button-container {
   margin-top: 0;
   width: 100%;
 }
 
-/* Special spacing for signin page - larger gap before button */
 .auth-card-signin .auth-button-container {
   margin-top: 2rem;
 }
 
-/* Base button styles (shared between both) */
+/* Base button styles (shared) */
 .auth-button {
   font-weight: bold;
   height: 56px;
@@ -210,7 +271,7 @@
   letter-spacing: 1px;
 }
 
-/* Signup button (CONFERMA) specific styles */
+/* Signup button (CONFERMA) */
 .auth-button-signup {
   background: linear-gradient(97deg, #43221B, #43221bd3);
   color: #ECF0BA;
@@ -221,7 +282,7 @@
   filter: brightness(1.1);
 }
 
-/* Signin button (ACCEDI) specific styles */
+/* Signin button (ACCEDI) */
 .auth-button-signin {
   background: linear-gradient(97deg, #43221B, #43221bd3);
   color: #ECF0BA;
@@ -235,7 +296,7 @@
   box-shadow: 0 4px 12px rgba(44, 95, 65, 0.3);
 }
 
-/* Disabled state for both buttons */
+/* Disabled state for all buttons */
 .auth-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
@@ -243,13 +304,91 @@
   box-shadow: none !important;
 }
 
-/* Remove the override that was adding padding */
-.auth-form > div:last-child {
-  margin: 0;
-  padding: 0;
+/* ========================================
+   EMAIL VERIFICATION SCREEN
+   ======================================== */
+
+.auth-verification-message {
+  text-align: center;
+  color: #ECF0BA;
+  padding: 2rem 0;
 }
 
-/* Error message */
+.auth-verification-message h2 {
+  color: #ECF0BA;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+}
+
+.auth-verification-message p {
+  margin-bottom: 1rem;
+  line-height: 1.5;
+  color: #ECF0BA;
+}
+
+.auth-verification-message strong {
+  color: #FFD700;
+}
+
+.auth-verification-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+
+.auth-continue-btn {
+  background-color: #43221B;
+  color: #ECF0BA;
+  border: 1px solid #ECF0BA;
+  padding: 0.8rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  font-size: 1rem;
+}
+
+.auth-continue-btn:hover {
+  background-color: #5a2f26;
+  transform: translateY(-1px);
+}
+
+.auth-continue-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.auth-resend-btn {
+  background-color: transparent;
+  color: #FFD700;
+  border: 1px solid #FFD700;
+  padding: 0.8rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  font-size: 1rem;
+}
+
+.auth-resend-btn:hover {
+  background-color: #FFD700;
+  color: #43221B;
+  transform: translateY(-1px);
+}
+
+.auth-resend-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ========================================
+   MESSAGES
+   ======================================== */
+
 .auth-error {
   color: #e63946;
   font-size: 0.9rem;
@@ -257,7 +396,21 @@
   text-align: center;
 }
 
-/* Modal Overlay */
+.auth-success {
+  color: #28a745;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  background-color: rgba(40, 167, 69, 0.1);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+/* ========================================
+   MODAL BASE STYLES
+   ======================================== */
+
 .auth-modal-overlay {
   position: fixed;
   top: 0;
@@ -270,78 +423,6 @@
   justify-content: center;
   z-index: 1000;
   padding: 1rem;
-}
-
-/* GDPR Warning Modal */
-.auth-gdpr-warning-modal {
-  background: white;
-  border-radius: 1rem;
-  padding: 2rem;
-  max-width: 400px;
-  width: 100%;
-  text-align: center;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
-
-.auth-gdpr-warning-modal h3 {
-  color: #43221B;
-  margin-bottom: 1rem;
-  font-size: 1.3rem;
-}
-
-.auth-gdpr-warning-modal p {
-  color: #333;
-  margin-bottom: 1rem;
-  line-height: 1.5;
-}
-
-.auth-modal-buttons {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin-top: 1.5rem;
-}
-
-.auth-gdpr-continue-btn {
-  background-color: #43221B;
-  color: white;
-  border: none;
-  padding: 0.8rem 1.5rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.2s;
-}
-
-.auth-gdpr-continue-btn:hover {
-  background-color: #5a2f26;
-}
-
-.auth-gdpr-cancel-btn {
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  padding: 0.8rem 1.5rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.2s;
-}
-
-.auth-gdpr-cancel-btn:hover {
-  background-color: #5a6268;
-}
-
-/* Privacy Policy Modal */
-.auth-privacy-policy-modal {
-  background: white;
-  border-radius: 1rem;
-  max-width: 600px;
-  width: 100%;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 .auth-modal-header {
@@ -382,13 +463,11 @@
   padding: 1.5rem 2rem;
 }
 
-.auth-privacy-text {
-  font-family: inherit;
-  font-size: 0.85rem;
-  line-height: 1.5;
-  color: #333;
-  white-space: pre-wrap;
-  margin: 0;
+.auth-modal-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
 }
 
 .auth-modal-footer {
@@ -397,110 +476,10 @@
   text-align: center;
 }
 
-.auth-privacy-close-btn {
-  background-color: #43221B;
-  color: white;
-  border: none;
-  padding: 0.8rem 2rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.2s;
-}
+/* ========================================
+   FORGOT PASSWORD MODAL
+   ======================================== */
 
-.auth-privacy-close-btn:hover {
-  background-color: #5a2f26;
-}
-
-/* Mobile responsiveness */
-@media (max-width: 480px) {
-  .auth-wrapper {
-    padding-top: 2rem;
-  }
-
-  .auth-card {
-    width: 95%;
-    padding: 1.5rem;
-  }
-
-  .auth-form {
-    gap: 1rem;
-  }
-
-  .auth-form-group input,
-  .auth-phone-fields .auth-phone-code,
-  .auth-phone-fields input[type="tel"] {
-    height: 44px;
-    font-size: 16px; /* Prevents zoom on iOS */
-  }
-
-  .auth-button {
-    height: 52px;
-  }
-
-  .auth-privacy-policy-modal {
-    max-width: 95%;
-    max-height: 90vh;
-  }
-
-  .auth-modal-header,
-  .auth-modal-content,
-  .auth-modal-footer {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-
-  .auth-gdpr-warning-modal {
-    max-width: 95%;
-    padding: 1.5rem;
-  }
-
-  .auth-modal-buttons {
-    flex-direction: column;
-    gap: 0.8rem;
-  }
-
-  .auth-gdpr-continue-btn,
-  .auth-gdpr-cancel-btn {
-    width: 100%;
-  }
-}
-
-/* Forgot Password Section */
-.auth-forgot-password {
-  text-align: center;
-  margin-top: -0.5rem;
-  margin-bottom: 0;
-}
-
-.auth-forgot-link {
-  background: none;
-  border: none;
-  color: #FFD700;
-  font-size: 0.85rem;
-  text-decoration: underline;
-  cursor: pointer;
-  transition: color 0.2s;
-  padding: 0;
-}
-
-.auth-forgot-link:hover {
-  color: #FFED4A;
-}
-
-/* Success message */
-.auth-success {
-  color: #28a745;
-  font-size: 0.9rem;
-  margin-bottom: 1rem;
-  text-align: center;
-  background-color: rgba(40, 167, 69, 0.1);
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  border: 1px solid rgba(40, 167, 69, 0.3);
-}
-
-/* Forgot Password Modal */
 .auth-forgot-modal {
   background: white;
   border-radius: 1rem;
@@ -577,8 +556,184 @@
   background-color: #5a6268;
 }
 
-/* Mobile responsiveness for forgot password */
+/* ========================================
+   GDPR WARNING MODAL
+   ======================================== */
+
+.auth-gdpr-warning-modal {
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.auth-gdpr-warning-modal h3 {
+  color: #43221B;
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+}
+
+.auth-gdpr-warning-modal p {
+  color: #333;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.auth-gdpr-continue-btn {
+  background-color: #43221B;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.auth-gdpr-continue-btn:hover {
+  background-color: #5a2f26;
+}
+
+.auth-gdpr-cancel-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.auth-gdpr-cancel-btn:hover {
+  background-color: #5a6268;
+}
+
+/* ========================================
+   PRIVACY POLICY MODAL
+   ======================================== */
+
+.auth-privacy-policy-modal {
+  background: white;
+  border-radius: 1rem;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.auth-privacy-close-btn {
+  background-color: #43221B;
+  color: white;
+  border: none;
+  padding: 0.8rem 2rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.auth-privacy-close-btn:hover {
+  background-color: #5a2f26;
+}
+
+.auth-privacy-text {
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #333;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+/* ========================================
+   CLEANUP & OVERRIDES
+   ======================================== */
+
+.auth-form > div:last-child {
+  margin: 0;
+  padding: 0;
+}
+
+/* ========================================
+   MOBILE RESPONSIVENESS
+   ======================================== */
+
 @media (max-width: 480px) {
+  .auth-wrapper {
+    padding-top: 2rem;
+  }
+
+  .auth-card {
+    width: 95%;
+    padding: 1.5rem;
+  }
+
+  .auth-form {
+    gap: 1rem;
+  }
+
+  .auth-form-group input,
+  .auth-phone-fields .auth-phone-code,
+  .auth-phone-fields input[type="tel"] {
+    height: 44px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  .auth-button {
+    height: 52px;
+  }
+
+  /* Validation mobile */
+  .auth-field-error {
+    font-size: 0.75rem;
+  }
+
+  /* Email verification mobile */
+  .auth-verification-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .auth-continue-btn,
+  .auth-resend-btn {
+    width: 100%;
+    max-width: 250px;
+  }
+
+  /* Modal mobile responsiveness */
+  .auth-privacy-policy-modal {
+    max-width: 95%;
+    max-height: 90vh;
+  }
+
+  .auth-modal-header,
+  .auth-modal-content,
+  .auth-modal-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .auth-gdpr-warning-modal {
+    max-width: 95%;
+    padding: 1.5rem;
+  }
+
+  .auth-modal-buttons {
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .auth-gdpr-continue-btn,
+  .auth-gdpr-cancel-btn {
+    width: 100%;
+  }
+
   .auth-forgot-modal {
     max-width: 95%;
     margin: 1rem;

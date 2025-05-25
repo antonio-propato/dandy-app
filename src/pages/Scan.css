@@ -289,5 +289,7 @@ h1 {
 
   .back-button {
     width: 180px;
+    bottom: 50px; /* Adjusted for smaller screens */
+    position: fixed;
   }
 }

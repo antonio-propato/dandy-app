@@ -31,10 +31,11 @@ export default function Stamps() {
 
   // messages for double-tap
   const dandyMessages = [
-    "Ha! Mi hai beccato!",
-    "Dandy è il mio nome, caffè è il mio gioco!",
-    "Caffè e sorrisi, la vita è bella!",
-    "L'odore del caffè, vieni a sentirlo anche tu!",
+    "Vuoi un caffe'? E statt angour!",
+    "Tu si' bell come au cafe' Dandy!",
+    "Me dai, vieni a prenderti un caffè!",
+    "Un timbro in più, nu cafe' di chiu!",
+    "Come te, non c'e' nessuuuuno!",
   ]
 
   // Animation arrays
@@ -480,12 +481,6 @@ export default function Stamps() {
             </div>
           ))}
         </div>
-
-        {/* Lifetime Stats */}
-        {/* <div className="lifetime-stats">
-          <p>Timbri Totali: {lifetimeStats.lifetimeStamps}</p>
-          <p>Premi Riscattati: {lifetimeStats.rewardsEarned}</p>
-        </div> */}
 
         {/* QR Code Button */}
         {qrCode && user && (

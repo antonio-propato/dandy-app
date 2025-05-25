@@ -4,11 +4,48 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  width: 100%;
+  max-height: 100vh;
+  width: 100vw;
+  max-width: 100vw;
   background-size: cover;
   background-position: center;
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
   font-family: 'Raleway', sans-serif;
+  overflow: hidden;
+}
+
+/* Lock orientation and prevent scrolling */
+body:has(.profile-wrapper) {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+/* Landscape orientation message */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+  .profile-wrapper::after {
+    content: '📱 Ruota il telefono in verticale per una migliore esperienza';
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: #ECF0BA;
+    padding: 1.5rem 2rem;
+    border-radius: 1rem;
+    z-index: 9999;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 600;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(236, 240, 186, 0.3);
+    backdrop-filter: blur(10px);
+    max-width: 80%;
+    line-height: 1.4;
+  }
 }
 
 .profile-overlay {
@@ -20,62 +57,104 @@
 
 /* ─── PROFILE CARD ─────────────────────────── */
 .profile-card {
-  position: relative;             /* for clipping & shine positioning */
+  position: relative;
   z-index: 10;
-  margin: 5vh auto;
-  width: clamp(280px, 80%, 360px); /* wider: min 280px, ideal 80%, max 360px */
-  height: 74vh;
+  margin: 0 auto;
+  width: clamp(280px, 82vw, 360px);
+  height: clamp(600px, 78vh, 700px);
+  max-height: 85vh;
   background: linear-gradient(135deg, #43221B, rgba(129, 119, 119, 0.176));
   backdrop-filter: blur(20px);
   border: 1px groove rgba(255, 255, 255, 0.7);
   border-radius: 2.5rem;
   padding: 2rem;
-  box-shadow: 0 8px 30px rgb(236, 240, 186, 0.7);
+  box-shadow:
+    0 8px 30px rgba(236, 240, 186, 0.7),
+    0 0 50px rgba(236, 240, 186, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;               /* clip the shine inside */
+  overflow: hidden;
+
+  /* Faster entrance animation */
+  animation: cardEntrance 0.6s ease-out;
 }
 
-/* ─── SHINE EFFECT (inside the card) ─────── */
+/* ─── CHIC SHINE EFFECT ─────────────────────── */
 .shine-effect {
   position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0) 47%,
+    rgba(236, 240, 186, 0.8) 49.5%,
+    rgba(255, 255, 255, 0.9) 50%,
+    rgba(236, 240, 186, 0.8) 50.5%,
+    rgba(255, 255, 255, 0) 53%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: translateX(-100%) translateY(-100%) rotate(25deg);
+  animation: chicShine 3s ease-in-out 0.3s;
+  animation-fill-mode: both;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* Alternative luxury shine with multiple layers */
+.shine-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
   left: 0;
   width: 100%;
-  height: 25%;                    /* thickness of the gleam */
+  height: 100%;
   background: linear-gradient(
-    to bottom,
-    rgba(255,255,255,0)   0%,
-    rgba(255,255,255,0.4) 50%,
-    rgba(255,255,255,0)   100%
+    120deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0) 48%,
+    rgba(255, 215, 0, 0.4) 49.7%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 215, 0, 0.4) 50.3%,
+    rgba(255, 255, 255, 0) 52%,
+    rgba(255, 255, 255, 0) 100%
   );
-  animation: diamondShine 1.8s ease-in-out infinite;
-  z-index: 1;                     /* under content */
 }
 
 /* ─── PROFILE CONTENT ───────────────────────── */
 .profile-card::before {
   content: '';
   position: absolute;
-  top: 1.7rem;
+  top: 2.5rem;
   left: 50%;
   transform: translateX(-50%);
-  width: 6rem;
-  height: 6rem;
+  width: 6.5rem;
+  height: 6.5rem;
   background: url('/images/Dandy.jpeg') no-repeat center center;
   background-size: cover;
   border-radius: 10%;
   border: 1px solid #ECF0BA;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 4px 15px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(236, 240, 186, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   z-index: 15;
+  animation: logoGlow 10s ease-in-out 0.8s;
+  animation-fill-mode: both;
 }
 
 .profile-content {
   position: relative;
-  z-index: 2;                     /* above shine */
+  z-index: 10;
   text-align: center;
   color: #ECF0BA;
   margin-top: 30px;
+  opacity: 0;
+  animation: contentFadeIn 0.6s ease-out 0.4s forwards;
 }
 
 .profile-name {
@@ -84,12 +163,14 @@
   white-space: nowrap;
   margin-bottom: 1rem;
   padding-top: 70px;
-  color: #ECF0BA
+  color: #ECF0BA;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .profile-content p {
   margin-bottom: 0.7rem;
   font-size: 1rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .profile-phone {
@@ -117,6 +198,14 @@
   margin-top: 0.75rem;
   border-radius: 1.75rem;
   border: 2px solid #43221B;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    0 0 15px rgba(236, 240, 186, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.qr-image:hover {
+  transform: scale(1.05);
 }
 
 /* ─── LOADING STATE ────────────────────────── */
@@ -125,35 +214,70 @@
   font-size: 1.25rem;
   text-align: center;
   margin-top: 2rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-/* ─── DIAGONAL BLING ───────────────────────── */
-.shine-effect {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 200%;    /* ensure it fully crosses the card */
-  height: 200%;
-  background: linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0) 45%,
-    rgba(159, 169, 121, 0.3) 50%,
-    rgba(102, 92, 92, 0) 55%
-  );
-  /* start off bottom-left */
-  transform: translate(-100%, 100%);
-  animation: diagonalShine 8s ease-in-out infinite;
-  z-index: 1;
-  pointer-events: none;
+/* ─── ANIMATIONS ───────────────────────────── */
+
+/* Faster card entrance */
+@keyframes cardEntrance {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
-@keyframes diagonalShine {
-  /* hold off-screen bottom-left */
-  0%, 15%   { transform: translate(-100%, 100%); }
-  /* glide to off-screen top-right */
-  45%       { transform: translate(100%, -100%); }
-  /* pause there */
-  55%       { transform: translate(100%, -100%); }
-  /* return */
-  100%      { transform: translate(-100%, 100%); }
+/* Slower, slimmer shine animation */
+@keyframes chicShine {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(25deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(50%) translateY(50%) rotate(25deg);
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%) translateY(100%) rotate(25deg);
+    opacity: 0;
+  }
+}
+
+/* Faster logo glow */
+@keyframes logoGlow {
+  0%, 100% {
+    box-shadow:
+      0 4px 15px rgba(0, 0, 0, 0.3),
+      0 0 20px rgba(236, 240, 186, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 4px 15px rgba(0, 0, 0, 0.3),
+      0 0 30px rgba(236, 240, 186, 0.6),
+      0 0 40px rgba(255, 215, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+}
+
+/* Faster content fade in */
+@keyframes contentFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
