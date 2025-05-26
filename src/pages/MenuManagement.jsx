@@ -14,7 +14,9 @@ import {
   faChevronDown,
   faGripVertical,
   faEye,
-  faEyeSlash
+  faEyeSlash,
+  faCheck,
+  faXmark
 } from '@fortawesome/free-solid-svg-icons'
 import './MenuManagement.css'
 
@@ -217,7 +219,7 @@ export default function MenuManagement() {
 
   const addItem = async (category) => {
     if (!newItem.name.trim() || !newItem.price.trim()) {
-      alert('Inserisci nome e prezzo')
+      await customAlert('Inserisci nome e prezzo')
       return
     }
     const formattedItem = {
@@ -235,7 +237,8 @@ export default function MenuManagement() {
   }
 
   const removeItem = async (category, index) => {
-    if (window.confirm('Eliminare questo elemento?')) {
+    const confirmed = await customConfirm('Sei sicuro di voler eliminare questo elemento?', 'Elimina Elemento')
+    if (confirmed) {
       const updatedMenu = {
         ...menuData,
         [category]: menuData[category].filter((_, i) => i !== index)
@@ -380,7 +383,7 @@ export default function MenuManagement() {
       <Nav />
       <div className="menu-management-content">
         <div className="menu-management-header">
-          <h1>Gestione Menu Clienti</h1>
+          <h1>Gestione Menu</h1>
           <p>Trascina le categorie e gli elementi per riordinarli. Clicca l'occhio per comprimere.</p>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <button
@@ -404,11 +407,11 @@ export default function MenuManagement() {
               className="mobile-friendly-input"
             />
             <div className="mobile-button-group">
-              <button onClick={addCategory} className="save-btn">
-                <FontAwesomeIcon icon={faSave} /> Salva
+              <button onClick={addCategory} className="circle-btn save-btn" title="Salva">
+                <FontAwesomeIcon icon={faCheck} />
               </button>
-              <button onClick={() => { setShowAddCategory(false); setNewCategoryName('') }} className="cancel-btn">
-                <FontAwesomeIcon icon={faTimes} /> Annulla
+              <button onClick={() => { setShowAddCategory(false); setNewCategoryName('') }} className="circle-btn cancel-btn" title="Annulla">
+                <FontAwesomeIcon icon={faXmark} />
               </button>
             </div>
           </div>
@@ -480,79 +483,58 @@ export default function MenuManagement() {
                           type="text"
                           value={newItem.name}
                           onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                          placeholder="Nome prodotto"
+                          placeholder="Nome elemento"
                           className="mobile-friendly-input item-name-input"
                         />
                         <input
                           type="text"
                           value={newItem.price}
                           onChange={(e) => setNewItem({ ...newItem, price: e.target.value })}
-                          onBlur={(e) => setNewItem({ ...newItem, price: formatPrice(e.target.value) })}
-                          placeholder="€1.50"
+                          placeholder="Prezzo"
                           className="mobile-friendly-input item-price-input"
                         />
-                        <div className="compact-actions">
-                          <button onClick={() => addItem(category)} className="save-btn compact-btn">
-                            <FontAwesomeIcon icon={faSave} />
-                          </button>
-                          <button onClick={() => { setAddingToCategory(null); setNewItem({ name: '', price: '€' }) }} className="cancel-btn compact-btn">
-                            <FontAwesomeIcon icon={faTimes} />
-                          </button>
-                        </div>
+                      </div>
+                      <div className="mobile-button-group">
+                        <button onClick={() => addItem(category)} className="circle-btn save-btn" title="Salva">
+                          <FontAwesomeIcon icon={faCheck} />
+                        </button>
+                        <button onClick={() => setAddingToCategory(null)} className="circle-btn cancel-btn" title="Annulla">
+                          <FontAwesomeIcon icon={faXmark} />
+                        </button>
                       </div>
                     </div>
                   )}
 
-                  <div className="items-list compact-list">
+                  <div className="compact-list">
                     {menuData[category].map((item, index) => (
                       <div
-                        key={index}
-                        className="menu-item-row compact-item"
+                        key={`${category}-${index}`}
+                        className={`menu-item-row compact-item ${editingItem && editingItem.category === category && editingItem.index === index ? 'editing' : ''}`}
                         draggable
                         onDragStart={(e) => handleItemDragStart(e, category, index)}
-                        onDragOver={handleCategoryDragOver}
+                        onDragOver={(e) => e.preventDefault()}
                         onDrop={(e) => handleItemDrop(e, category, index)}
                       >
                         {editingItem && editingItem.category === category && editingItem.index === index ? (
                           <div className="compact-item-row editing">
-                            <FontAwesomeIcon icon={faGripVertical} className="drag-handle-small" />
                             <input
                               type="text"
                               value={editingItem.name}
                               onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
-                              placeholder="Nome"
                               className="mobile-friendly-input item-name-input"
                             />
                             <input
                               type="text"
                               value={editingItem.price}
                               onChange={(e) => setEditingItem({ ...editingItem, price: e.target.value })}
-                              onBlur={(e) => setEditingItem({ ...editingItem, price: formatPrice(e.target.value) })}
-                              placeholder="€1.50"
                               className="mobile-friendly-input item-price-input"
                             />
-                            <div className="compact-arrows">
-                              <button
-                                onClick={() => moveItemUp(category, index)}
-                                disabled={index === 0}
-                                className="arrow-btn-small"
-                              >
-                                <FontAwesomeIcon icon={faChevronUp} />
-                              </button>
-                              <button
-                                onClick={() => moveItemDown(category, index)}
-                                disabled={index === menuData[category].length - 1}
-                                className="arrow-btn-small"
-                              >
-                                <FontAwesomeIcon icon={faChevronDown} />
-                              </button>
-                            </div>
                             <div className="compact-actions">
-                              <button onClick={saveEdit} className="save-btn compact-btn">
-                                <FontAwesomeIcon icon={faSave} />
+                              <button onClick={saveEdit} className="circle-btn save-btn" title="Salva">
+                                <FontAwesomeIcon icon={faCheck} />
                               </button>
-                              <button onClick={() => setEditingItem(null)} className="cancel-btn compact-btn">
-                                <FontAwesomeIcon icon={faTimes} />
+                              <button onClick={() => setEditingItem(null)} className="circle-btn cancel-btn" title="Annulla">
+                                <FontAwesomeIcon icon={faXmark} />
                               </button>
                             </div>
                           </div>
@@ -566,6 +548,7 @@ export default function MenuManagement() {
                                 onClick={() => moveItemUp(category, index)}
                                 disabled={index === 0}
                                 className="arrow-btn-small"
+                                title="Sposta su"
                               >
                                 <FontAwesomeIcon icon={faChevronUp} />
                               </button>
@@ -573,15 +556,24 @@ export default function MenuManagement() {
                                 onClick={() => moveItemDown(category, index)}
                                 disabled={index === menuData[category].length - 1}
                                 className="arrow-btn-small"
+                                title="Sposta giù"
                               >
                                 <FontAwesomeIcon icon={faChevronDown} />
                               </button>
                             </div>
                             <div className="compact-actions">
-                              <button onClick={() => startEdit(category, index)} className="edit-btn compact-btn">
+                              <button
+                                onClick={() => startEdit(category, index)}
+                                className="edit-btn compact-btn"
+                                title="Modifica"
+                              >
                                 <FontAwesomeIcon icon={faEdit} />
                               </button>
-                              <button onClick={() => removeItem(category, index)} className="delete-btn compact-btn">
+                              <button
+                                onClick={() => removeItem(category, index)}
+                                className="delete-btn compact-btn"
+                                title="Elimina"
+                              >
                                 <FontAwesomeIcon icon={faTrash} />
                               </button>
                             </div>
@@ -596,29 +588,27 @@ export default function MenuManagement() {
           )
         ))}
 
-        {saving && <div className="saving-indicator">Salvando...</div>}
+        {saving && (
+          <div className="saving-indicator">
+            <FontAwesomeIcon icon={faSave} spin />
+            Salvando...
+          </div>
+        )}
 
-        {/* Custom Alert/Confirm Modal */}
         {showCustomAlert && (
-          <div className="custom-confirm-overlay">
-            <div className="custom-confirm-dialog">
+          <div className="custom-alert-overlay">
+            <div className="custom-alert">
               <h3>{showCustomAlert.title}</h3>
               <p>{showCustomAlert.message}</p>
-              <div className="custom-confirm-buttons">
+              <div className="alert-buttons">
+                <button onClick={showCustomAlert.onConfirm} className="confirm-btn">
+                  {showCustomAlert.isAlert ? 'OK' : 'Conferma'}
+                </button>
                 {!showCustomAlert.isAlert && (
-                  <button
-                    className="custom-confirm-btn cancel"
-                    onClick={showCustomAlert.onCancel}
-                  >
+                  <button onClick={showCustomAlert.onCancel} className="cancel-btn">
                     Annulla
                   </button>
                 )}
-                <button
-                  className="custom-confirm-btn confirm"
-                  onClick={showCustomAlert.onConfirm}
-                >
-                  {showCustomAlert.isAlert ? 'OK' : 'Conferma'}
-                </button>
               </div>
             </div>
           </div>
