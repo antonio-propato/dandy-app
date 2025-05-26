@@ -6,9 +6,9 @@ import { doc, getDoc } from 'firebase/firestore'
 import './Nav.css'
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBars, faQrcode, faChartLine, faSignOutAlt, faUsers } from '@fortawesome/free-solid-svg-icons'
+import { faBars, faQrcode, faChartLine, faSignOutAlt, faUsers, faUtensils } from '@fortawesome/free-solid-svg-icons'
 
-export default function Nav() {
+export default function Nav({ showBurger = true }) {
   const location = useLocation()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
@@ -17,6 +17,7 @@ export default function Nav() {
 
   const buttonRef = useRef(null)
   const flyoutRef = useRef(null)
+  const overlayRef = useRef(null)
 
   const handleLogout = async () => {
     await signOut(auth)
@@ -66,6 +67,11 @@ export default function Nav() {
     }
   }, [])
 
+  // Handle overlay click
+  const handleOverlayClick = () => {
+    setOpen(false)
+  }
+
   if (['/', '/signin', '/signup'].includes(location.pathname) || loading) return null
 
   const isActive = (path) =>
@@ -73,10 +79,17 @@ export default function Nav() {
 
   return (
     <>
+      {/* Overlay */}
+      <div
+        ref={overlayRef}
+        className={`nav-overlay ${open ? 'open' : ''}`}
+        onClick={handleOverlayClick}
+      />
+
       <button
         ref={buttonRef}
         onClick={() => setOpen(!open)}
-        className="burger-button"
+        className={`burger-button ${showBurger ? 'visible' : 'hidden'}`}
       >
         <FontAwesomeIcon icon={faBars} className="burger-icon" />
       </button>
@@ -108,6 +121,14 @@ export default function Nav() {
             >
               <FontAwesomeIcon icon={faUsers} className="nav-icon" />
               Gestisci Clienti
+            </Link>
+            <Link
+              to="/menu-management"
+              onClick={() => setOpen(false)}
+              className={isActive('/menu-management')}
+            >
+              <FontAwesomeIcon icon={faUtensils} className="nav-icon" />
+              Gestisci Menu
             </Link>
           </>
         ) : (

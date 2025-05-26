@@ -21,6 +21,7 @@ import Contacts from './pages/Contacts'
 import Scan from './pages/Scan'
 import SuperuserDashboard from './pages/SuperuserDashboard'
 import ClientManagement from './pages/ClientManagement'
+import MenuManagement from './pages/MenuManagement'
 
 function AnimatedRoutes({ user, userRole }) {
   const location = useLocation()
@@ -163,6 +164,25 @@ function AnimatedRoutes({ user, userRole }) {
               ) : (
                 <>
                   {console.log("Client Management route - User is customer, redirecting to Profile")}
+                  <Navigate to="/profile" />
+                </>
+              )}
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/menu-management"
+          element={
+            <ProtectedRoute user={user}>
+              {userRole === 'superuser' ? (
+                <>
+                  {console.log("Menu Management route - User is superuser, showing MenuManagement")}
+                  <MenuManagement />
+                </>
+              ) : (
+                <>
+                  {console.log("Menu Management route - User is customer, redirecting to Profile")}
                   <Navigate to="/profile" />
                 </>
               )}
