@@ -3,16 +3,17 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { signOut } from 'firebase/auth'
 import { auth, firestore } from '../lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
+import { fcmManager } from '../lib/fcm'
 import './Nav.css'
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBars, faQrcode, faChartLine, faSignOutAlt, faUsers, faUtensils } from '@fortawesome/free-solid-svg-icons'
+import { faBars, faQrcode, faChartLine, faSignOutAlt, faUsers, faUtensils, faBell } from '@fortawesome/free-solid-svg-icons'
 
-export default function Nav({ showBurger = true }) {
+export default function Nav({ showBurger = true, userRole }) {
   const location = useLocation()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
-  const [userRole, setUserRole] = useState(null)
+  const [currentUserRole, setCurrentUserRole] = useState(userRole)
   const [loading, setLoading] = useState(true)
 
   const buttonRef = useRef(null)
@@ -20,6 +21,10 @@ export default function Nav({ showBurger = true }) {
   const overlayRef = useRef(null)
 
   const handleLogout = async () => {
+    // Clean up FCM tokens before logout
+    if (auth.currentUser) {
+      await fcmManager.cleanup(auth.currentUser.uid)
+    }
     await signOut(auth)
     navigate('/signin')
   }
@@ -31,19 +36,29 @@ export default function Nav({ showBurger = true }) {
         try {
           const userDoc = await getDoc(doc(firestore, 'users', auth.currentUser.uid))
           if (userDoc.exists()) {
-            setUserRole(userDoc.data().role || 'customer')
+            const userData = userDoc.data()
+            const role = userData.role || 'customer'
+            setCurrentUserRole(role)
+
+            // Initialize FCM for notifications if user has consent
+            if (userData.gdprConsent?.pushNotificationConsent) {
+              await fcmManager.initialize(auth.currentUser.uid)
+            }
           }
         } catch (error) {
           console.error('Error fetching user role:', error)
         }
       } else {
-        setUserRole(null)
+        setCurrentUserRole(null)
       }
       setLoading(false)
     }
 
     checkUserRole()
   }, [auth.currentUser])
+
+  // Use prop userRole if available, otherwise use state
+  const effectiveUserRole = userRole || currentUserRole
 
   // Close if click or tap is outside both button and menu
   useEffect(() => {
@@ -95,7 +110,7 @@ export default function Nav({ showBurger = true }) {
       </button>
 
       <div ref={flyoutRef} className={`nav-flyout ${open ? 'open' : ''}`}>
-        {userRole === 'superuser' ? (
+        {effectiveUserRole === 'superuser' ? (
           // Superuser Navigation
           <>
             <Link
@@ -129,6 +144,15 @@ export default function Nav({ showBurger = true }) {
             >
               <FontAwesomeIcon icon={faUtensils} className="nav-icon" />
               Gestisci Menu
+            </Link>
+            {/* NEW: Notifications Panel for Superuser */}
+            <Link
+              to="/notifications"
+              onClick={() => setOpen(false)}
+              className={isActive('/notifications')}
+            >
+              <FontAwesomeIcon icon={faBell} className="nav-icon" />
+              Notifiche
             </Link>
           </>
         ) : (

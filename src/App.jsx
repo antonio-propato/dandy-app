@@ -6,6 +6,7 @@ import './App.css'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth, firestore } from './lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
+import { fcmManager } from './lib/fcm' // Import FCM manager
 
 // Components
 import Nav from './components/Nav'
@@ -22,6 +23,7 @@ import Scan from './pages/Scan'
 import SuperuserDashboard from './pages/SuperuserDashboard'
 import ClientManagement from './pages/ClientManagement'
 import MenuManagement from './pages/MenuManagement'
+import NotificationPanel from './components/NotificationPanel'
 
 function AnimatedRoutes({ user, userRole }) {
   const location = useLocation()
@@ -190,6 +192,26 @@ function AnimatedRoutes({ user, userRole }) {
           }
         />
 
+        {/* NEW: Notifications Route - Superuser Only */}
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute user={user}>
+              {userRole === 'superuser' ? (
+                <>
+                  {console.log("Notifications route - User is superuser, showing NotificationPanel")}
+                  <NotificationPanel />
+                </>
+              ) : (
+                <>
+                  {console.log("Notifications route - User is customer, redirecting to Profile")}
+                  <Navigate to="/profile" />
+                </>
+              )}
+            </ProtectedRoute>
+          }
+        />
+
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
@@ -242,13 +264,97 @@ function App() {
     }
   }, [])
 
+  // 🔔 FCM INITIALIZATION - New useEffect for push notifications
+  useEffect(() => {
+    const initializeFCM = async () => {
+      if (user && user.uid && userRole) {
+        console.log('🔔 Initializing FCM for user:', user.uid, 'Role:', userRole)
+
+        try {
+          const success = await fcmManager.initialize(user.uid)
+
+          if (success) {
+            console.log('✅ FCM initialized successfully!')
+            console.log('🔔 Push notifications are now enabled')
+
+            // Set up custom message handler for foreground notifications
+            fcmManager.setOnMessageCallback((payload) => {
+              console.log('📱 Foreground notification received:', payload)
+
+              // Show custom notification in the app
+              showCustomNotification(payload)
+            })
+          } else {
+            console.log('❌ FCM initialization failed - notifications disabled')
+          }
+        } catch (error) {
+          console.error('Error initializing FCM:', error)
+        }
+      }
+    }
+
+    // Only initialize FCM when we have both user and role
+    if (!loading && user && userRole) {
+      initializeFCM()
+    }
+
+    // Cleanup when user logs out
+    return () => {
+      if (user?.uid) {
+        console.log('🔄 Cleaning up FCM for user logout')
+        fcmManager.cleanup(user.uid)
+      }
+    }
+  }, [user, userRole, loading])
+
+  // 📱 Custom notification handler for foreground messages
+  const showCustomNotification = (payload) => {
+    console.log('Showing custom notification:', payload)
+
+    // You can customize this to show in-app notifications
+    // For now, we'll use the browser notification
+    fcmManager.showForegroundNotification(payload)
+  }
+
+  // 🔔 Listen for service worker messages (notification clicks)
+  useEffect(() => {
+    const handleServiceWorkerMessage = (event) => {
+      if (event.data?.type === 'NOTIFICATION_CLICKED') {
+        console.log('📱 Notification clicked, navigating to:', event.data.data?.click_action)
+
+        // Navigate to the specified page
+        const clickAction = event.data.data?.click_action || '/'
+        window.location.href = clickAction
+      }
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage)
+
+      return () => {
+        navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage)
+      }
+    }
+  }, [])
+
   // Log current state for debugging
   console.log("App rendering - User:", user ? "Authenticated" : "Not authenticated");
   console.log("App rendering - User role:", userRole);
   console.log("App rendering - Loading state:", loading);
 
   if (loading) {
-    return <div className="loading">Loading...</div>
+    return (
+      <div className="loading" style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        fontSize: '18px',
+        color: '#666'
+      }}>
+        Loading...
+      </div>
+    )
   }
 
   return (
