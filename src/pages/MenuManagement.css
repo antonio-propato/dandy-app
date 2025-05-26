@@ -1,0 +1,752 @@
+/* MenuManagement.css - Compact and streamlined design */
+.menu-management-container {
+  min-height: 100vh;
+  background-image: url('/images/Couch.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  padding: 2rem;
+  font-family: 'Raleway', sans-serif;
+  position: relative;
+}
+
+.menu-management-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.menu-management-content {
+  max-width: 700px;
+  margin: 0 auto;
+  padding-top: 4rem;
+  position: relative;
+  z-index: 1;
+}
+
+.menu-management-header {
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(15px);
+  padding: 2rem;
+  border-radius: 20px;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  text-align: center;
+}
+
+.menu-management-header h1 {
+  margin: 0 0 0.5rem 0;
+  color: #FFD700;
+  font-size: 2rem;
+  font-weight: 800;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.menu-management-header p {
+  margin: 0 0 1.5rem 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  text-align: center;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Category Cards - Big tabs for categories */
+.category-card {
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(15px);
+  border-radius: 20px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: grab;
+  position: relative;
+  overflow: hidden;
+}
+
+.category-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #FFD700, #FFA500, #FFD700);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.category-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 215, 0, 0.4);
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.category-card:hover::before {
+  opacity: 1;
+}
+
+.category-card:active {
+  cursor: grabbing;
+}
+
+.add-category-card {
+  padding: 1.5rem;
+  border: 2px dashed #FFD700;
+  background: rgba(255, 215, 0, 0.1);
+  backdrop-filter: blur(10px);
+  cursor: default;
+  text-align: center;
+}
+
+.add-category-card:hover {
+  transform: none;
+  background: rgba(255, 215, 0, 0.15);
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.category-title-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.category-title-section h2 {
+  margin: 0;
+  color: #FFD700;
+  font-size: 1.3rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.category-arrow-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.arrow-btn {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #FFD700 !important;
+  border: 1px solid rgba(255, 215, 0, 0.3) !important;
+  padding: 0.25rem !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-size: 0.8rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 24px !important;
+  height: 24px !important;
+  transition: all 0.3s ease !important;
+  backdrop-filter: blur(5px) !important;
+}
+
+.arrow-btn:hover:not(:disabled) {
+  background: rgba(255, 215, 0, 0.2) !important;
+  transform: scale(1.1) !important;
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3) !important;
+}
+
+.arrow-btn:disabled {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(255, 255, 255, 0.3) !important;
+  cursor: not-allowed !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.drag-handle {
+  color: rgba(255, 255, 255, 0.6);
+  cursor: grab;
+  font-size: 1.2rem;
+  transition: color 0.3s ease;
+}
+
+.drag-handle:hover {
+  color: #FFD700;
+}
+
+.collapse-btn {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #FFD700 !important;
+  border: 1px solid rgba(255, 215, 0, 0.3) !important;
+  padding: 0.5rem !important;
+  border-radius: 50% !important;
+  cursor: pointer !important;
+  font-size: 0.9rem !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.3s ease !important;
+  backdrop-filter: blur(5px) !important;
+}
+
+.collapse-btn:hover {
+  background: rgba(255, 215, 0, 0.2) !important;
+  transform: scale(1.05) !important;
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3) !important;
+}
+
+.category-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.category-content {
+  padding: 0 1.5rem 1.5rem;
+}
+
+/* Compact Item Layout - Everything on one line */
+.compact-form {
+  background: rgba(255, 215, 0, 0.1);
+  border: 2px dashed rgba(255, 215, 0, 0.5);
+  border-radius: 15px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  backdrop-filter: blur(5px);
+}
+
+.compact-item-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.compact-item-row.editing {
+  background: rgba(255, 215, 0, 0.1);
+  border-radius: 10px;
+  padding: 0.5rem;
+}
+
+.compact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.menu-item-row.compact-item {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 15px;
+  padding: 1rem;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: grab;
+  backdrop-filter: blur(5px);
+  position: relative;
+  overflow: hidden;
+}
+
+.menu-item-row.compact-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #FFD700, #FFA500);
+  transform: scaleY(0);
+  transition: transform 0.3s;
+}
+
+.menu-item-row.compact-item:hover::before {
+  transform: scaleY(1);
+}
+
+.menu-item-row.compact-item:hover {
+  transform: translateX(8px) scale(1.01);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 215, 0, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.menu-item-row.compact-item:active {
+  cursor: grabbing;
+}
+
+.drag-handle-small {
+  color: rgba(255, 255, 255, 0.6);
+  cursor: grab;
+  font-size: 1rem;
+  flex-shrink: 0;
+  transition: color 0.3s ease;
+  min-width: 20px;
+}
+
+.drag-handle-small:hover {
+  color: #FFD700;
+}
+
+.item-name {
+  font-weight: 600;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  flex: 1;
+  min-width: 0;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.item-price {
+  color: #28a745;
+  font-weight: 700;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  min-width: 80px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.compact-arrows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+
+.arrow-btn-small {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #FFD700 !important;
+  border: 1px solid rgba(255, 215, 0, 0.3) !important;
+  padding: 0.2rem !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  font-size: 0.7rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 20px !important;
+  height: 20px !important;
+  transition: all 0.3s ease !important;
+  backdrop-filter: blur(3px) !important;
+}
+
+.arrow-btn-small:hover:not(:disabled) {
+  background: rgba(255, 215, 0, 0.2) !important;
+  transform: scale(1.1) !important;
+  box-shadow: 0 2px 6px rgba(255, 215, 0, 0.3) !important;
+}
+
+.arrow-btn-small:disabled {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(255, 255, 255, 0.3) !important;
+  cursor: not-allowed !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.compact-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Compact Input Fields */
+.item-name-input {
+  flex: 1 !important;
+  min-width: 120px !important;
+}
+
+.item-price-input {
+  width: 90px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Form Elements */
+.mobile-friendly-input {
+  padding: 0.75rem !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  box-sizing: border-box !important;
+  font-family: 'Raleway', sans-serif !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px) !important;
+  color: white !important;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+.mobile-friendly-input::placeholder {
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-style: italic;
+  font-size: 13px !important;
+}
+
+.mobile-friendly-input:focus {
+  outline: none !important;
+  border-color: #FFD700 !important;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2) !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.mobile-button-group {
+  display: flex !important;
+  gap: 0.25rem !important;
+  justify-content: flex-end !important;
+  flex-wrap: nowrap !important;
+}
+
+/* Compact Buttons */
+.add-btn, .edit-btn, .delete-btn, .save-btn, .cancel-btn {
+  border: none !important;
+  border-radius: 12px !important;
+  cursor: pointer !important;
+  font-size: 0.9rem !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.3rem !important;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  white-space: nowrap !important;
+  font-family: 'Raleway', sans-serif !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
+}
+
+.compact-btn {
+  padding: 0.4rem !important;
+  width: 32px !important;
+  height: 32px !important;
+  justify-content: center !important;
+  font-size: 0.8rem !important;
+}
+
+.add-btn {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 50%, #17a2b8 100%) !important;
+  color: white !important;
+  padding: 0.5rem 1rem !important;
+  min-height: 36px !important;
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4) !important;
+}
+
+.add-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.6s;
+}
+
+.add-btn:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+.add-btn:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 12px 35px rgba(40, 167, 69, 0.6) !important;
+}
+
+.add-btn:disabled {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.edit-btn {
+  background: linear-gradient(135deg, #007bff, #0056b3) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4) !important;
+}
+
+.edit-btn:hover {
+  transform: translateY(-1px) scale(1.05) !important;
+  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.6) !important;
+}
+
+.delete-btn {
+  background: linear-gradient(135deg, #dc3545, #c82333) !important;
+  color: white !important;
+  padding: 0.5rem 1rem !important;
+  min-height: 36px !important;
+  box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4) !important;
+}
+
+.delete-btn:hover {
+  transform: translateY(-1px) scale(1.05) !important;
+  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.6) !important;
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #28a745, #20c997) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4) !important;
+}
+
+.save-btn:hover {
+  transform: translateY(-1px) scale(1.02) !important;
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.6) !important;
+}
+
+.cancel-btn {
+  background: linear-gradient(135deg, #6c757d, #545b62) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4) !important;
+}
+
+.cancel-btn:hover {
+  transform: translateY(-1px) scale(1.02) !important;
+  box-shadow: 0 6px 20px rgba(108, 117, 125, 0.6) !important;
+}
+
+.saving-indicator {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  color: #FFD700;
+  padding: 1rem 1.5rem;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  animation: slideInBounce 0.4s ease;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes slideInBounce {
+  0% {
+    transform: translateX(100%) scale(0.8);
+    opacity: 0;
+  }
+  60% {
+    transform: translateX(-10px) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .menu-management-container {
+    padding: 1rem;
+    background-attachment: scroll;
+  }
+
+  .menu-management-content {
+    padding-top: 5rem;
+    max-width: 100%;
+  }
+
+  .menu-management-header {
+    padding: 1.5rem;
+  }
+
+  .menu-management-header h1 {
+    font-size: 1.6rem;
+  }
+
+  .category-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+    padding: 1rem;
+  }
+
+  .category-title-section {
+    justify-content: center;
+  }
+
+  .category-buttons {
+    justify-content: center;
+  }
+
+  /* Keep items on one line in mobile */
+  .compact-item-row {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .item-name {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.9rem;
+  }
+
+  .item-price {
+    min-width: 60px;
+    text-align: right;
+    flex-shrink: 0;
+    font-size: 0.85rem;
+  }
+
+  .compact-arrows {
+    flex-direction: column;
+    gap: 0.2rem;
+    flex-shrink: 0;
+  }
+
+  .compact-actions {
+    flex-shrink: 0;
+    gap: 0.25rem;
+  }
+
+  /* Keep drag handles visible for items on mobile */
+  .drag-handle-small {
+    display: flex;
+    font-size: 0.8rem;
+  }
+
+  /* Hide text labels on mobile but keep icons */
+  .btn-text {
+    display: none;
+  }
+
+  /* Categories remain draggable on mobile */
+  .category-card {
+    cursor: grab;
+  }
+
+  .category-card:active {
+    cursor: grabbing;
+  }
+
+  /* Items remain draggable on mobile too */
+  .menu-item-row {
+    cursor: grab;
+  }
+
+  .menu-item-row:active {
+    cursor: grabbing;
+  }
+
+  /* Keep category arrow controls visible on mobile */
+  .category-arrow-controls {
+    display: flex;
+  }
+
+  /* Adjust input sizes for mobile */
+  .item-name-input {
+    min-width: 80px !important;
+    font-size: 14px !important;
+  }
+
+  .item-price-input {
+    width: 60px !important;
+    font-size: 14px !important;
+  }
+
+  /* Make compact buttons slightly smaller on mobile */
+  .compact-btn {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.7rem !important;
+  }
+
+  .arrow-btn-small {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 0.6rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .menu-management-container {
+    padding: 0.5rem;
+  }
+
+  .menu-management-header {
+    padding: 1rem;
+  }
+
+  .category-content {
+    padding: 0 1rem 1rem;
+  }
+
+  .mobile-friendly-input {
+    font-size: 16px !important;
+    padding: 0.8rem !important;
+  }
+
+  .compact-item-row {
+    padding: 0.75rem 0.5rem;
+    gap: 0.4rem;
+  }
+
+  .item-name {
+    font-size: 0.85rem;
+    min-width: 0;
+  }
+
+  .item-price {
+    font-size: 0.8rem;
+    min-width: 50px;
+  }
+
+  /* Even more compact buttons on very small screens */
+  .compact-btn {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 0.65rem !important;
+  }
+
+  .arrow-btn-small {
+    width: 16px !important;
+    height: 16px !important;
+    font-size: 0.55rem !important;
+  }
+
+  /* Adjust input sizes for very small screens */
+  .item-name-input {
+    min-width: 70px !important;
+    font-size: 14px !important;
+  }
+
+  .item-price-input {
+    width: 50px !important;
+    font-size: 14px !important;
+  }
+
+  /* Keep everything on one line even on very small screens */
+  .compact-item-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .compact-item-row::-webkit-scrollbar {
+    display: none;
+  }
+}
