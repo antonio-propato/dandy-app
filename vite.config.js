@@ -29,8 +29,5 @@ export default defineConfig({
         ]
       }
     })
-  ],
-  server: {
-    host: true // allows LAN access (e.g. from your phone)
-  }
+  ]
 })
