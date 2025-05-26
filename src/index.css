@@ -4,7 +4,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -34,4 +33,104 @@ a {
 
 a:hover {
   text-decoration: underline;
+}
+
+/* =====================================================
+   GLOBAL LOADING STYLES - Add this section
+   ===================================================== */
+
+.global-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  color: #fff;
+  background-image: url('/images/Legno.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  position: relative;
+  font-family: 'Raleway', sans-serif;
+}
+
+.global-loading-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.global-loading-spinner {
+  border: 6px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  border-top: 6px solid #FFD700;
+  border-right: 6px solid #FFA500;
+  width: 60px;
+  height: 60px;
+  animation: global-spin 1s linear infinite;
+  margin-bottom: 25px;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+@keyframes global-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.global-loading-text {
+  position: relative;
+  z-index: 1;
+  font-size: 18px;
+  font-weight: 600;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  color: #fff;
+  margin: 0;
+  text-align: center;
+  letter-spacing: 0.5px;
+  animation: global-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes global-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Small spinner for inline use (like refresh button) */
+.global-loading-spinner-small {
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  border-top: 4px solid #FFD700;
+  border-right: 4px solid #FFA500;
+  width: 20px;
+  height: 20px;
+  animation: global-spin 1s linear infinite;
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+/* Mobile fixes */
+@media (max-width: 768px) {
+  .global-loading-container {
+    background-attachment: scroll;
+  }
+
+  .global-loading-spinner {
+    width: 50px;
+    height: 50px;
+    border-width: 5px;
+  }
+
+  .global-loading-text {
+    font-size: 16px;
+  }
 }

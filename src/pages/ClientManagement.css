@@ -299,9 +299,9 @@
   font-size: 20px;
   cursor: pointer;
   color: white;
-  padding: 8px;
-  width: 40px;
-  height: 40px;
+  padding: 9px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -321,12 +321,12 @@
 }
 
 .client-form-group {
-  margin-bottom: 28px;
-  padding: 0 32px;
+  margin-bottom: 12px;
+  padding: 0 20px;
 }
 
 .client-form-group:first-of-type {
-  margin-top: 28px;
+  margin-top: 20px;
 }
 
 .client-form-group label {
@@ -338,6 +338,7 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   position: relative;
+
 }
 
 .client-form-group label::after {
@@ -353,8 +354,8 @@
 
 .client-form-group input {
   width: 100%;
-  height: 50px;
-  padding: 0 18px;
+  height: 40px;
+  padding: 0 12px;
   border: 2px solid #e9ecef;
   border-radius: 12px;
   font-size: 16px;
@@ -433,7 +434,7 @@
 
 .client-modal-actions {
   display: flex;
-  gap: 15px;
+  gap: 3px;
   padding: 28px 32px;
   justify-content: flex-end;
   background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
@@ -607,8 +608,8 @@
   background: rgba(255, 255, 255, 0.2);
   border: none;
   color: inherit;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
@@ -678,29 +679,56 @@
 }
 
 .client-confirm-actions {
-  display: flex;
-  gap: 12px;
-  padding: 0 24px 24px 24px;
+  display: flex !important;
+  gap: 12px !important;
+  padding: 0 24px 24px 24px !important;
+  justify-content: center !important;
+  align-items: stretch !important;
+}
+
+.client-confirm-delete-btn,
+.client-confirm-cancel-btn {
+  border: none !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  width: 130px !important; /* Fixed width for both - made wider */
+  height: 50px !important; /* Fixed height for both */
+  transition: all 0.3s ease !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important; /* Prevent shrinking */
+  flex-grow: 0 !important; /* Prevent growing */
+  box-sizing: border-box !important;
+  padding: 0 !important; /* Remove padding to ensure exact width */
+  margin: 0 !important; /* Remove any margin */
 }
 
 .client-confirm-delete-btn {
-  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 700;
-  font-size: 14px;
-  flex: 1;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+  color: white !important;
+}
+
+.client-confirm-cancel-btn {
+  background: linear-gradient(135deg, #6c757d 0%, #5a6268 50%, #495057 100%) !important;
+  color: white !important;
+}
+
+.client-confirm-delete-btn:hover,
+.client-confirm-cancel-btn:hover {
+  transform: translateY(-2px) !important;
 }
 
 .client-confirm-delete-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4) !important;
+}
+
+.client-confirm-cancel-btn:hover {
+  box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4) !important;
 }
 
 /* Responsive Design */
@@ -745,5 +773,19 @@
   .client-save-btn, .client-add-stamp-btn, .client-remove-stamp-btn, .client-cancel-btn {
     width: 100%;
     margin-bottom: 10px;
+  }
+
+  /* Mobile specific overrides for confirmation modal */
+  .client-confirm-actions {
+    gap: 10px !important;
+    padding: 0 20px 20px 20px !important;
+  }
+
+  .client-confirm-delete-btn,
+  .client-confirm-cancel-btn {
+    width: 120px !important; /* Same width on mobile */
+    height: 48px !important;
+    font-size: 13px !important;
+    padding: 0 !important; /* Remove padding on mobile too */
   }
 }

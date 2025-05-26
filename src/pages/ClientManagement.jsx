@@ -281,9 +281,9 @@ export default function ClientManagement() {
 
   if (loading) {
     return (
-      <div className="client-management-loading">
-        <div className="client-loading-spinner"></div>
-        <p>Caricamento clienti...</p>
+      <div className="global-loading-container">
+        <div className="global-loading-spinner"></div>
+        <p className="global-loading-text">Caricamento clienti...</p>
       </div>
     );
   }
@@ -292,9 +292,6 @@ export default function ClientManagement() {
     <div className="client-management-container">
       <div className="client-management-header">
         <h1>Gestione Clienti</h1>
-        <button onClick={() => navigate('/superuser-dashboard')} className="client-back-button">
-          Torna alla Dashboard
-        </button>
       </div>
 
       <div className="client-search-section">
@@ -411,11 +408,11 @@ export default function ClientManagement() {
         <div className="client-modal-overlay" onClick={() => setShowStampsModal(false)}>
           <div className="client-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="client-modal-header">
-              <h3>Gestisci Timbri - {selectedClient?.firstName} {selectedClient?.lastName}</h3>
+              <h3>{selectedClient?.firstName} {selectedClient?.lastName}</h3>
               <button onClick={() => setShowStampsModal(false)} className="client-close-button">×</button>
             </div>
             <div className="client-stamps-info">
-              <p><strong>Timbri Attuali:</strong> <span>{selectedClient?.stamps.length}/9</span></p>
+              <p><strong>Timbri Attuali:</strong> <span>{selectedClient?.stamps.length}</span></p>
               <p><strong>Timbri Totali:</strong> <span>{selectedClient?.lifetimeStamps}</span></p>
               <p><strong>Premi Riscattati:</strong> <span>{selectedClient?.rewardsEarned}</span></p>
             </div>

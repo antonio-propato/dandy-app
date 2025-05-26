@@ -369,11 +369,9 @@ export default function MenuManagement() {
 
   if (loading) {
     return (
-      <div className="menu-management-container">
-        <Nav />
-        <div className="menu-management-content">
-          <h1>Caricamento...</h1>
-        </div>
+      <div className="global-loading-container">
+        <div className="global-loading-spinner"></div>
+        <p className="global-loading-text">Caricamento menu...</p>
       </div>
     )
   }
