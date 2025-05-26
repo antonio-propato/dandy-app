@@ -231,9 +231,9 @@ export default function SuperuserDashboard() {
 
   if (loading) {
     return (
-      <div className="dashboard-loading">
-        <div className="loading-spinner"></div>
-        <p>Caricamento pannello...</p>
+      <div className="global-loading-container">
+        <div className="global-loading-spinner"></div>
+        <p className="global-loading-text">Caricamento pannello...</p>
       </div>
     );
   }
@@ -258,7 +258,14 @@ export default function SuperuserDashboard() {
           onClick={handleRefresh}
           disabled={refreshing}
         >
-          {refreshing ? 'Aggiornamento...' : 'Aggiorna'}
+          {refreshing ? (
+            <>
+              <div className="global-loading-spinner-small"></div>
+              Aggiornamento...
+            </>
+          ) : (
+            'Aggiorna'
+          )}
         </button>
       </div>
 
