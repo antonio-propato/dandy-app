@@ -12,10 +12,36 @@ export default function Menu() {
   const [error, setError] = useState(null)
   const [showBurger, setShowBurger] = useState(true)
   const [scrollTimeout, setScrollTimeout] = useState(null)
+  const [lastFetch, setLastFetch] = useState(null)
 
   useEffect(() => {
     fetchMenuData()
   }, [])
+
+  // Auto-refresh menu data every 30 seconds to catch updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Only fetch if the page is visible and it's been more than 10 seconds since last fetch
+      if (!document.hidden && (!lastFetch || Date.now() - lastFetch > 10000)) {
+        fetchMenuData(true) // Silent refresh
+      }
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }, [lastFetch])
+
+  // Listen for page focus to refresh menu
+  useEffect(() => {
+    const handleFocus = () => {
+      // Refresh when user returns to the page
+      if (!lastFetch || Date.now() - lastFetch > 5000) {
+        fetchMenuData(true)
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [lastFetch])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -45,10 +71,16 @@ export default function Menu() {
     }
   }, [scrollTimeout])
 
-  const fetchMenuData = async () => {
+  const fetchMenuData = async (silent = false) => {
     try {
+      if (!silent) {
+        setLoading(true)
+        setError(null)
+      }
+
       console.log('Fetching menu data from Firestore...')
       const menuDoc = await getDoc(doc(firestore, 'settings', 'menu'))
+      setLastFetch(Date.now())
 
       if (menuDoc.exists()) {
         console.log('Menu document exists, data:', menuDoc.data())
@@ -56,73 +88,54 @@ export default function Menu() {
         const menuData = data.items
         const order = data.categoryOrder || Object.keys(menuData || {})
 
-        if (menuData) {
+        if (menuData && Object.keys(menuData).length > 0) {
           setItems(menuData)
           setCategoryOrder(order)
-          console.log('Menu items set successfully')
+          console.log('Menu items set successfully:', Object.keys(menuData))
+          setError(null)
         } else {
-          console.log('No items field found, using default menu')
-          const defaultMenu = getDefaultMenu()
-          setItems(defaultMenu)
-          setCategoryOrder(Object.keys(defaultMenu))
+          console.log('No items found in document')
+          setItems({})
+          setCategoryOrder([])
+          if (!silent) {
+            setError('Menu non ancora configurato. Configura il menu dalla sezione gestione.')
+          }
         }
       } else {
-        console.log('Menu document does not exist, using default menu')
-        const defaultMenu = getDefaultMenu()
-        setItems(defaultMenu)
-        setCategoryOrder(Object.keys(defaultMenu))
+        console.log('Menu document does not exist')
+        setItems({})
+        setCategoryOrder([])
+        if (!silent) {
+          setError('Menu non ancora configurato. Configura il menu dalla sezione gestione.')
+        }
       }
-      setError(null) // Clear any previous errors
     } catch (error) {
       console.error('Error fetching menu data:', error)
-      console.log('Falling back to default menu due to error')
-      // Instead of showing error, use default menu as fallback
-      const defaultMenu = getDefaultMenu()
-      setItems(defaultMenu)
-      setCategoryOrder(Object.keys(defaultMenu))
-      setError(null) // Don't show error, just use default
+
+      // Keep existing data if we have it, otherwise show empty
+      if (Object.keys(items).length === 0) {
+        console.log('No existing data and fetch failed')
+        setItems({})
+        setCategoryOrder([])
+      }
+
+      // Show error only if not silent
+      if (!silent) {
+        setError('Errore nel caricamento del menu. Verifica la connessione.')
+      }
+      console.log('Keeping existing menu data due to fetch error')
     } finally {
-      setLoading(false)
+      if (!silent) {
+        setLoading(false)
+      }
     }
   }
 
-  const getDefaultMenu = () => {
-    return {
-      Caffetteria: [
-        { name: 'Espresso', price: '€0.90' },
-        { name: 'Doppio Espresso', price: '€1.00' },
-        { name: "Caffè Orzo", price: '€1.20' },
-        { name: 'Latte Macchiato', price: '€1.50' },
-        { name: 'Cioccolata Calda', price: '€2.00' },
-        { name: 'Tè Verde', price: '€1.50' },
-        { name: 'Tè Nero', price: '€1.50' },
-        { name: 'Tè alla Pesca', price: '€1.50' },
-        { name: 'Tè al Limone', price: '€1.50' },
-        { name: 'Cappuccino', price: '€1.50' }
-      ],
-      Cornetteria: [
-        { name: 'Vuoto', price: '€1.00' },
-        { name: 'Vegano', price: '€1.20' },
-        { name: 'Crema', price: '€1.50' },
-        { name: 'Marmellata', price: '€1.50' },
-        { name: 'Cioccolato', price: '€1.50' },
-        { name: 'Pistacchio', price: '€1.50' }
-      ],
-      Alcolici: [
-        { name: 'Birra', price: '€1.50' },
-        { name: 'Aperol Spritz', price: '€5.00' },
-        { name: 'Negroni', price: '€5.00' },
-        { name: 'Gin Tonic', price: '€5.00' },
-        { name: 'Rum Cola', price: '€5.00' },
-        { name: 'Mojito', price: '€5.00' },
-        { name: 'Bellini', price: '€5.00' },
-        { name: 'Bloody Mary', price: '€5.00' },
-        { name: 'Shot Rum', price: '€3.00/€5.00' },
-        { name: 'Shot Vodka', price: '€3.00/€5.00' },
-        { name: 'Shot Gin', price: '€3.00/€5.00' },
-        { name: 'Shot Tequila', price: '€3.00/€5.00' }
-      ]
-    }
+
+
+  // Manual refresh function
+  const handleRefresh = () => {
+    fetchMenuData()
   }
 
   if (loading) {
@@ -147,31 +160,6 @@ export default function Menu() {
     )
   }
 
-  if (error) {
-    return (
-      <div
-        className="menu-wrapper"
-        style={{
-          backgroundImage: `url(${Legno})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          minHeight: '100vh',
-          padding: '2rem'
-        }}
-      >
-        <Nav showBurger={showBurger} />
-        <div className="menu-content">
-          <div className="menu-error">
-            <p>{error}</p>
-            <button onClick={fetchMenuData} className="retry-button">
-              Riprova
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div
       className="menu-wrapper"
@@ -186,6 +174,15 @@ export default function Menu() {
       <Nav showBurger={showBurger} />
 
       <div className="menu-content">
+        {error && (
+          <div className="menu-error-banner">
+            <p>{error}</p>
+            <button onClick={handleRefresh} className="refresh-button">
+              Aggiorna
+            </button>
+          </div>
+        )}
+
         {categoryOrder.map((category) => (
           items[category] && items[category].length > 0 && (
             <div key={category} className="menu-section">
@@ -201,6 +198,16 @@ export default function Menu() {
             </div>
           )
         ))}
+
+        {Object.keys(items).length === 0 && !loading && (
+          <div className="menu-empty">
+            <p>Menu non ancora configurato.</p>
+            <p>Vai alla sezione "Gestione Menu" per aggiungere categorie e elementi.</p>
+            <button onClick={handleRefresh} className="retry-button">
+              Ricarica Menu
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
