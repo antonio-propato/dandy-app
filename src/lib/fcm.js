@@ -1,12 +1,12 @@
 // src/lib/fcm.js
 import { getMessaging, getToken, onMessage } from 'firebase/messaging'
-import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore'
+import { doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore'
 import { firestore } from './firebase'
 
 const messaging = getMessaging()
 
 // Your Firebase project's VAPID key - get this from Firebase Console > Project Settings > Cloud Messaging
-const VAPID_KEY = 'BKLxE11_UhD2uTY3pCV3lzUHEnGozFT6CAe8iAqNYFcgtYu57VHKPXCiWllH2_ZKMgl7HzCHCGcOTGIsQYFqK5g'
+const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY
 
 class FCMManager {
   constructor() {
@@ -96,15 +96,27 @@ class FCMManager {
     }
   }
 
-  // Save token to Firestore
+  // Save token to Firestore (and clean up old tokens)
   async saveTokenToFirestore(userId, token) {
     try {
       const userRef = doc(firestore, 'users', userId)
-      await updateDoc(userRef, {
-        fcmTokens: arrayUnion(token),
-        lastTokenUpdate: new Date().toISOString()
-      })
-      console.log('FCM token saved to Firestore')
+
+      // Get current user document to check existing tokens
+      const userDoc = await getDoc(userRef)
+      const userData = userDoc.data()
+      const currentTokens = userData?.fcmTokens || []
+
+      // Only add token if it doesn't already exist
+      if (!currentTokens.includes(token)) {
+        // Keep only the latest token (remove old ones)
+        await updateDoc(userRef, {
+          fcmTokens: [token], // Replace with single current token
+          lastTokenUpdate: new Date().toISOString()
+        })
+        console.log('FCM token saved to Firestore (duplicates removed)')
+      } else {
+        console.log('FCM token already exists, no update needed')
+      }
     } catch (error) {
       console.error('Failed to save FCM token:', error)
     }
@@ -128,75 +140,26 @@ class FCMManager {
     onMessage(messaging, (payload) => {
       console.log('Foreground message received:', payload)
 
-      // Show custom notification or update UI
+      // When app is in foreground, don't show system notification
+      // to avoid duplicates with the service worker notification
+      console.log('Message received while app is open - letting service worker handle notification')
+
+      // If you have a custom callback (for in-app notifications), use it
       if (this.onMessageCallback) {
         this.onMessageCallback(payload)
-      } else {
-        // Default: show browser notification
-        this.showForegroundNotification(payload)
       }
+
+      // Don't call showForegroundNotification to avoid duplicates
     })
   }
 
-  // Show notification when app is in foreground
+  // Show notification when app is in foreground (DISABLED to prevent duplicates)
   showForegroundNotification(payload) {
-    console.log('🔔 showForegroundNotification called with:', payload)
+    console.log('🔔 showForegroundNotification called - but disabled to prevent duplicates')
 
-    try {
-      const title = payload.notification?.title || 'Dandy Notification'
-      const options = {
-        body: payload.notification?.body || 'You have a new notification',
-        icon: '/images/favicon.png',
-        badge: '/images/favicon.png',
-        tag: payload.data?.type || 'general',
-        requireInteraction: true,
-        vibrate: [200, 100, 200],
-        data: payload.data // Include custom data for click handling
-      }
-
-      console.log('🔔 Creating notification with title:', title)
-      console.log('🔔 Notification options:', options)
-
-      // Check permission one more time
-      if (Notification.permission !== 'granted') {
-        console.error('❌ Notification permission not granted:', Notification.permission)
-        return
-      }
-
-      const notification = new Notification(title, options)
-
-      console.log('✅ Notification created successfully:', notification)
-
-      // Handle notification click
-      notification.onclick = (event) => {
-        console.log('🔔 Notification clicked:', event)
-        event.preventDefault()
-        window.focus()
-
-        // Navigate to specific page if clickAction is provided
-        if (payload.data?.click_action) {
-          window.location.href = payload.data.click_action
-        }
-
-        notification.close()
-      }
-
-      // Handle errors
-      notification.onerror = (error) => {
-        console.error('❌ Notification error:', error)
-      }
-
-      notification.onshow = () => {
-        console.log('✅ Notification shown successfully')
-      }
-
-      notification.onclose = () => {
-        console.log('🔔 Notification closed')
-      }
-
-    } catch (error) {
-      console.error('💥 Error in showForegroundNotification:', error)
-    }
+    // This method is now disabled to prevent duplicate notifications
+    // The service worker will handle all notifications
+    return
   }
 
   // Set custom message handler
