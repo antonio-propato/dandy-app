@@ -309,11 +309,13 @@ function App() {
 
   // 📱 Custom notification handler for foreground messages
   const showCustomNotification = (payload) => {
-    console.log('Showing custom notification:', payload)
+    console.log('Foreground message received - letting service worker handle notification:', payload)
 
-    // You can customize this to show in-app notifications
-    // For now, we'll use the browser notification
-    fcmManager.showForegroundNotification(payload)
+    // Don't create notification here to avoid duplicates
+    // The service worker will handle all notifications
+
+    // Optional: You could show an in-app toast/banner here instead
+    // showInAppToast(payload) // Custom in-app notification
   }
 
   // 🔔 Listen for service worker messages (notification clicks)

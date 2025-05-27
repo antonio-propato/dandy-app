@@ -18,13 +18,11 @@ export default function Landing() {
 
   if (!isMobile) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4 text-center">
-        <div className="bg-white p-6 rounded-xl shadow-md max-w-md">
-          <h1 className="text-xl font-bold text-gray-800 mb-2">Solo su Mobile</h1>
-          <p className="text-gray-600 text-sm">
-            Questa app è disponibile solo su dispositivi mobili. Per favore aprila su uno smartphone.
-          </p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen bg-white px-4 text-center">
+      <div className="bg-white p-6 rounded-xl shadow-md max-w-md">
+        <h1 className="text-xl font-bold text-gray-800 mb-2">App disponibile solo su mobile</h1>
+
+      </div>
       </div>
     )
   }
