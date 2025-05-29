@@ -31,11 +31,11 @@ export default function Stamps() {
 
   // messages for double-tap
   const dandyMessages = [
-    "Vuoi un caffe'? E statt angour!",
-    "Tu si' bell come au cafe' Dandy!",
-    "Me dai, vieni a prenderti un caffè!",
+    "Vuoi un caffe'? E stat angour 😁",
+    "Tu si' bell com o cafe' Dandy!",
+    "E' l'ora del Dandy!",
     "Un timbro in più, nu cafe' di chiu!",
-    "Come te, non c'e' nessuuuuno!",
+    "Come me, non c'e' nessuuuuno!",
   ]
 
   // Animation arrays
@@ -535,22 +535,13 @@ export default function Stamps() {
         </div>
       )}
 
-      {/* Emergency backup UI if the above fails */}
+      {/* Emergency backup UI if the above fails
       {stamps.length === totalSlots && !showCongratulationsModal && (
         <div className="emergency-reward-notice">
           <h3>Congratulazioni! Hai 9 timbri</h3>
           <p>Hai guadagnato un caffè gratis!</p>
-          <button
-            onClick={() => {
-              setShowConfetti(true);
-              setShowCongratulationsModal(true);
-            }}
-            className="retry-button"
-          >
-            Mostra Premio
-          </button>
         </div>
-      )}
+      )} */}
     </div>
   )
 }
