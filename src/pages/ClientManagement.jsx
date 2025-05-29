@@ -30,6 +30,13 @@ export default function ClientManagement() {
   const [stampsData, setStampsData] = useState({});
   const [userData, setUserData] = useState(null);
 
+  // New filter states
+  const [filters, setFilters] = useState({
+    lifetimeStamps: 'all',
+    currentStamps: 'all',
+    nameSort: 'none'
+  });
+
   // Check if user is superuser
   useEffect(() => {
     const checkSuperUser = async () => {
@@ -70,6 +77,7 @@ export default function ClientManagement() {
     setClientToDelete({ id: clientId, name: clientName });
     setShowConfirmDelete(true);
   };
+
   const capitalizeName = (name) => {
     if (!name) return '';
     return name
@@ -114,12 +122,99 @@ export default function ClientManagement() {
     }
   };
 
-  // Filter clients based on search
-  const filteredClients = clients.filter(client =>
-    `${client.firstName} ${client.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.phone.includes(searchTerm)
-  );
+  // Enhanced filter and search logic
+  const getFilteredAndSortedClients = () => {
+    let filteredClients = clients.filter(client => {
+      // Text search
+      const matchesSearch = `${client.firstName} ${client.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.phone.includes(searchTerm);
+
+      if (!matchesSearch) return false;
+
+      // Lifetime stamps filter
+      if (filters.lifetimeStamps !== 'all') {
+        const lifetimeCount = client.lifetimeStamps;
+        switch (filters.lifetimeStamps) {
+          case '0':
+            if (lifetimeCount !== 0) return false;
+            break;
+          case '1-5':
+            if (lifetimeCount < 1 || lifetimeCount > 5) return false;
+            break;
+          case '6-10':
+            if (lifetimeCount < 6 || lifetimeCount > 10) return false;
+            break;
+          case '11-20':
+            if (lifetimeCount < 11 || lifetimeCount > 20) return false;
+            break;
+          case '21+':
+            if (lifetimeCount < 21) return false;
+            break;
+        }
+      }
+
+      // Current stamps filter
+      if (filters.currentStamps !== 'all') {
+        const currentCount = client.stamps.length;
+        switch (filters.currentStamps) {
+          case '0':
+            if (currentCount !== 0) return false;
+            break;
+          case '1-3':
+            if (currentCount < 1 || currentCount > 3) return false;
+            break;
+          case '4-6':
+            if (currentCount < 4 || currentCount > 6) return false;
+            break;
+          case '7-9':
+            if (currentCount < 7 || currentCount > 9) return false;
+            break;
+          case '9':
+            if (currentCount !== 9) return false;
+            break;
+        }
+      }
+
+      return true;
+    });
+
+    // Apply sorting
+    if (filters.nameSort !== 'none') {
+      filteredClients = filteredClients.sort((a, b) => {
+        const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+        const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+
+        if (filters.nameSort === 'asc') {
+          return nameA.localeCompare(nameB);
+        } else {
+          return nameB.localeCompare(nameA);
+        }
+      });
+    }
+
+    return filteredClients;
+  };
+
+  const filteredClients = getFilteredAndSortedClients();
+
+  // Handle filter changes
+  const handleFilterChange = (filterType, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }));
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setFilters({
+      lifetimeStamps: 'all',
+      currentStamps: 'all',
+      nameSort: 'none'
+    });
+    setSearchTerm('');
+  };
 
   // Open edit modal
   const openEditModal = (client) => {
@@ -304,9 +399,83 @@ export default function ClientManagement() {
         />
       </div>
 
+      {/* New Filter Section */}
+      <div className="client-filters-section">
+        <div className="client-filters-row">
+          <div className="client-filter-group">
+            <label className="client-filter-label">Timbri Totali</label>
+            <select
+              value={filters.lifetimeStamps}
+              onChange={(e) => handleFilterChange('lifetimeStamps', e.target.value)}
+              className="client-filter-select"
+            >
+              <option value="all">Tutti</option>
+              <option value="0">0 timbri</option>
+              <option value="1-5">1-5 timbri</option>
+              <option value="6-10">6-10 timbri</option>
+              <option value="11-20">11-20 timbri</option>
+              <option value="21+">21+ timbri</option>
+            </select>
+          </div>
+
+          <div className="client-filter-group">
+            <label className="client-filter-label">Timbri Attuali</label>
+            <select
+              value={filters.currentStamps}
+              onChange={(e) => handleFilterChange('currentStamps', e.target.value)}
+              className="client-filter-select"
+            >
+              <option value="all">Tutti</option>
+              <option value="0">0 timbri</option>
+              <option value="1-3">1-3 timbri</option>
+              <option value="4-6">4-6 timbri</option>
+              <option value="7-9">7-9 timbri</option>
+              <option value="9">Pronti per premio (9)</option>
+            </select>
+          </div>
+
+          <div className="client-filter-group">
+            <label className="client-filter-label">Ordina per Nome</label>
+            <select
+              value={filters.nameSort}
+              onChange={(e) => handleFilterChange('nameSort', e.target.value)}
+              className="client-filter-select"
+            >
+              <option value="none">Nessun ordinamento</option>
+              <option value="asc">A-Z</option>
+              <option value="desc">Z-A</option>
+            </select>
+          </div>
+
+          <button
+            onClick={clearAllFilters}
+            className="client-clear-filters-btn"
+            title="Cancella tutti i filtri"
+          >
+            <span className="client-clear-icon">⟲</span>
+            Cancella Filtri
+          </button>
+        </div>
+
+        <div className="client-results-summary">
+          <span className="client-results-count">
+            {filteredClients.length} clienti trovati
+            {clients.length !== filteredClients.length && ` su ${clients.length} totali`}
+          </span>
+        </div>
+      </div>
+
       <div className="clients-list">
         {filteredClients.length === 0 ? (
-          <p className="client-no-clients">Nessun cliente trovato</p>
+          <div className="client-no-clients">
+            <div className="client-no-clients-icon">🔍</div>
+            <p>Nessun cliente corrisponde ai criteri di ricerca</p>
+            {(searchTerm || filters.lifetimeStamps !== 'all' || filters.currentStamps !== 'all' || filters.nameSort !== 'none') && (
+              <button onClick={clearAllFilters} className="client-clear-search-btn">
+                Cancella filtri e ricerca
+              </button>
+            )}
+          </div>
         ) : (
           filteredClients.map(client => (
             <div key={client.id} className="client-card">
@@ -316,7 +485,9 @@ export default function ClientManagement() {
                 <p><strong>Telefono:</strong> {client.phone}</p>
                 <p><strong>Compleanno:</strong> {client.dob}</p>
                 <div className="client-stats">
-                  <span className="client-stat">Attuali: {client.stamps.length}</span>
+                  <span className={`client-stat ${client.stamps.length === 9 ? 'client-stat-ready' : ''}`}>
+                    Attuali: {client.stamps.length}
+                  </span>
                   <span className="client-stat">Totali: {client.lifetimeStamps}</span>
                   <span className="client-stat">Premi: {client.rewardsEarned}</span>
                 </div>
