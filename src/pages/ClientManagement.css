@@ -46,19 +46,20 @@
 }
 
 .client-search-section {
-  margin-bottom: 30px;
+  margin-bottom: 25px;
 }
 
 .client-search-input {
   width: 100%;
-  max-width: 400px;
-  padding: 12px 16px;
+  max-width: 500px;
+  padding: 14px 18px;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 16px;
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.95);
   color: #333;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
 }
 
 .client-search-input::placeholder {
@@ -67,7 +68,136 @@
 
 .client-search-input:focus {
   outline: none;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+  background-color: rgba(255, 255, 255, 1);
+}
+
+/* NEW: Filter Section Styles */
+.client-filters-section {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.1) 100%);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 25px;
+  margin-bottom: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.client-filters-row {
+  display: flex;
+  gap: 20px;
+  align-items: end;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.client-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 180px;
+}
+
+.client-filter-label {
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  margin-bottom: 5px;
+}
+
+.client-filter-select {
+  padding: 12px 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+.client-filter-select:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  background-color: rgba(255, 255, 255, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.client-filter-select:focus {
+  outline: none;
+  border-color: #43221B;
+  box-shadow: 0 0 0 3px rgba(67, 34, 27, 0.3);
+}
+
+.client-clear-filters-btn {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 50%, #ff4757 100%);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+  min-width: 160px;
+  justify-content: center;
+  height: 48px;
+}
+
+.client-clear-filters-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
+}
+
+.client-clear-icon {
+  font-size: 16px;
+  font-weight: bold;
+  display: inline-block;
+  animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.client-clear-filters-btn:hover .client-clear-icon {
+  animation-duration: 0.5s;
+}
+
+.client-results-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.client-results-count {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 8px 16px;
+  border-radius: 20px;
+  backdrop-filter: blur(5px);
 }
 
 .clients-list {
@@ -119,6 +249,25 @@
   font-size: 12px;
   font-weight: 600;
   color: #ffd700;
+  transition: all 0.3s ease;
+}
+
+.client-stat-ready {
+  background: linear-gradient(135deg, #00ff87 0%, #60efff 100%);
+  color: #1a1a1a;
+  animation: pulse-ready 2s ease-in-out infinite;
+  box-shadow: 0 0 15px rgba(0, 255, 135, 0.5);
+}
+
+@keyframes pulse-ready {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 15px rgba(0, 255, 135, 0.5);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px rgba(0, 255, 135, 0.8);
+  }
 }
 
 .client-actions {
@@ -174,7 +323,35 @@
   text-align: center;
   font-size: 18px;
   grid-column: 1 / -1;
-  padding: 40px;
+  padding: 60px 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.client-no-clients-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+  opacity: 0.7;
+}
+
+.client-clear-search-btn {
+  background: linear-gradient(135deg, #43221B 0%, #5a2f26 50%, #6d3530 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  margin-top: 20px;
+  transition: all 0.3s ease;
+}
+
+.client-clear-search-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(67, 34, 27, 0.4);
 }
 
 /* Loading State */
@@ -734,18 +911,52 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .client-management-container {
-    padding: 60px 30px 25px 30px; /* Increased top padding for mobile burger menu */
+    padding: 60px 20px 25px 20px; /* Reduced horizontal padding on mobile */
   }
 
   .client-management-header {
     flex-direction: column;
-    align-items: center; /* Center align for mobile */
+    align-items: center;
     gap: 20px;
-    text-align: center; /* Center text for mobile */
+    text-align: center;
   }
 
   .client-management-header h1 {
-    font-size: 25px;
+    font-size: 22px;
+  }
+
+  .client-search-input {
+    max-width: 100%;
+  }
+
+  /* Mobile Filter Styles */
+  .client-filters-section {
+    padding: 20px;
+  }
+
+  .client-filters-row {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+
+  .client-filter-group {
+    min-width: 100%;
+  }
+
+  .client-filter-select {
+    width: 100%;
+  }
+
+  .client-clear-filters-btn {
+    min-width: 100%;
+    margin-top: 10px;
+  }
+
+  .client-results-summary {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
   }
 
   .clients-list {
@@ -783,49 +994,63 @@
 
   .client-confirm-delete-btn,
   .client-confirm-cancel-btn {
-    width: 120px !important; /* Same width on mobile */
+    width: 120px !important;
     height: 48px !important;
     font-size: 13px !important;
-    padding: 0 !important; /* Remove padding on mobile too */
+    padding: 0 !important;
   }
 }
 
-.sort-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.sort-toolbar button {
-  background: rgba(255,255,255,0.2);
-  color: #fff;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s;
-  font-size: 14px;
-}
-
-.sort-toolbar button.active {
-  background: #ffd700;
-  color: #43221b;
-}
-
-.sort-toolbar .sort-dir-toggle {
-  margin-left: auto;
-  background: none;
-  font-size: 16px;
-}
-
-@media (max-width: 768px) {
-  /* reuse your mobile rules: full-width buttons */
-  .sort-toolbar button {
-    width: 100%;
+@media (max-width: 480px) {
+  .client-management-container {
+    padding: 60px 15px 25px 15px;
   }
-  .sort-toolbar {
-    flex-direction: column;
-    gap: 10px;
+
+  .client-filters-section {
+    padding: 15px;
+    margin-bottom: 20px;
+  }
+
+  .client-filter-label {
+    font-size: 12px;
+  }
+
+  .client-filter-select {
+    padding: 10px 14px;
+    font-size: 13px;
+    padding-right: 35px;
+  }
+
+  .client-clear-filters-btn {
+    padding: 10px 16px;
+    font-size: 12px;
+    height: 44px;
+  }
+
+  .client-results-count {
+    font-size: 13px;
+    padding: 6px 12px;
+  }
+
+  .client-card {
+    padding: 16px;
+  }
+
+  .client-info h3 {
+    font-size: 16px;
+  }
+
+  .client-info p {
+    font-size: 13px;
+  }
+
+  .client-stats {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .client-stat {
+    font-size: 11px;
+    padding: 4px 8px;
   }
 }
