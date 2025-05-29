@@ -1,10 +1,13 @@
 // src/pages/Landing.jsx
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { usePWAInstall } from '../hooks/usePWAInstall'
+import PWAInstallPrompt from '../components/PWAInstallPrompt'
 import './Landing.css'
 
 export default function Landing() {
   const [isMobile, setIsMobile] = useState(true)
+  const { showInstallPrompt, isInstalled, isIOS, installPWA, dismissPrompt } = usePWAInstall()
 
   useEffect(() => {
     const handleResize = () => {
@@ -19,10 +22,9 @@ export default function Landing() {
   if (!isMobile) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-white px-4 text-center">
-      <div className="bg-white p-6 rounded-xl shadow-md max-w-md">
-        <h1 className="text-xl font-bold text-gray-800 mb-2">App disponibile solo su mobile</h1>
-
-      </div>
+        <div className="bg-white p-6 rounded-xl shadow-md max-w-md">
+          <h1 className="text-xl font-bold text-gray-800 mb-2">App disponibile solo su mobile</h1>
+        </div>
       </div>
     )
   }
@@ -47,6 +49,15 @@ export default function Landing() {
           </Link>
         </div>
       </div>
+
+      {/* PWA Install Prompt - only shows when conditions are met */}
+      {showInstallPrompt && !isInstalled && (
+        <PWAInstallPrompt
+          onInstall={installPWA}
+          onDismiss={dismissPrompt}
+          isIOS={isIOS}
+        />
+      )}
     </div>
   )
 }
