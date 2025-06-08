@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5Qrcode } from 'html5-qrcode';
-import { doc, getDoc, updateDoc, arrayUnion, Timestamp, setDoc, increment } from 'firebase/firestore';
-import { firestore, auth } from '../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { firestore, auth, functions } from '../lib/firebase';
 import './Scan.css';
 
 export default function Scan() {
@@ -15,8 +16,12 @@ export default function Scan() {
   const [cameraPermission, setCameraPermission] = useState(null);
   const [availableCameras, setAvailableCameras] = useState([]);
   const [selectedCamera, setSelectedCamera] = useState(null);
+  const [processing, setProcessing] = useState(false);
   const scannerRef = useRef(null);
   const readerRef = useRef(null);
+
+  // Initialize Cloud Function
+  const processStampScan = httpsCallable(functions, 'processStampScan');
 
   // Scanner configuration
   const qrConfig = {
@@ -109,6 +114,91 @@ export default function Scan() {
     setSelectedCamera(e.target.value);
   };
 
+  // Process QR scan using Cloud Function
+  const processQRScan = async (decodedText) => {
+    setProcessing(true);
+
+    try {
+      console.log("QR code detected:", decodedText);
+
+      // Extract user ID from QR code URL
+      let userId;
+      if (decodedText.includes('/profile/')) {
+        userId = decodedText.split('/profile/')[1];
+      } else {
+        // If it's not a URL, try to use the entire code as userId
+        userId = decodedText;
+      }
+
+      if (!userId) {
+        throw new Error('Invalid QR code format');
+      }
+
+      // Remove any trailing slashes or query parameters
+      userId = userId.split('?')[0].split('#')[0].replace(/\/$/, '');
+      console.log("Extracted User ID:", userId);
+
+      // Get user info for display
+      const userDoc = await getDoc(doc(firestore, 'users', userId));
+      if (!userDoc.exists()) {
+        throw new Error(`User not found for ID: ${userId}`);
+      }
+
+      const userData = userDoc.data();
+      console.log("User data:", userData);
+
+      // Call Cloud Function to process the stamp scan
+      console.log("Calling processStampScan Cloud Function...");
+      const result = await processStampScan({ scannedUserId: userId });
+
+      if (result.data.success) {
+        const {
+          message,
+          stampsAdded,
+          birthdayBonus,
+          rewardEarned,
+          currentStamps
+        } = result.data;
+
+        console.log("Cloud Function result:", result.data);
+
+        // Set customer info for display
+        setCustomerInfo({
+          name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Unknown',
+          email: userData.email || 'No email',
+          message: message,
+          stampsAdded: stampsAdded,
+          birthdayBonus: birthdayBonus,
+          rewardEarned: rewardEarned,
+          currentStamps: currentStamps,
+          newStampCount: rewardEarned ? 0 : currentStamps,
+          stampsReset: rewardEarned
+        });
+
+        setSuccess(true);
+        setResult(decodedText);
+
+        // Show special effects for birthday or reward
+        if (birthdayBonus) {
+          console.log("🎉 Birthday bonus activated!");
+        }
+
+        if (rewardEarned) {
+          console.log("🎁 Reward earned - stamps reset!");
+        }
+
+      } else {
+        throw new Error('Cloud Function returned unsuccessful result');
+      }
+
+    } catch (error) {
+      console.error('Error processing QR scan:', error);
+      setError(`Failed to process scan: ${error.message}`);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   // Start QR scanner
   const startScanner = async () => {
     // First check camera permissions
@@ -123,6 +213,7 @@ export default function Scan() {
     setError(null);
     setSuccess(false);
     setCustomerInfo(null);
+    setProcessing(false);
 
     // Small delay to ensure React has rendered the reader element
     setTimeout(() => {
@@ -153,177 +244,19 @@ export default function Scan() {
         cameraConfig,
         qrConfig,
         async (decodedText) => {
-          // QR code detected
+          // QR code detected - stop scanner and process
           try {
-            console.log("QR code detected:", decodedText);
             await html5QrCode.stop();
             scannerRef.current = null;
             setScanning(false);
-            setResult(decodedText);
 
-            // Extract user ID from QR code URL
-            // Support different URL formats
-            let userId;
-            if (decodedText.includes('/profile/')) {
-              userId = decodedText.split('/profile/')[1];
-            } else {
-              // If it's not a URL, try to use the entire code as userId
-              userId = decodedText;
-            }
+            // Process the QR scan using Cloud Function
+            await processQRScan(decodedText);
 
-            if (!userId) {
-              throw new Error('Invalid QR code format');
-            }
-
-            // Remove any trailing slashes or query parameters
-            userId = userId.split('?')[0].split('#')[0].replace(/\/$/, '');
-            console.log("Extracted User ID:", userId);
-            console.log("Current authenticated user:", auth.currentUser?.uid);
-
-            // Check Firestore permissions first
-            try {
-              // First check if we can read the user document
-              console.log("Checking user document access...");
-              const userDoc = await getDoc(doc(firestore, 'users', userId));
-              if (!userDoc.exists()) {
-                throw new Error(`User not found for ID: ${userId}`);
-              }
-
-              const userData = userDoc.data();
-              console.log("Successfully read user document:", userData);
-
-              setCustomerInfo({
-                name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Unknown',
-                email: userData.email || 'No email'
-              });
-
-              // Then check if we can read the stamps document
-              console.log("Checking stamps document access...");
-              const stampsRef = doc(firestore, 'stamps', userId);
-              const stampsDoc = await getDoc(stampsRef);
-              console.log("Stamps doc exists:", stampsDoc.exists());
-              console.log("Stamps data:", stampsDoc.exists() ? stampsDoc.data() : null);
-
-              // Get the current stamps data
-              const stampsData = stampsDoc.exists() ? stampsDoc.data() : {};
-              const currentStamps = stampsData.stamps || [];
-              const lifetimeStamps = stampsData.lifetimeStamps || 0;
-              const rewardsEarned = stampsData.rewardsEarned || 0;
-
-              // Check if user already has 9 stamps - in this case, we should reset stamps and increment rewards
-              if (currentStamps.length >= 9) {
-                console.log("User has 9+ stamps, redeeming reward and resetting stamps...");
-
-                // We should NOT add an additional stamp to lifetimeStamps when redeeming,
-                // but we SHOULD ensure that all 9 redeemed stamps are counted in lifetimeStamps
-
-                // Check if we need to update lifetimeStamps first
-                let updatedLifetimeStamps = lifetimeStamps;
-                const expectedLifetimeStamps = (rewardsEarned * 9) + currentStamps.length;
-
-                if (lifetimeStamps < expectedLifetimeStamps) {
-                  // User's lifetimeStamps is incorrect, update it
-                  updatedLifetimeStamps = expectedLifetimeStamps;
-                  console.log(`Correcting lifetimeStamps from ${lifetimeStamps} to ${updatedLifetimeStamps}`);
-                }
-
-                await updateDoc(stampsRef, {
-                  stamps: [],
-                  rewardsEarned: increment(1),
-                  rewardClaimed: true,
-                  lastRedemptionDate: new Date().toISOString(), // Store the redemption date
-                  lifetimeStamps: updatedLifetimeStamps  // Set the corrected lifetime stamps
-                });
-
-                console.log("Successfully reset stamps and incremented rewards!");
-                setCustomerInfo(prev => ({
-                  ...prev,
-                  stampsReset: true,
-                  newRewardsTotal: rewardsEarned + 1,
-                  newLifetimeTotal: updatedLifetimeStamps // Show corrected lifetime total
-                }));
-              } else {
-                // User has less than 9 stamps, add a new one and increment lifetime count
-                console.log("Adding new stamp and incrementing lifetime count...");
-                const now = new Date().toISOString();
-
-                if (stampsDoc.exists()) {
-                  console.log("Updating existing stamps document...");
-                  const updatedStamps = [...currentStamps, { date: now }];
-
-                  // Create a calculated best-estimate of lifetimeStamps if it's missing
-                  if (lifetimeStamps === undefined || lifetimeStamps === null) {
-                    // Calculate based on rewards earned and current stamps
-                    const rewardsEarned = stampsData.rewardsEarned || 0;
-                    // Each reward required 9 stamps, plus current stamps + 1 for this new stamp
-                    const calculatedLifetimeStamps = (rewardsEarned * 9) + updatedStamps.length;
-
-                    console.log(`Setting missing lifetimeStamps to calculated value: ${calculatedLifetimeStamps}`);
-                    await updateDoc(stampsRef, {
-                      stamps: updatedStamps,
-                      lifetimeStamps: calculatedLifetimeStamps
-                    });
-
-                    setCustomerInfo(prev => ({
-                      ...prev,
-                      newStampCount: updatedStamps.length,
-                      newLifetimeTotal: calculatedLifetimeStamps
-                    }));
-                  } else if (lifetimeStamps < updatedStamps.length) {
-                    // Make sure lifetimeStamps at least matches current stamps count
-                    console.log("Fixing lifetimeStamps to match actual stamp count");
-                    await updateDoc(stampsRef, {
-                      stamps: updatedStamps,
-                      lifetimeStamps: updatedStamps.length // Set to match actual count
-                    });
-
-                    setCustomerInfo(prev => ({
-                      ...prev,
-                      newStampCount: updatedStamps.length,
-                      newLifetimeTotal: updatedStamps.length
-                    }));
-                  } else {
-                    // Normal case - just increment lifetimeStamps
-                    await updateDoc(stampsRef, {
-                      stamps: updatedStamps,
-                      lifetimeStamps: increment(1)
-                    });
-
-                    setCustomerInfo(prev => ({
-                      ...prev,
-                      newStampCount: updatedStamps.length,
-                      newLifetimeTotal: lifetimeStamps + 1
-                    }));
-                  }
-
-                  console.log("Successfully updated stamps!");
-                } else {
-                  console.log("Creating new stamps document...");
-                  // Make sure we create with the right count of stamps (1)
-                  await setDoc(stampsRef, {
-                    stamps: [{ date: now }],
-                    lifetimeStamps: 1,
-                    rewardsEarned: 0,
-                    rewardClaimed: false
-                  });
-
-                  console.log("Successfully created stamps document!");
-                  setCustomerInfo(prev => ({
-                    ...prev,
-                    newStampCount: 1,
-                    newLifetimeTotal: 1
-                  }));
-                }
-              }
-
-              setSuccess(true);
-            } catch (firestoreErr) {
-              console.error('Firestore error:', firestoreErr);
-              throw new Error(`Failed to add stamp: ${firestoreErr.message}`);
-            }
           } catch (err) {
-            console.error('Error processing QR code:', err);
+            console.error('Error stopping scanner or processing scan:', err);
             setError(err.message);
+            setScanning(false);
           }
         },
         (errorMessage) => {
@@ -353,21 +286,22 @@ export default function Scan() {
       }
     }
     setScanning(false);
+    setProcessing(false);
   };
 
   return (
     <div className="scan-container">
-      <h1>April il QR Code Scanner</h1>
+      <h1>QR Code Scanner</h1>
 
-      {!scanning && !result && (
+      {!scanning && !result && !processing && (
         <>
           <button className="scan-button" onClick={startScanner}>
-            Scanner
+            Avvia Scanner
           </button>
 
           {availableCameras.length > 1 && (
             <div className="camera-selector">
-              <label htmlFor="camera-select">Choose camera:</label>
+              <label htmlFor="camera-select">Scegli fotocamera:</label>
               <select
                 id="camera-select"
                 value={selectedCamera || ''}
@@ -397,10 +331,17 @@ export default function Scan() {
               border: '1px solid #ddd'
             }}
           ></div>
-          <p className="scanning-instruction">Position the QR code within the square</p>
+          <p className="scanning-instruction">Posiziona il QR code dentro il quadrato</p>
           <button className="cancel-button" onClick={cancelScanning}>
-            Cancel
+            Annulla
           </button>
+        </div>
+      )}
+
+      {processing && (
+        <div className="processing-message">
+          <p>Elaborazione in corso...</p>
+          <div className="loader"></div>
         </div>
       )}
 
@@ -408,12 +349,12 @@ export default function Scan() {
         <div className="error-message">
           <p>{error}</p>
           <button className="retry-button" onClick={startScanner}>
-            Try Again
+            Riprova
           </button>
           {cameraPermission === false && (
             <p>
-              Please check your browser settings and ensure camera access is
-              allowed for this website.
+              Controlla le impostazioni del browser e assicurati che l'accesso alla fotocamera
+              sia consentito per questo sito web.
             </p>
           )}
         </div>
@@ -423,23 +364,30 @@ export default function Scan() {
         <div className="success-message">
           <h2>
             {customerInfo.stampsReset
-              ? 'Premio Riscattato!'
-              : 'Timbro Aggiunto con Successo!'}
+              ? '🎁 Premio Riscattato!'
+              : customerInfo.birthdayBonus
+                ? '🎉 Timbri Aggiunti - Buon Compleanno!'
+                : '✅ Timbro Aggiunto con Successo!'}
           </h2>
           <div className="customer-info">
             <p><strong>Cliente:</strong> {customerInfo.name}</p>
             <p><strong>Email:</strong> {customerInfo.email}</p>
+            <p><strong>Messaggio:</strong> {customerInfo.message}</p>
+
+            {customerInfo.birthdayBonus && (
+              <p style={{color: '#ff6b6b', fontWeight: 'bold'}}>
+                🎂 Bonus compleanno: +{customerInfo.stampsAdded} timbri!
+              </p>
+            )}
+
             {customerInfo.stampsReset ? (
-              <p><strong>Premi Totali Riscattati:</strong> {customerInfo.newRewardsTotal}</p>
+              <p><strong>Timbri resettati:</strong> Inizia nuova raccolta</p>
             ) : (
-              <>
-                <p><strong>Timbri Attuali:</strong> {customerInfo.newStampCount}/9</p>
-                <p><strong>Timbri Totali:</strong> {customerInfo.newLifetimeTotal}</p>
-              </>
+              <p><strong>Timbri Attuali:</strong> {customerInfo.newStampCount}/9</p>
             )}
           </div>
           <button className="scan-again-button" onClick={startScanner}>
-            Scan Another
+            Scansiona Altro
           </button>
         </div>
       )}

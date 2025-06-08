@@ -24,6 +24,7 @@ import SuperuserDashboard from './pages/SuperuserDashboard'
 import ClientManagement from './pages/ClientManagement'
 import MenuManagement from './pages/MenuManagement'
 import NotificationPanel from './components/NotificationPanel'
+import CustomerNotifications from './pages/CustomerNotifications' // NEW: Customer notifications
 
 function AnimatedRoutes({ user, userRole }) {
   const location = useLocation()
@@ -115,6 +116,26 @@ function AnimatedRoutes({ user, userRole }) {
           }
         />
 
+        {/* NEW: Customer Notifications Route */}
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute user={user}>
+              {userRole === 'superuser' ? (
+                <>
+                  {console.log("Notifications route - User is superuser, redirecting to dashboard")}
+                  <Navigate to="/superuser-dashboard" />
+                </>
+              ) : (
+                <>
+                  {console.log("Notifications route - User is customer, showing CustomerNotifications")}
+                  <CustomerNotifications />
+                </>
+              )}
+            </ProtectedRoute>
+          }
+        />
+
         {/* Superuser Routes */}
         <Route
           path="/superuser-dashboard"
@@ -192,19 +213,19 @@ function AnimatedRoutes({ user, userRole }) {
           }
         />
 
-        {/* NEW: Notifications Route - Superuser Only */}
+        {/* Superuser Notifications Panel Route */}
         <Route
-          path="/notifications"
+          path="/superuser-notifications"
           element={
             <ProtectedRoute user={user}>
               {userRole === 'superuser' ? (
                 <>
-                  {console.log("Notifications route - User is superuser, showing NotificationPanel")}
+                  {console.log("Superuser Notifications route - User is superuser, showing NotificationPanel")}
                   <NotificationPanel />
                 </>
               ) : (
                 <>
-                  {console.log("Notifications route - User is customer, redirecting to Profile")}
+                  {console.log("Superuser Notifications route - User is customer, redirecting to Profile")}
                   <Navigate to="/profile" />
                 </>
               )}
