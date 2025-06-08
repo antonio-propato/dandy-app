@@ -1,5 +1,4 @@
 /* Nav.css - Mobile-optimized with partial overlay */
-
 .nav-flyout {
   position: fixed;
   top: 0;
@@ -41,7 +40,7 @@
   font-weight: 500;
   font-size: 1.1rem;
   text-decoration: none;
-  transition: color 0.3s ease;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
   background: none;
   border: none;
   text-align: left;
@@ -56,13 +55,29 @@
 .nav-icon {
   margin-right: 10px;
   width: 20px;
+  transition: filter 0.3s ease;
 }
 
 .active-link {
   color: #ECF0BA;
   font-weight: bold;
+  text-shadow: 0 0 8px #ECF0BA, 0 0 15px #ECF0BA;
 }
 
+.active-link .nav-icon {
+  filter: drop-shadow(0 0 5px #ECF0BA);
+}
+
+.nav-link:hover {
+  color: #ECF0BA;
+  text-shadow: 0 0 6px #ECF0BA, 0 0 12px #ECF0BA;
+}
+
+.nav-link:hover .nav-icon {
+  filter: drop-shadow(0 0 4px #ECF0BA);
+}
+
+/* Remove the pulsing animation completely */
 @keyframes pulse-glow {
   0%, 100% {
     text-shadow: 0 0 5px #ECF0BA, 0 0 10px #ECF0BA;
@@ -72,8 +87,9 @@
   }
 }
 
+/* Keep the class for compatibility but remove animation */
 .pulse-glow {
-  animation: pulse-glow 1.6s infinite ease-in-out;
+  /* No animation - just static glow from active-link */
 }
 
 .burger-button {

@@ -7,7 +7,18 @@ import { fcmManager } from '../lib/fcm'
 import './Nav.css'
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBars, faQrcode, faChartLine, faSignOutAlt, faUsers, faUtensils, faBell } from '@fortawesome/free-solid-svg-icons'
+import {
+  faBars,
+  faQrcode,
+  faChartLine,
+  faSignOutAlt,
+  faUsers,
+  faUtensils,
+  faBell,
+  faUser,
+  faStamp,
+  faPhone
+} from '@fortawesome/free-solid-svg-icons'
 
 export default function Nav({ showBurger = true, userRole }) {
   const location = useLocation()
@@ -145,7 +156,52 @@ export default function Nav({ showBurger = true, userRole }) {
               <FontAwesomeIcon icon={faUtensils} className="nav-icon" />
               Gestisci Menu
             </Link>
-            {/* NEW: Notifications Panel for Superuser */}
+            {/* Superuser Notifications Panel */}
+            <Link
+              to="/superuser-notifications"
+              onClick={() => setOpen(false)}
+              className={isActive('/superuser-notifications')}
+            >
+              <FontAwesomeIcon icon={faBell} className="nav-icon" />
+              Pannello Notifiche
+            </Link>
+          </>
+        ) : (
+          // Customer Navigation with Icons
+          <>
+            <Link
+              to="/profile"
+              onClick={() => setOpen(false)}
+              className={isActive('/profile')}
+            >
+              <FontAwesomeIcon icon={faUser} className="nav-icon" />
+              Profilo
+            </Link>
+            <Link
+              to="/stamps"
+              onClick={() => setOpen(false)}
+              className={isActive('/stamps')}
+            >
+              <FontAwesomeIcon icon={faStamp} className="nav-icon" />
+              Timbri
+            </Link>
+            <Link
+              to="/menu"
+              onClick={() => setOpen(false)}
+              className={isActive('/menu')}
+            >
+              <FontAwesomeIcon icon={faUtensils} className="nav-icon" />
+              Menu
+            </Link>
+            <Link
+              to="/contacts"
+              onClick={() => setOpen(false)}
+              className={isActive('/contacts')}
+            >
+              <FontAwesomeIcon icon={faPhone} className="nav-icon" />
+              Contatti
+            </Link>
+            {/* Customer Notifications */}
             <Link
               to="/notifications"
               onClick={() => setOpen(false)}
@@ -154,14 +210,6 @@ export default function Nav({ showBurger = true, userRole }) {
               <FontAwesomeIcon icon={faBell} className="nav-icon" />
               Notifiche
             </Link>
-          </>
-        ) : (
-          // Customer Navigation
-          <>
-            <Link to="/profile" onClick={() => setOpen(false)} className={isActive('/profile')}>Profilo</Link>
-            <Link to="/stamps" onClick={() => setOpen(false)} className={isActive('/stamps')}>Timbri</Link>
-            <Link to="/menu" onClick={() => setOpen(false)} className={isActive('/menu')}>Menu</Link>
-            <Link to="/contacts" onClick={() => setOpen(false)} className={isActive('/contacts')}>Contatti</Link>
           </>
         )}
 

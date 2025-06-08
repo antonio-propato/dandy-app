@@ -16,7 +16,7 @@ export default function Contacts() {
         <div className="contact-card">
           <span className="contact-label">Telefono Fisso</span>
           <span className="contact-value">
-            <a href="tel:+39 (0)80 3713 173">080 3713173</a>
+            <a href="tel:+390803713173">080 3713173</a>
           </span>
         </div>
 
@@ -60,7 +60,15 @@ export default function Contacts() {
 
         <div className="contact-card">
           <span className="contact-label">Indirizzo</span>
-          <span className="contact-value">Via Generale Francesco Planelli, 60, 70032 Bitonto (BA), Italia</span>
+          <span className="contact-value">
+            <a
+              href="https://maps.google.com/?q=Via+Generale+Francesco+Planelli,+60,+70032+Bitonto+(BA),+Italia"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Via Generale Francesco Planelli, 60, 70032 Bitonto (BA), Italia
+            </a>
+          </span>
         </div>
 
         <div className="contact-card">
