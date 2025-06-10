@@ -17,8 +17,9 @@ export default function Stamps() {
   const [showQRModal, setShowQRModal] = useState(false);
   const [showRewardModal, setShowRewardModal] = useState(false);
   const [showBirthdayModal, setShowBirthdayModal] = useState(false);
-  const [isClaiming, setIsClaiming] = useState(false);
   const [qrCode, setQrCode] = useState(null);
+  const [rewardQRCode, setRewardQRCode] = useState(null); // NEW: For reward QR
+  const [generatingQR, setGeneratingQR] = useState(false); // NEW: Loading state for QR generation
   const [tapCount, setTapCount] = useState(0);
   const [isNewCycle, setIsNewCycle] = useState(false); // Track if we're starting a new cycle
   const [showingCompletedGrid, setShowingCompletedGrid] = useState(false); // Track if we're showing a completed 9-stamp grid
@@ -33,31 +34,63 @@ export default function Stamps() {
   const dandyMessages = ["Vuoi un caffe'? E stat angour 😁", "Tu si' bell com o cafe' Dandy!", "E' l'ora del Dandy!", "Un timbro in più, nu cafe' di chiu!", "Come me, non c'e' nessuuuuno!"];
   const logoAnimations = ['logoBounce', 'logoRotate', 'logoFade', 'logoSlide', 'logoPop', 'logoSwing'];
 
-  // Initialize the Cloud Function
-  const claimAndResetReward = httpsCallable(functions, 'claimAndResetReward');
+  // Initialize the Cloud Functions
+  const generateRewardQR = httpsCallable(functions, 'generateRewardQR'); // NEW: Generate reward QR
 
-  const claimReward = async () => {
-    if (!user || lifetimeStats.availableRewards <= 0 || isClaiming) return;
-    setIsClaiming(true);
+  // NEW: Generate reward QR code
+  const handleGenerateRewardQR = async () => {
+    console.log('🔍 QR Generation Check:', {
+      user: !!user,
+      availableRewards: lifetimeStats.availableRewards,
+      generatingQR: generatingQR
+    });
+
+    if (!user) {
+      console.log('❌ No user found');
+      return;
+    }
+
+    if (lifetimeStats.availableRewards <= 0) {
+      console.log('❌ No available rewards:', lifetimeStats.availableRewards);
+      return;
+    }
+
+    if (generatingQR) {
+      console.log('❌ Already generating QR');
+      return;
+    }
+
+    setGeneratingQR(true);
     try {
-      await claimAndResetReward();
-      setPopupMessage('🎉 Premio riscattato! Goditi il tuo caffè!');
-      setShowPopup(true);
-      setShowRewardModal(false);
-      // Reset the grid display after claiming reward
-      setShowingCompletedGrid(false);
-      setIsNewCycle(true);
+      console.log('🎁 Starting reward QR generation...');
+      const result = await generateRewardQR();
+      console.log('📱 QR Generation result:', result);
+
+      if (result.data && result.data.success) {
+        setRewardQRCode(result.data.qrCodeDataURL);
+        console.log('✅ Reward QR generated successfully');
+      } else {
+        console.error('❌ QR generation failed - no success flag');
+        throw new Error('Failed to generate reward QR - no success response');
+      }
     } catch (error) {
-      console.error('Error claiming reward:', error);
-      alert(`Errore durante il riscatto: ${error.message}`);
+      console.error('💥 Error generating reward QR:', error);
+      setPopupMessage(`❌ Errore QR: ${error.message}`);
+      setShowPopup(true);
     } finally {
-      setIsClaiming(false);
+      setGeneratingQR(false);
     }
   };
 
   // Close QR modal smoothly
   const closeQRModal = () => {
     setShowQRModal(false);
+  };
+
+  // NEW: Close reward modal and clear QR
+  const closeRewardModal = () => {
+    setShowRewardModal(false);
+    setRewardQRCode(null);
   };
 
   useEffect(() => {
@@ -79,6 +112,7 @@ export default function Stamps() {
       const stampsAdded = newStamps.length - prevStampCount;
       const lifetimeStampsAdded = newLifetimeStamps - prevLifetimeStamps;
       const rewardEarned = currentAvailableRewards > prevAvailableRewards;
+      const rewardRedeemed = currentAvailableRewards < prevAvailableRewards; // NEW: Detect reward redemption
 
       // Handle new cycle and completed grid display logic
       if (showingCompletedGrid && lifetimeStampsAdded > 0) {
@@ -98,8 +132,23 @@ export default function Stamps() {
 
       // --- IMPROVED NOTIFICATION LOGIC ---
 
-      // 1. A reward was just earned (detected by increase in availableRewards)
-      if (rewardEarned) {
+      // 1. A reward was redeemed via QR scan (detected by decrease in availableRewards)
+      if (rewardRedeemed) {
+        console.log('🎁 Reward redeemed via QR - closing modal');
+        setShowRewardModal(false);
+        setRewardQRCode(null); // Clear the QR code
+        setPopupMessage('🎉 Premio riscattato con successo!');
+        setShowPopup(true);
+
+        // If stamps were reset to 0, start new cycle
+        if (newStamps.length === 0) {
+          setIsNewCycle(true);
+          setShowingCompletedGrid(false);
+          setDisplayStamps([]);
+        }
+      }
+      // 2. A reward was just earned (detected by increase in availableRewards)
+      else if (rewardEarned) {
         // Close QR modal with a slight delay for smooth transition
         setTimeout(() => setShowQRModal(false), 150);
 
@@ -127,7 +176,7 @@ export default function Stamps() {
           }
         }, 300);
       }
-      // 2. Birthday bonus was just added (2 lifetime stamps added but no reward earned)
+      // 3. Birthday bonus was just added (2 lifetime stamps added but no reward earned)
       else if (lifetimeStampsAdded === 2 && !rewardEarned) {
         setTimeout(() => setShowQRModal(false), 150);
 
@@ -146,7 +195,7 @@ export default function Stamps() {
           }
         }, 500);
       }
-      // 3. A single, normal stamp was added
+      // 4. A single, normal stamp was added
       else if (lifetimeStampsAdded === 1 && !rewardEarned) {
         setTimeout(() => setShowQRModal(false), 150);
 
@@ -190,6 +239,7 @@ export default function Stamps() {
       setLoading(false);
       setIsNewCycle(false);
       setShowingCompletedGrid(false);
+      setRewardQRCode(null); // NEW: Clear reward QR on logout
       // Reset refs on logout
       lastStampCountRef.current = 0;
       lastAvailableRewardsRef.current = 0;
@@ -239,6 +289,14 @@ export default function Stamps() {
       return () => clearTimeout(timer);
     }
   }, [showPopup]);
+
+  // NEW: Auto-generate QR when reward modal opens
+  useEffect(() => {
+    if (showRewardModal && lifetimeStats.availableRewards > 0 && !rewardQRCode && !generatingQR) {
+      console.log('🎁 Auto-generating reward QR when modal opens...');
+      handleGenerateRewardQR();
+    }
+  }, [showRewardModal, lifetimeStats.availableRewards]);
 
   const formatDate = (d) => {
     if (!d) return '';
@@ -303,14 +361,43 @@ export default function Stamps() {
       )}
 
       {showRewardModal && (
-        <div className="reward-modal-overlay" onClick={() => setShowRewardModal(false)}>
+        <div className="reward-modal-overlay" onClick={closeRewardModal}>
           <div className="reward-modal-content" onClick={e => e.stopPropagation()}>
-            <h3>Congratulazioni!</h3>
+            <h3>🎁 Congratulazioni!</h3>
             <p>Hai {lifetimeStats.availableRewards} premi{lifetimeStats.availableRewards > 1 ? '' : 'o'} da riscattare!</p>
-            <button onClick={claimReward} className="claim-reward-button" disabled={isClaiming}>
-              {isClaiming ? 'Riscattando...' : 'Richiedilo Ora'}
+
+            {/* NEW: Show reward QR code */}
+            {rewardQRCode && (
+              <div className="reward-qr-section">
+                <img src={rewardQRCode} alt="Reward QR Code" className="qr-code-image" />
+                <p style={{ fontSize: '0.9rem', color: '#555', marginTop: '0.5rem' }}>
+                  Mostra questo QR al personale per ricevere il tuo caffè!
+                </p>
+              </div>
+            )}
+
+            {/* Loading state for QR generation */}
+            {generatingQR && (
+              <div className="qr-loading">
+                <p>Generazione QR in corso...</p>
+                <div className="loader"></div>
+              </div>
+            )}
+
+            {/* Manual QR generation button if auto-generation failed */}
+            {!rewardQRCode && !generatingQR && (
+              <button
+                onClick={handleGenerateRewardQR}
+                className="qr-button"
+                style={{ margin: '0.5rem 0' }}
+              >
+                Genera QR Premio
+              </button>
+            )}
+
+            <button onClick={closeRewardModal} className="close-button">
+              Chiudi
             </button>
-            <button onClick={() => setShowRewardModal(false)} className="close-button" disabled={isClaiming}>Chiudi</button>
           </div>
         </div>
       )}

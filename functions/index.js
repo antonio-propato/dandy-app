@@ -11,7 +11,223 @@ admin.initializeApp();
 const db = admin.firestore();
 const messaging = admin.messaging();
 
-// 🎁 NEW FUNCTION: Claim and Reset Reward
+// 🎁 NEW FUNCTION: Generate Reward QR Code
+exports.generateRewardQR = onCall({
+  region: "europe-west2"
+}, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be logged in");
+  }
+
+  const userId = request.auth.uid;
+
+  try {
+    console.log(`🎁 Generating reward QR for user: ${userId}`);
+
+    // Check if user has available rewards
+    const stampsRef = db.doc(`stamps/${userId}`);
+    const stampsSnap = await stampsRef.get();
+
+    if (!stampsSnap.exists) {
+      throw new HttpsError("not-found", "User stamps data not found");
+    }
+
+    const stampsData = stampsSnap.data();
+    const availableRewards = stampsData.availableRewards || 0;
+
+    if (availableRewards <= 0) {
+      throw new HttpsError("failed-precondition", "No rewards available to generate QR");
+    }
+
+    // Generate unique reward ID (simpler format)
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substr(2, 9);
+    const rewardId = `reward_${timestamp}_${randomString}`;
+    const rewardQRText = `reward://dandy-app/${userId}/${rewardId}`;
+
+    console.log(`📱 Generated reward QR text: ${rewardQRText}`);
+
+    // Generate QR code using qrcode library
+    const QRCode = require('qrcode');
+    const qrCodeDataURL = await QRCode.toDataURL(rewardQRText, {
+      width: 300,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      },
+      errorCorrectionLevel: 'M'
+    });
+
+    // Store reward QR in Firestore with expiration
+    const expirationTime = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+    await db.collection('rewardQRs').doc(rewardId).set({
+      userId: userId,
+      qrCode: rewardQRText,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: expirationTime,
+      used: false,
+      usedAt: null,
+      redeemedBy: null
+    });
+
+    console.log(`✅ Reward QR created successfully with ID: ${rewardId}`);
+
+    return {
+      success: true,
+      qrCodeDataURL: qrCodeDataURL,
+      rewardId: rewardId,
+      expiresAt: expirationTime.toISOString()
+    };
+
+  } catch (error) {
+    console.error("💥 Error generating reward QR:", error);
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    throw new HttpsError("internal", "Failed to generate reward QR", { detail: error.message });
+  }
+});
+
+// 🎁 NEW FUNCTION: Redeem Reward QR Code
+exports.redeemRewardQR = onCall({
+  region: "europe-west2"
+}, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be logged in");
+  }
+
+  const { qrCode } = request.data;
+
+  if (!qrCode || !qrCode.startsWith('reward://dandy-app/')) {
+    throw new HttpsError("invalid-argument", "Invalid reward QR code format");
+  }
+
+  try {
+    console.log(`🎁 Processing reward QR redemption: ${qrCode}`);
+
+    // Parse QR code to extract userId and rewardId
+    // Expected format: reward://dandy-app/{userId}/{rewardId}
+    if (!qrCode.startsWith('reward://dandy-app/')) {
+      throw new HttpsError("invalid-argument", "Invalid reward QR code format");
+    }
+
+    const qrPath = qrCode.replace('reward://dandy-app/', '');
+    const qrParts = qrPath.split('/');
+
+    console.log(`🔍 QR Path: ${qrPath}`);
+    console.log(`🔍 QR Parts:`, qrParts);
+
+    if (qrParts.length !== 2) {
+      throw new HttpsError("invalid-argument", `Invalid reward QR format - expected 2 parts, got ${qrParts.length}`);
+    }
+
+    const [userId, rewardId] = qrParts;
+    console.log(`👤 User ID: ${userId}, Reward ID: ${rewardId}`);
+
+    // Validate the extracted IDs
+    if (!userId || !rewardId) {
+      throw new HttpsError("invalid-argument", "Missing userId or rewardId in QR code");
+    }
+
+    if (!rewardId.startsWith('reward_')) {
+      throw new HttpsError("invalid-argument", "Invalid reward ID format");
+    }
+
+    // Check if reward QR exists and is valid
+    const rewardQRRef = db.doc(`rewardQRs/${rewardId}`);
+    const rewardQRSnap = await rewardQRRef.get();
+
+    if (!rewardQRSnap.exists) {
+      throw new HttpsError("not-found", "Reward QR not found or invalid");
+    }
+
+    const rewardQRData = rewardQRSnap.data();
+
+    // Validate QR code
+    if (rewardQRData.used) {
+      throw new HttpsError("failed-precondition", "Reward QR already used");
+    }
+
+    if (rewardQRData.expiresAt.toDate() < new Date()) {
+      throw new HttpsError("failed-precondition", "Reward QR expired");
+    }
+
+    if (rewardQRData.userId !== userId) {
+      throw new HttpsError("permission-denied", "Reward QR does not belong to specified user");
+    }
+
+    // Get user and stamps data
+    const [userSnap, stampsSnap] = await Promise.all([
+      db.doc(`users/${userId}`).get(),
+      db.doc(`stamps/${userId}`).get()
+    ]);
+
+    if (!userSnap.exists) {
+      throw new HttpsError("not-found", "User not found");
+    }
+
+    if (!stampsSnap.exists) {
+      throw new HttpsError("not-found", "User stamps data not found");
+    }
+
+    const userData = userSnap.data();
+    const stampsData = stampsSnap.data();
+
+    if (stampsData.availableRewards <= 0) {
+      throw new HttpsError("failed-precondition", "No rewards available to redeem");
+    }
+
+    console.log(`🔄 Processing redemption for user ${userData.firstName} ${userData.lastName}`);
+
+    // Use transaction to ensure atomicity
+    const result = await db.runTransaction(async (transaction) => {
+      // Mark reward QR as used
+      transaction.update(rewardQRRef, {
+        used: true,
+        usedAt: admin.firestore.FieldValue.serverTimestamp(),
+        redeemedBy: request.auth.uid
+      });
+
+      // Update user's stamps data - same logic as claimAndResetReward
+      const updateData = {
+        availableRewards: stampsData.availableRewards - 1,
+        rewardsEarned: stampsData.rewardsEarned || 0,
+        lastRewardClaimed: new Date().toISOString()
+      };
+
+      // If user has exactly 9 stamps, reset the grid
+      if (stampsData.stamps && stampsData.stamps.length === 9) {
+        updateData.stamps = [];
+        console.log(`🔄 Resetting stamp grid (had 9 stamps)`);
+      }
+
+      transaction.update(db.doc(`stamps/${userId}`), updateData);
+
+      return {
+        success: true,
+        message: "🎁 Premio riscattato con successo!",
+        customerName: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Unknown',
+        customerEmail: userData.email || 'No email',
+        remainingRewards: updateData.availableRewards,
+        stampsReset: stampsData.stamps && stampsData.stamps.length === 9
+      };
+    });
+
+    console.log(`✅ Reward QR redeemed successfully for user ${userId}`);
+
+    return result;
+
+  } catch (error) {
+    console.error("💥 Error redeeming reward QR:", error);
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    throw new HttpsError("internal", "Failed to redeem reward QR", { detail: error.message });
+  }
+});
+
+// 🎁 EXISTING FUNCTION: Claim and Reset Reward (manual claiming)
 exports.claimAndResetReward = onCall({
   region: "europe-west2"
 }, async (request) => {
@@ -22,7 +238,7 @@ exports.claimAndResetReward = onCall({
   const userId = request.auth.uid;
 
   try {
-    console.log(`🎁 Processing reward claim for user: ${userId}`);
+    console.log(`🎁 Processing manual reward claim for user: ${userId}`);
 
     const stampsRef = db.doc(`stamps/${userId}`);
     const stampsSnap = await stampsRef.get();
@@ -41,13 +257,18 @@ exports.claimAndResetReward = onCall({
     // Update the user's stamp data
     const updateData = {
       availableRewards: availableRewards - 1,
-      rewardsEarned: stampsData.rewardsEarned || 0, // Keep track of total rewards earned
+      rewardsEarned: stampsData.rewardsEarned || 0,
       lastRewardClaimed: new Date().toISOString()
     };
 
+    // If user has exactly 9 stamps, reset the grid
+    if (stampsData.stamps && stampsData.stamps.length === 9) {
+      updateData.stamps = [];
+    }
+
     await stampsRef.update(updateData);
 
-    console.log(`✅ Reward claimed successfully for user ${userId}`);
+    console.log(`✅ Manual reward claimed successfully for user ${userId}`);
 
     return {
       success: true,
