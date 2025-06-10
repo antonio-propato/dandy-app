@@ -17,6 +17,8 @@ export default function Stamps() {
   const [showQRModal, setShowQRModal] = useState(false);
   const [showRewardModal, setShowRewardModal] = useState(false);
   const [showBirthdayModal, setShowBirthdayModal] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false); // NEW: Welcome modal for new users
+  const [pendingBirthdayModal, setPendingBirthdayModal] = useState(false); // NEW: Queue birthday modal after reward modal
   const [qrCode, setQrCode] = useState(null);
   const [rewardQRCode, setRewardQRCode] = useState(null); // NEW: For reward QR
   const [generatingQR, setGeneratingQR] = useState(false); // NEW: Loading state for QR generation
@@ -29,6 +31,7 @@ export default function Stamps() {
   const lastStampCountRef = useRef(0);
   const lastAvailableRewardsRef = useRef(0);
   const lastLifetimeStampsRef = useRef(0);
+  const lastBirthdayBonusRef = useRef(null); // NEW: Track previous birthday bonus state
 
   const totalSlots = 9;
   const dandyMessages = ["Vuoi un caffe'? E stat angour 😁", "Tu si' bell com o cafe' Dandy!", "E' l'ora del Dandy!", "Un timbro in più, nu cafe' di chiu!", "Come me, non c'e' nessuuuuno!"];
@@ -91,6 +94,14 @@ export default function Stamps() {
   const closeRewardModal = () => {
     setShowRewardModal(false);
     setRewardQRCode(null);
+
+    // Check if birthday modal should show after reward modal closes
+    if (pendingBirthdayModal) {
+      setPendingBirthdayModal(false);
+      setTimeout(() => {
+        setShowBirthdayModal(true);
+      }, 200); // Small delay for smooth transition
+    }
   };
 
   useEffect(() => {
@@ -104,15 +115,19 @@ export default function Stamps() {
       const newStamps = data.stamps || [];
       const newLifetimeStamps = data.lifetimeStamps || 0;
       const currentAvailableRewards = data.availableRewards || 0;
+      const receivedFreeStamps = data.receivedFreeStamps || false; // Check if user got signup bonus
+      const birthdayBonusGiven = data.birthdayBonusGiven; // Check if birthday bonus was given
 
       const prevStampCount = lastStampCountRef.current;
       const prevAvailableRewards = lastAvailableRewardsRef.current;
       const prevLifetimeStamps = lastLifetimeStampsRef.current;
+      const prevBirthdayBonus = lastBirthdayBonusRef.current; // Previous birthday bonus state
 
       const stampsAdded = newStamps.length - prevStampCount;
       const lifetimeStampsAdded = newLifetimeStamps - prevLifetimeStamps;
       const rewardEarned = currentAvailableRewards > prevAvailableRewards;
-      const rewardRedeemed = currentAvailableRewards < prevAvailableRewards; // NEW: Detect reward redemption
+      const rewardRedeemed = currentAvailableRewards < prevAvailableRewards;
+      const birthdayBonusJustGiven = birthdayBonusGiven && birthdayBonusGiven !== prevBirthdayBonus; // NEW: Birthday bonus JUST given
 
       // Handle new cycle and completed grid display logic
       if (showingCompletedGrid && lifetimeStampsAdded > 0) {
@@ -130,7 +145,7 @@ export default function Stamps() {
       }
       // If showingCompletedGrid and no new stamps, keep current displayStamps
 
-      // --- IMPROVED NOTIFICATION LOGIC ---
+      // --- CLEANED UP NOTIFICATION LOGIC ---
 
       // 1. A reward was redeemed via QR scan (detected by decrease in availableRewards)
       if (rewardRedeemed) {
@@ -152,40 +167,66 @@ export default function Stamps() {
         // Close QR modal with a slight delay for smooth transition
         setTimeout(() => setShowQRModal(false), 150);
 
-        // Create a completed 9-stamp grid for display
-        const completedGrid = Array.from({ length: 9 }, (_, i) => ({
-          date: new Date(Date.now() - (8 - i) * 1000).toISOString() // Create fake timestamps
-        }));
-        setDisplayStamps(completedGrid);
-        setShowingCompletedGrid(true);
+        // Check if there are stamps in the new cycle (e.g., birthday scan that gave 2 stamps)
+        if (newStamps.length > 0) {
+          // Show the new cycle stamps (e.g., birthday scan completed grid + started new cycle)
+          setDisplayStamps(newStamps);
+          setShowingCompletedGrid(false);
+          setIsNewCycle(false);
+        } else {
+          // Normal grid completion - show completed 9-stamp grid
+          const completedGrid = Array.from({ length: 9 }, (_, i) => ({
+            date: new Date(Date.now() - (8 - i) * 1000).toISOString() // Create fake timestamps
+          }));
+          setDisplayStamps(completedGrid);
+          setShowingCompletedGrid(true);
+        }
 
         setPopupMessage('🎉 Congratulazioni! Hai completato la raccolta!');
         setShowPopup(true);
+
+        // Check if birthday bonus was also given during this reward-earning scan
+        if (birthdayBonusJustGiven) {
+          setPendingBirthdayModal(true); // Queue birthday modal for after reward modal closes
+        }
 
         // Show reward modal after popup appears
         setTimeout(() => {
           setShowRewardModal(true);
         }, 800);
 
-        // Animate the final stamp
+        // Animate the appropriate stamp(s)
         setTimeout(() => {
-          const finalCup = cupsRef.current[8]; // Always the 9th position
-          if (finalCup) {
-            finalCup.classList.add('new-stamp-highlight');
-            setTimeout(() => finalCup.classList.remove('new-stamp-highlight'), 1500);
+          if (newStamps.length > 0) {
+            // Highlight stamps in new cycle
+            for (let i = 0; i < newStamps.length; i++) {
+              const cupElement = cupsRef.current[i];
+              if (cupElement) {
+                cupElement.classList.add('new-stamp-highlight');
+                setTimeout(() => cupElement.classList.remove('new-stamp-highlight'), 1500);
+              }
+            }
+          } else {
+            // Highlight the final stamp in completed grid
+            const finalCup = cupsRef.current[8]; // Always the 9th position
+            if (finalCup) {
+              finalCup.classList.add('new-stamp-highlight');
+              setTimeout(() => finalCup.classList.remove('new-stamp-highlight'), 1500);
+            }
           }
         }, 300);
       }
-      // 3. Birthday bonus was just added (2 lifetime stamps added but no reward earned)
-      else if (lifetimeStampsAdded === 2 && !rewardEarned) {
+      // 3. New user signup - WELCOME MODAL ONLY (no birthday mention ever)
+      else if (receivedFreeStamps && prevLifetimeStamps === 0) {
         setTimeout(() => setShowQRModal(false), 150);
 
-        // Show birthday modal after QR modal closes
+        // Show welcome modal for new users - NO birthday logic here
         setTimeout(() => {
-          setShowBirthdayModal(true);
+          setShowWelcomeModal(true);
         }, 300);
 
         setTimeout(() => {
+          // Highlight the 2 signup stamps only
           for (let i = 0; i < 2 && i < newStamps.length; i++) {
             const cupElement = cupsRef.current[newStamps.length - 1 - i];
             if (cupElement) {
@@ -195,8 +236,29 @@ export default function Stamps() {
           }
         }, 500);
       }
-      // 4. A single, normal stamp was added
-      else if (lifetimeStampsAdded === 1 && !rewardEarned) {
+      // 4. Birthday bonus during QR scan (JUST given, not during reward earning)
+      else if (birthdayBonusJustGiven && prevLifetimeStamps > 0 && lifetimeStampsAdded > 0 && !rewardEarned) {
+        setTimeout(() => setShowQRModal(false), 150);
+
+        // Show birthday modal for existing users scanning on birthday
+        setTimeout(() => {
+          setShowBirthdayModal(true);
+        }, 300);
+
+        setTimeout(() => {
+          // Highlight all new stamps from this scan (could be 1 normal + 1 birthday = 2 total)
+          const stampsToHighlight = Math.min(lifetimeStampsAdded, newStamps.length);
+          for (let i = 0; i < stampsToHighlight; i++) {
+            const cupElement = cupsRef.current[newStamps.length - 1 - i];
+            if (cupElement) {
+              cupElement.classList.add('new-stamp-highlight');
+              setTimeout(() => cupElement.classList.remove('new-stamp-highlight'), 1500);
+            }
+          }
+        }, 500);
+      }
+      // 5. Normal stamp scan (no birthday JUST given, no reward earned)
+      else if (lifetimeStampsAdded === 1 && !rewardEarned && !birthdayBonusJustGiven) {
         setTimeout(() => setShowQRModal(false), 150);
 
         setPopupMessage("Timbro aggiunto con successo!");
@@ -222,6 +284,7 @@ export default function Stamps() {
       lastStampCountRef.current = newStamps.length;
       lastAvailableRewardsRef.current = currentAvailableRewards;
       lastLifetimeStampsRef.current = newLifetimeStamps;
+      lastBirthdayBonusRef.current = birthdayBonusGiven; // NEW: Track birthday bonus state
     }, (error) => {
       console.error("Error in stamps listener:", error);
     });
@@ -239,11 +302,15 @@ export default function Stamps() {
       setLoading(false);
       setIsNewCycle(false);
       setShowingCompletedGrid(false);
-      setRewardQRCode(null); // NEW: Clear reward QR on logout
+      setRewardQRCode(null);
+      setShowWelcomeModal(false);
+      setShowBirthdayModal(false);
+      setPendingBirthdayModal(false); // NEW: Reset pending birthday modal
       // Reset refs on logout
       lastStampCountRef.current = 0;
       lastAvailableRewardsRef.current = 0;
       lastLifetimeStampsRef.current = 0;
+      lastBirthdayBonusRef.current = null; // NEW: Reset birthday bonus ref
     };
 
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
@@ -371,7 +438,7 @@ export default function Stamps() {
               <div className="reward-qr-section">
                 <img src={rewardQRCode} alt="Reward QR Code" className="qr-code-image" />
                 <p style={{ fontSize: '0.9rem', color: '#555', marginTop: '0.5rem' }}>
-                  Mostra questo QR al personale per ricevere il tuo caffè!
+                  Mostra questo QR al personale per riscattare il premio
                 </p>
               </div>
             )}
@@ -402,11 +469,28 @@ export default function Stamps() {
         </div>
       )}
 
+      {/* CLEAN WELCOME MODAL - No birthday mention ever */}
+      {showWelcomeModal && (
+        <div className="reward-modal-overlay" onClick={() => setShowWelcomeModal(false)}>
+          <div className="reward-modal-content" onClick={e => e.stopPropagation()}>
+            <h3>Benvenuto da Dandy!</h3>
+            <p>Grazie per esserti iscritto! Hai ricevuto <strong>2 timbri gratuiti</strong> per iniziare! ☕️</p>
+            <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.5rem' }}>
+              Raccogline altri {9 - lifetimeStats.lifetimeStamps} per il tuo primo caffè gratis!
+            </p>
+            <button onClick={() => setShowWelcomeModal(false)} className="close-button">
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* BIRTHDAY MODAL - Only during QR scans */}
       {showBirthdayModal && (
         <div className="reward-modal-overlay" onClick={() => setShowBirthdayModal(false)}>
           <div className="reward-modal-content" onClick={e => e.stopPropagation()}>
             <h3>🎉 Tanti Auguri! 🎉</h3>
-            <p>Hai ricevuto un timbro extra in regalo! ❤️</p>
+            <p>È il tuo compleanno! Hai ricevuto <strong>1 timbro extra</strong> in regalo! 🎂❤️</p>
             <button onClick={() => setShowBirthdayModal(false)} className="close-button">
               Grande!
             </button>
