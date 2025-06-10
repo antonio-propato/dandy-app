@@ -275,14 +275,6 @@ export default function Stamps() {
             </div>
           ))}
         </div>
-        <div className="stamp-counter">
-          <p>Timbri attuali: <strong>{stamps.length}/{totalSlots}</strong></p>
-          <p>Timbri totali: <strong>{lifetimeStats.lifetimeStamps}</strong></p>
-          <p>Premi guadagnati: <strong>{lifetimeStats.rewardsEarned}</strong></p>
-          {lifetimeStats.availableRewards > 0 && (
-            <p style={{ color: '#FFD700', fontWeight: 'bold' }}>Premi disponibili: <strong>{lifetimeStats.availableRewards}</strong></p>
-          )}
-        </div>
         <div className="button-container">
           {qrCode && user && (
             <button onClick={() => setShowQRModal(true)} className="qr-button">
@@ -313,10 +305,10 @@ export default function Stamps() {
       {showRewardModal && (
         <div className="reward-modal-overlay" onClick={() => setShowRewardModal(false)}>
           <div className="reward-modal-content" onClick={e => e.stopPropagation()}>
-            <h3>🎉 Premio Disponibile! 🎉</h3>
+            <h3>Congratulazioni!</h3>
             <p>Hai {lifetimeStats.availableRewards} premi{lifetimeStats.availableRewards > 1 ? '' : 'o'} da riscattare!</p>
             <button onClick={claimReward} className="claim-reward-button" disabled={isClaiming}>
-              {isClaiming ? 'Riscattando...' : 'Riscatta Premio Ora'}
+              {isClaiming ? 'Riscattando...' : 'Richiedilo Ora'}
             </button>
             <button onClick={() => setShowRewardModal(false)} className="close-button" disabled={isClaiming}>Chiudi</button>
           </div>
