@@ -21,11 +21,13 @@ export default function Stamps() {
   const [qrCode, setQrCode] = useState(null);
   const [tapCount, setTapCount] = useState(0);
   const [isNewCycle, setIsNewCycle] = useState(false); // Track if we're starting a new cycle
+  const [showingCompletedGrid, setShowingCompletedGrid] = useState(false); // Track if we're showing a completed 9-stamp grid
 
   const logoRef = useRef(null);
   const cupsRef = useRef([]);
   const lastStampCountRef = useRef(0);
   const lastAvailableRewardsRef = useRef(0);
+  const lastLifetimeStampsRef = useRef(0);
 
   const totalSlots = 9;
   const dandyMessages = ["Vuoi un caffe'? E stat angour 😁", "Tu si' bell com o cafe' Dandy!", "E' l'ora del Dandy!", "Un timbro in più, nu cafe' di chiu!", "Come me, non c'e' nessuuuuno!"];
@@ -42,7 +44,8 @@ export default function Stamps() {
       setPopupMessage('🎉 Premio riscattato! Goditi il tuo caffè!');
       setShowPopup(true);
       setShowRewardModal(false);
-      // Keep displaying 9 stamps until next scan
+      // Reset the grid display after claiming reward
+      setShowingCompletedGrid(false);
       setIsNewCycle(true);
     } catch (error) {
       console.error('Error claiming reward:', error);
@@ -66,25 +69,46 @@ export default function Stamps() {
 
       const data = docSnap.data();
       const newStamps = data.stamps || [];
-      const prevStampCount = lastStampCountRef.current;
-      const stampsAdded = newStamps.length - prevStampCount;
-      const prevAvailableRewards = lastAvailableRewardsRef.current;
+      const newLifetimeStamps = data.lifetimeStamps || 0;
       const currentAvailableRewards = data.availableRewards || 0;
 
-      // Handle new cycle logic
-      if (isNewCycle && stampsAdded > 0) {
+      const prevStampCount = lastStampCountRef.current;
+      const prevAvailableRewards = lastAvailableRewardsRef.current;
+      const prevLifetimeStamps = lastLifetimeStampsRef.current;
+
+      const stampsAdded = newStamps.length - prevStampCount;
+      const lifetimeStampsAdded = newLifetimeStamps - prevLifetimeStamps;
+      const rewardEarned = currentAvailableRewards > prevAvailableRewards;
+
+      // Handle new cycle and completed grid display logic
+      if (showingCompletedGrid && lifetimeStampsAdded > 0) {
+        // User scanned again after completing a grid - start new cycle
+        setShowingCompletedGrid(false);
         setIsNewCycle(false);
         setDisplayStamps(newStamps);
-      } else if (!isNewCycle) {
+      } else if (isNewCycle && newStamps.length > 0) {
+        // User claimed reward and now has new stamps
+        setIsNewCycle(false);
+        setDisplayStamps(newStamps);
+      } else if (!showingCompletedGrid && !isNewCycle) {
+        // Normal case - just update display
         setDisplayStamps(newStamps);
       }
+      // If showingCompletedGrid and no new stamps, keep current displayStamps
 
-      // --- NOTIFICATION LOGIC ---
+      // --- IMPROVED NOTIFICATION LOGIC ---
 
-      // 1. A reward was just earned (the grid is now full)
-      if (prevStampCount < 9 && newStamps.length === 9) {
+      // 1. A reward was just earned (detected by increase in availableRewards)
+      if (rewardEarned) {
         // Close QR modal with a slight delay for smooth transition
         setTimeout(() => setShowQRModal(false), 150);
+
+        // Create a completed 9-stamp grid for display
+        const completedGrid = Array.from({ length: 9 }, (_, i) => ({
+          date: new Date(Date.now() - (8 - i) * 1000).toISOString() // Create fake timestamps
+        }));
+        setDisplayStamps(completedGrid);
+        setShowingCompletedGrid(true);
 
         setPopupMessage('🎉 Congratulazioni! Hai completato la raccolta!');
         setShowPopup(true);
@@ -96,15 +120,15 @@ export default function Stamps() {
 
         // Animate the final stamp
         setTimeout(() => {
-          const finalCup = cupsRef.current[8];
+          const finalCup = cupsRef.current[8]; // Always the 9th position
           if (finalCup) {
             finalCup.classList.add('new-stamp-highlight');
             setTimeout(() => finalCup.classList.remove('new-stamp-highlight'), 1500);
           }
         }, 300);
       }
-      // 2. Birthday bonus was just added
-      else if (stampsAdded === 2) {
+      // 2. Birthday bonus was just added (2 lifetime stamps added but no reward earned)
+      else if (lifetimeStampsAdded === 2 && !rewardEarned) {
         setTimeout(() => setShowQRModal(false), 150);
 
         // Show birthday modal after QR modal closes
@@ -113,7 +137,7 @@ export default function Stamps() {
         }, 300);
 
         setTimeout(() => {
-          for (let i = 0; i < 2; i++) {
+          for (let i = 0; i < 2 && i < newStamps.length; i++) {
             const cupElement = cupsRef.current[newStamps.length - 1 - i];
             if (cupElement) {
               cupElement.classList.add('new-stamp-highlight');
@@ -123,7 +147,7 @@ export default function Stamps() {
         }, 500);
       }
       // 3. A single, normal stamp was added
-      else if (stampsAdded === 1) {
+      else if (lifetimeStampsAdded === 1 && !rewardEarned) {
         setTimeout(() => setShowQRModal(false), 150);
 
         setPopupMessage("Timbro aggiunto con successo!");
@@ -140,7 +164,7 @@ export default function Stamps() {
 
       // Update lifetime stats
       setLifetimeStats({
-        lifetimeStamps: data.lifetimeStamps || 0,
+        lifetimeStamps: newLifetimeStamps,
         rewardsEarned: data.rewardsEarned || 0,
         availableRewards: currentAvailableRewards,
       });
@@ -148,6 +172,7 @@ export default function Stamps() {
       setStamps(newStamps);
       lastStampCountRef.current = newStamps.length;
       lastAvailableRewardsRef.current = currentAvailableRewards;
+      lastLifetimeStampsRef.current = newLifetimeStamps;
     }, (error) => {
       console.error("Error in stamps listener:", error);
     });
@@ -164,6 +189,11 @@ export default function Stamps() {
       setLifetimeStats({ lifetimeStamps: 0, rewardsEarned: 0, availableRewards: 0 });
       setLoading(false);
       setIsNewCycle(false);
+      setShowingCompletedGrid(false);
+      // Reset refs on logout
+      lastStampCountRef.current = 0;
+      lastAvailableRewardsRef.current = 0;
+      lastLifetimeStampsRef.current = 0;
     };
 
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
@@ -221,7 +251,7 @@ export default function Stamps() {
   }
 
   // Use displayStamps for rendering to maintain visual continuity
-  const stampsToDisplay = isNewCycle ? displayStamps : stamps;
+  const stampsToDisplay = (isNewCycle || showingCompletedGrid) ? displayStamps : stamps;
 
   return (
     <div className="stamps-wrapper">
