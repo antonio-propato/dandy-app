@@ -1,7 +1,9 @@
-const {onDocumentCreated} = require('firebase-functions/v2/firestore');
-const {onSchedule} = require('firebase-functions/v2/scheduler');
-const {onCall} = require('firebase-functions/v2/https');
-const admin = require('firebase-admin');
+// functions/index.js
+
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const admin = require("firebase-admin");
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -9,610 +11,337 @@ admin.initializeApp();
 const db = admin.firestore();
 const messaging = admin.messaging();
 
-// 🔔 MAIN FUNCTION: Send notifications when notification document is created
+// 🎁 NEW FUNCTION: Claim and Reset Reward
+exports.claimAndResetReward = onCall({
+  region: "europe-west2"
+}, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be logged in");
+  }
+
+  const userId = request.auth.uid;
+
+  try {
+    console.log(`🎁 Processing reward claim for user: ${userId}`);
+
+    const stampsRef = db.doc(`stamps/${userId}`);
+    const stampsSnap = await stampsRef.get();
+
+    if (!stampsSnap.exists) {
+      throw new HttpsError("not-found", "User stamps data not found");
+    }
+
+    const stampsData = stampsSnap.data();
+    const availableRewards = stampsData.availableRewards || 0;
+
+    if (availableRewards <= 0) {
+      throw new HttpsError("failed-precondition", "No rewards available to claim");
+    }
+
+    // Update the user's stamp data
+    const updateData = {
+      availableRewards: availableRewards - 1,
+      rewardsEarned: stampsData.rewardsEarned || 0, // Keep track of total rewards earned
+      lastRewardClaimed: new Date().toISOString()
+    };
+
+    await stampsRef.update(updateData);
+
+    console.log(`✅ Reward claimed successfully for user ${userId}`);
+
+    return {
+      success: true,
+      message: "Reward claimed successfully!",
+      remainingRewards: availableRewards - 1
+    };
+
+  } catch (error) {
+    console.error("💥 Error claiming reward:", error);
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    throw new HttpsError("internal", "Error claiming reward", { detail: error.message });
+  }
+});
+
+// 🔔 MAIN FUNCTION: Send notifications when a notification document is created
 exports.sendNotification = onDocumentCreated({
-  document: 'notifications/{notificationId}',
-  region: 'europe-west2' // London region - better for EU/international
+  document: "notifications/{notificationId}",
+  region: "europe-west2"
 }, async (event) => {
   try {
     const notification = event.data.data();
     const notificationId = event.params.notificationId;
+    console.log("📱 Processing notification:", notificationId, notification);
 
-    console.log('📱 Processing notification:', notificationId, notification);
-
-    // Get target users based on criteria
     let targetUsers = [];
-    const usersSnapshot = await db.collection('users').get();
+    const usersSnapshot = await db.collection("users").get();
     const allUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     switch (notification.target) {
-      case 'all': {
-        targetUsers = allUsers.filter(u => u.role !== 'superuser' && u.fcmTokens && u.fcmTokens.length > 0);
+      case "all":
+        targetUsers = allUsers.filter(u => u.role !== "superuser" && u.fcmTokens?.length > 0);
         break;
-      }
-      case 'customers': {
-        targetUsers = allUsers.filter(u => u.role === 'customer' && u.fcmTokens && u.fcmTokens.length > 0);
+      case "customers":
+        targetUsers = allUsers.filter(u => u.role === "customer" && u.fcmTokens?.length > 0);
         break;
-      }
-      case 'birthday_today': {
+      case "birthday_today": {
         const today = new Date();
-        const todayStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}`;
-        targetUsers = allUsers.filter(u =>
-          u.role !== 'superuser' &&
-          u.fcmTokens && u.fcmTokens.length > 0 &&
-          u.dob === todayStr
-        );
+        const todayStr = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}`;
+        targetUsers = allUsers.filter(u => u.role !== "superuser" && u.fcmTokens?.length > 0 && u.dob === todayStr);
         break;
       }
-      case 'reward_eligible': {
-        // Get users with exactly 9 stamps
-        const stampsSnapshot = await db.collection('stamps').get();
-        const usersWithNineStamps = [];
-
-        stampsSnapshot.docs.forEach(doc => {
-          const stampsData = doc.data();
-          if (stampsData.stamps && stampsData.stamps.length === 9) {
-            usersWithNineStamps.push(doc.id);
-          }
-        });
-
-        targetUsers = allUsers.filter(u =>
-          u.role !== 'superuser' &&
-          u.fcmTokens && u.fcmTokens.length > 0 &&
-          usersWithNineStamps.includes(u.id)
-        );
-        break;
-      }
-      case 'specific_user': {
+      case "specific_user":
         if (notification.targetUserId) {
-          const targetUser = allUsers.find(u => u.id === notification.targetUserId && u.fcmTokens && u.fcmTokens.length > 0);
-          if (targetUser) {
-            targetUsers = [targetUser];
-          }
+          const targetUser = allUsers.find(u => u.id === notification.targetUserId && u.fcmTokens?.length > 0);
+          if (targetUser) targetUsers = [targetUser];
         }
         break;
-      }
     }
 
     if (targetUsers.length === 0) {
-      console.log('❌ No target users found for criteria:', notification.target);
-      await event.data.ref.update({
-        status: 'completed',
-        successCount: 0,
-        failureCount: 0,
-        processedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-      return;
+      console.log("❌ No target users found for criteria:", notification.target);
+      return event.data.ref.update({ status: "completed", successCount: 0, failureCount: 0, processedAt: admin.firestore.FieldValue.serverTimestamp() });
     }
 
-    // Collect all FCM tokens
-    const tokens = [];
-    targetUsers.forEach(user => {
-      if (user.fcmTokens && Array.isArray(user.fcmTokens)) {
-        tokens.push(...user.fcmTokens);
-      }
-    });
-
+    const tokens = targetUsers.flatMap(user => user.fcmTokens || []);
     console.log(`🎯 Sending to ${tokens.length} tokens for ${targetUsers.length} users`);
 
     if (tokens.length === 0) {
-      console.log('❌ No valid FCM tokens found');
-      await event.data.ref.update({
-        status: 'completed',
-        successCount: 0,
-        failureCount: 0,
-        processedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-      return;
+      console.log("❌ No valid FCM tokens found");
+      return event.data.ref.update({ status: "completed", successCount: 0, failureCount: 0, processedAt: admin.firestore.FieldValue.serverTimestamp() });
     }
 
-    // Send messages individually to avoid batch endpoint issues
     let successCount = 0;
     let failureCount = 0;
     const failedTokens = [];
-
-    for (const token of tokens) {
+    const sendPromises = tokens.map(async (token) => {
       try {
-        const message = {
-          notification: {
-            title: notification.title,
-            body: notification.body
-          },
-          data: {
-            click_action: notification.clickAction || '/profile',
-            type: notification.type || 'general',
-            notificationId: notificationId
-          },
-          token: token
-        };
-
-        await messaging.send(message);
+        await messaging.send({
+          notification: { title: notification.title, body: notification.body },
+          data: { click_action: notification.clickAction || "/profile", type: notification.type || "general", notificationId },
+          token,
+        });
         successCount++;
-        console.log(`✅ Message sent successfully to token: ${token.substring(0, 20)}...`);
       } catch (error) {
         failureCount++;
         failedTokens.push(token);
-        console.log(`❌ Failed to send to token ${token.substring(0, 20)}...:`, error.code || error.message);
+        if (error.code === 'messaging/registration-token-not-registered') {
+          console.log(`🧹 Found invalid token: ${token.substring(0, 20)}...`);
+        } else {
+          console.log(`❌ Failed to send to token ${token.substring(0, 20)}...:`, error.code || error.message);
+        }
       }
-    }
+    });
 
-    // Remove invalid tokens from user documents
-    if (failedTokens.length > 0) {
-      await removeInvalidTokens(failedTokens, targetUsers);
-    }
+    await Promise.all(sendPromises);
+    if (failedTokens.length > 0) await removeInvalidTokens(failedTokens, targetUsers);
 
-    // Update notification document with results
     await event.data.ref.update({
-      status: successCount > 0 ? 'delivered' : 'failed',
-      successCount: successCount,
-      failureCount: failureCount,
+      status: successCount > 0 ? "delivered" : "failed",
+      successCount,
+      failureCount,
       processedAt: admin.firestore.FieldValue.serverTimestamp(),
-      actualTargetCount: tokens.length
+      actualTargetCount: tokens.length,
     });
-
     console.log(`📊 Final results: ${successCount} delivered, ${failureCount} failed`);
-
   } catch (error) {
-    console.error('💥 Error sending notification:', error);
-
-    // Update notification with error status
-    await event.data.ref.update({
-      status: 'failed',
-      error: error.message,
-      processedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
+    console.error("💥 Error sending notification:", error);
+    if (event.data) await event.data.ref.update({ status: "failed", error: error.message, processedAt: admin.firestore.FieldValue.serverTimestamp() });
   }
 });
 
-// 🎯 NEW FUNCTION: Process QR Code Scans with Birthday Bonus Logic
+// 🎯 REFINED: Process QR Code Scans with Strict Birthday Logic
 exports.processStampScan = onCall({
-  region: 'europe-west2'
+  region: "europe-west2"
 }, async (request) => {
-  // Verify user is authenticated
-  if (!request.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be logged in');
-  }
-
+  if (!request.auth) throw new HttpsError("unauthenticated", "User must be logged in");
   const { scannedUserId } = request.data;
-
-  if (!scannedUserId) {
-    throw new functions.https.HttpsError('invalid-argument', 'Missing scannedUserId');
-  }
+  if (!scannedUserId) throw new HttpsError("invalid-argument", "Missing scannedUserId");
 
   try {
     console.log(`🔍 Processing stamp scan for user: ${scannedUserId}`);
-
-    // Get user data and stamps data
     const userRef = db.doc(`users/${scannedUserId}`);
     const stampsRef = db.doc(`stamps/${scannedUserId}`);
 
-    const [userSnap, stampsSnap] = await Promise.all([
-      userRef.get(),
-      stampsRef.get()
-    ]);
-
-    if (!userSnap.exists) {
-      throw new functions.https.HttpsError('not-found', 'User not found');
-    }
+    const [userSnap, stampsSnap] = await Promise.all([userRef.get(), stampsRef.get()]);
+    if (!userSnap.exists) throw new HttpsError("not-found", "User not found");
 
     const userData = userSnap.data();
-    const stampsData = stampsSnap.exists ? stampsSnap.data() : {
-      stamps: [],
-      lifetimeStamps: 0,
-      rewardsEarned: 0
+    let stampsData = stampsSnap.exists ? stampsSnap.data() : {};
+
+    const cleanStampsData = {
+      stamps: stampsData.stamps || [],
+      lifetimeStamps: stampsData.lifetimeStamps || 0,
+      rewardsEarned: stampsData.rewardsEarned || 0,
+      availableRewards: stampsData.availableRewards || 0,
+      receivedFreeStamps: stampsData.receivedFreeStamps || false,
+      birthdayBonusGiven: stampsData.birthdayBonusGiven || null,
     };
 
-    // Birthday bonus logic
-    const today = new Date().toISOString().split('T')[0]; // "2024-06-08"
-    const userBirthday = userData.dob; // Expected format: "08/06"
+    if (stampsData.pendingStamps?.length) {
+      console.log(`🔧 Migrating ${stampsData.pendingStamps.length} pending stamps.`);
+      cleanStampsData.stamps.push(...stampsData.pendingStamps);
+    }
+    stampsData = cleanStampsData;
 
-    let stampsToAdd = 1; // Default: 1 regular stamp
+    const today = new Date().toISOString().split("T")[0];
+    let stampsToAdd = 1;
     let isBirthdayBonus = false;
-    let message = 'Timbro aggiunto con successo!';
+    let message = "Timbro aggiunto con successo!";
 
-    // Check if today is user's birthday and they haven't received bonus yet
-    if (userBirthday) {
-      const [day, month] = userBirthday.split('/');
+    if (userData.dob) {
+      const [day, month] = userData.dob.split("/");
       const todayDate = new Date();
-      const todayDay = String(todayDate.getDate()).padStart(2, '0');
-      const todayMonth = String(todayDate.getMonth() + 1).padStart(2, '0');
+      const todayDay = String(todayDate.getDate()).padStart(2, "0");
+      const todayMonth = String(todayDate.getMonth() + 1).padStart(2, "0");
+      const isBirthdayToday = (day === todayDay && month === todayMonth);
 
-      const isBirthday = day === todayDay && month === todayMonth;
-      const alreadyGaveBirthdayBonus = stampsData.birthdayBonusGiven === today;
-
-      console.log(`🎂 Birthday check - isBirthday: ${isBirthday}, alreadyGaveBonus: ${alreadyGaveBirthdayBonus}`);
-
-      if (isBirthday && !alreadyGaveBirthdayBonus) {
-        stampsToAdd = 2; // Regular stamp + birthday bonus
+      if (isBirthdayToday && stampsData.birthdayBonusGiven !== today) {
+        stampsToAdd = 2;
         isBirthdayBonus = true;
-        message = '🎉 Buon compleanno! Hai ricevuto un timbro extra!';
-        console.log(`🎁 Birthday bonus activated for user ${scannedUserId}`);
+        message = "🎉 Buon compleanno! Hai ricevuto un timbro extra!";
+        console.log(`🎁 Birthday bonus ACTIVATED for user ${scannedUserId}`);
+      } else if (isBirthdayToday) {
+        console.log(`🎂 Birthday bonus already given today for user ${scannedUserId}. Awarding standard 1 stamp.`);
       }
     }
 
-    // Check current stamp count
-    const currentStampCount = stampsData.stamps ? stampsData.stamps.length : 0;
+    const currentStampCount = stampsData.stamps.length;
     const totalAfterScan = currentStampCount + stampsToAdd;
+    console.log(`📊 Current stamps: ${currentStampCount}, Adding: ${stampsToAdd}, Total will be: ${totalAfterScan}`);
 
-    console.log(`📊 Current stamps: ${currentStampCount}, Adding: ${stampsToAdd}, Total after: ${totalAfterScan}`);
+    let updateData;
+    let response;
 
-    // If adding stamps would exceed 9, handle the reward logic
-    if (totalAfterScan > 9) {
-      console.log(`🎁 User reached reward threshold! Processing reward and overflow.`);
-
-      // Calculate overflow stamps (stamps beyond 9)
+    if (totalAfterScan >= 9) {
       const overflowStamps = totalAfterScan - 9;
-      console.log(`📊 Overflow stamps: ${overflowStamps}`);
+      const overflowStampsArray = Array.from({ length: overflowStamps }, (_, i) => ({ date: new Date(Date.now() + i).toISOString() }));
+      console.log(`🎁 Collection complete! Overflow stamps: ${overflowStamps}`);
 
-      // Create stamps array for overflow
-      const baseTime = Date.now();
-      const overflowStampsArray = [];
-
-      for (let i = 0; i < overflowStamps; i++) {
-        const stampTime = new Date(baseTime + (i * 1000)).toISOString();
-        overflowStampsArray.push({ date: stampTime });
-        console.log(`📝 Adding overflow stamp ${i + 1} with timestamp: ${stampTime}`);
-      }
-
-      // User gets free coffee and stamps reset to overflow amount
-      const updateData = {
-        stamps: overflowStampsArray, // Set to overflow stamps, not empty array
-        lifetimeStamps: admin.firestore.FieldValue.increment(stampsToAdd),
-        rewardsEarned: admin.firestore.FieldValue.increment(1),
-        rewardClaimed: true,
-        lastRedemptionDate: new Date().toISOString()
+      updateData = {
+        stamps: overflowStampsArray,
+        lifetimeStamps: stampsData.lifetimeStamps + stampsToAdd,
+        rewardsEarned: stampsData.rewardsEarned + 1,
+        availableRewards: stampsData.availableRewards + 1,
+        receivedFreeStamps: stampsData.receivedFreeStamps,
+        lastStampDate: new Date().toISOString(),
       };
 
-      // Add birthday bonus tracking if applicable
-      if (isBirthdayBonus) {
-        updateData.birthdayBonusGiven = today;
-      }
+      const successMessage = overflowStamps > 0
+        ? `🎁 Congratulazioni! Raccolta completata! Nuovo giro con ${overflowStamps} timbr${overflowStamps > 1 ? "i" : "o"}.`
+        : "🎁 Congratulazioni! Raccolta completata! Griglia resettata.";
 
-      await stampsRef.set(updateData, { merge: true });
+      response = { success: true, message: successMessage, rewardEarned: true, birthdayBonus: isBirthdayBonus, currentStamps: overflowStampsArray.length };
 
-      console.log(`✅ Reward processed! Reset to ${overflowStamps} overflow stamps`);
+    } else {
+      const newStampsArray = [...stampsData.stamps];
+      for (let i = 0; i < stampsToAdd; i++) newStampsArray.push({ date: new Date(Date.now() + i).toISOString() });
+      console.log(`📝 Adding ${stampsToAdd} stamps normally. New total: ${newStampsArray.length}`);
 
-      return {
-        success: true,
-        stampsAdded: stampsToAdd,
-        message: overflowStamps > 0
-          ? `🎁 Congratulazioni! Hai ottenuto un caffè gratis! Hai ${overflowStamps} timbro${overflowStamps > 1 ? 'i' : ''} per la prossima raccolta.`
-          : '🎁 Congratulazioni! Hai ottenuto un caffè gratis! I tuoi timbri sono stati resettati.',
-        rewardEarned: true,
-        birthdayBonus: isBirthdayBonus,
-        currentStamps: overflowStamps,
-        overflowStamps: overflowStamps
+      updateData = {
+        stamps: newStampsArray,
+        lifetimeStamps: stampsData.lifetimeStamps + stampsToAdd,
+        rewardsEarned: stampsData.rewardsEarned,
+        availableRewards: stampsData.availableRewards,
+        receivedFreeStamps: stampsData.receivedFreeStamps,
+        lastStampDate: new Date().toISOString(),
       };
+
+      response = { success: true, stampsAdded: stampsToAdd, message, currentStamps: newStampsArray.length, rewardEarned: false, birthdayBonus: isBirthdayBonus };
     }
 
-    // Normal stamp addition
-    const baseTime = Date.now();
-
-    // Get current stamps and create new array explicitly
-    const currentStampsArray = stampsData.stamps || [];
-    console.log(`📊 Current stamps array length: ${currentStampsArray.length}`);
-    console.log(`📊 Current stamps array:`, currentStampsArray);
-
-    // Create new stamps array by copying existing and adding new ones
-    const updatedStampsArray = [...currentStampsArray];
-
-    // Add the required number of stamps with unique timestamps
-    for (let i = 0; i < stampsToAdd; i++) {
-      // Add millisecond offset to ensure unique timestamps
-      const stampTime = new Date(baseTime + (i * 1000)).toISOString(); // 1 second apart
-      updatedStampsArray.push({ date: stampTime });
-      console.log(`📝 Adding stamp ${i + 1} with timestamp: ${stampTime}`);
-    }
-
-    console.log(`📊 Updated stamps array length: ${updatedStampsArray.length}`);
-    console.log(`📊 Adding ${stampsToAdd} stamps. Before: ${currentStampsArray.length}, After: ${updatedStampsArray.length}`);
-    console.log(`📊 Updated stamps array:`, updatedStampsArray);
-
-    // Prepare update data - use set with merge instead of update
-    const updateData = {
-      stamps: updatedStampsArray,
-      lifetimeStamps: (stampsData.lifetimeStamps || 0) + stampsToAdd // Calculate explicitly
-    };
-
-    // Add birthday bonus tracking if applicable
     if (isBirthdayBonus) {
       updateData.birthdayBonusGiven = today;
-      console.log(`🎂 Birthday bonus tracked for date: ${today}`);
+    } else {
+      updateData.birthdayBonusGiven = stampsData.birthdayBonusGiven;
     }
 
-    console.log(`💾 About to update with:`, {
-      stampsCount: updatedStampsArray.length,
-      lifetimeStamps: updateData.lifetimeStamps,
-      birthdayBonus: isBirthdayBonus
-    });
-
-    // Perform the update using set with merge to ensure atomic operation
-    await stampsRef.set(updateData, { merge: true });
-
-    console.log(`✅ Database update completed successfully`);
-
-    // Verify the update by reading back
-    const verifyDoc = await stampsRef.get();
-    const verifyData = verifyDoc.data();
-    console.log(`🔍 Verification - stamps count after update: ${verifyData.stamps?.length || 0}`);
-    console.log(`🔍 Verification - lifetimeStamps after update: ${verifyData.lifetimeStamps || 0}`);
-    console.log(`🔍 Verification - actual stamps array:`, verifyData.stamps);
-
-    console.log(`✅ Successfully added ${stampsToAdd} stamps to user ${scannedUserId}`);
-
-    return {
-      success: true,
-      stampsAdded: stampsToAdd,
-      message: message,
-      currentStamps: currentStampCount + stampsToAdd,
-      rewardEarned: false,
-      birthdayBonus: isBirthdayBonus
-    };
+    await stampsRef.set(updateData, { merge: false });
+    console.log(`✅ Write operation successful for user ${scannedUserId}`);
+    return response;
 
   } catch (error) {
-    console.error('💥 Stamp scan processing error:', error);
-    throw new functions.https.HttpsError('internal', 'Errore durante la scansione del QR code');
+    console.error("💥 Stamp scan processing error:", error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError("internal", "Errore durante la scansione del QR code", { detail: error.message });
   }
 });
 
 // 🧹 Helper function to remove invalid FCM tokens
 async function removeInvalidTokens(invalidTokens, users) {
   const batch = db.batch();
-
-  for (const user of users) {
-    if (user.fcmTokens && Array.isArray(user.fcmTokens)) {
+  users.forEach(user => {
+    if (user.fcmTokens?.length) {
       const validTokens = user.fcmTokens.filter(token => !invalidTokens.includes(token));
-
-      if (validTokens.length !== user.fcmTokens.length) {
-        const userRef = db.collection('users').doc(user.id);
-        batch.update(userRef, { fcmTokens: validTokens });
+      if (validTokens.length < user.fcmTokens.length) {
+        batch.update(db.collection("users").doc(user.id), { fcmTokens: validTokens });
         console.log(`🧹 Removing invalid tokens for user ${user.id}`);
       }
     }
-  }
-
+  });
   try {
     await batch.commit();
-    console.log('✅ Invalid tokens removed from user documents');
+    console.log("✅ Invalid tokens removed successfully.");
   } catch (error) {
-    console.log('No tokens to remove or batch commit failed:', error.message);
+    console.error("Batch commit for token removal failed:", error.message);
   }
 }
 
-// 📅 AUTOMATED NOTIFICATIONS: Scheduled function (runs daily at 9 AM Italian time)
+// 📅 AUTOMATED NOTIFICATIONS: Scheduled function
 exports.sendAutomatedNotifications = onSchedule({
-  schedule: '0 9 * * *',
-  timeZone: 'Europe/Rome', // Keep Italian timezone for the coffee shop
-  region: 'europe-west2' // London region
+  schedule: "0 9 * * *",
+  timeZone: "Europe/Rome",
+  region: "europe-west2"
 }, async () => {
   try {
-    console.log('🤖 Running automated notifications check...');
-
-    // Get all enabled automated rules
-    const rulesSnapshot = await db
-      .collection('automatedNotifications')
-      .where('enabled', '==', true)
-      .get();
-
+    console.log("🤖 Running automated notifications check...");
+    const rulesSnapshot = await db.collection("automatedNotifications").where("enabled", "==", true).get();
     if (rulesSnapshot.empty) {
-      console.log('📭 No enabled automated rules found');
+      console.log("📭 No enabled automated rules found.");
       return;
     }
-
-    console.log(`🔍 Found ${rulesSnapshot.size} enabled rules`);
-
+    console.log(`🔍 Found ${rulesSnapshot.size} enabled rules.`);
     for (const ruleDoc of rulesSnapshot.docs) {
       const rule = ruleDoc.data();
-      const ruleId = ruleDoc.id;
-
       console.log(`🎯 Processing rule: ${rule.type}`);
-
       try {
-        // Process different rule types
         switch (rule.type) {
-          case 'birthday':
-            await processBirthdayNotifications(rule, ruleId);
+          case "birthday":
+            await processBirthdayNotifications(rule, ruleDoc.id);
             break;
-          case 'stamp_milestone':
-            await processStampMilestoneNotifications(rule, ruleId);
-            break;
-          case 'reward_available':
-            await processRewardNotifications(rule, ruleId);
-            break;
-          case 'inactive_user':
-            await processInactiveUserNotifications(rule, ruleId);
+          case "stamp_milestone":
+            await processStampMilestoneNotifications(rule, ruleDoc.id);
             break;
           default:
-            console.log(`⚠️ Unknown rule type: ${rule.type}`);
+            console.warn(`🤷‍♀️ Unknown rule type: ${rule.type}`);
         }
-      } catch (ruleError) {
-        console.error(`💥 Error processing rule ${rule.type}:`, ruleError);
+      } catch (error) {
+        console.error(`💥 Error processing rule ${ruleDoc.id} (${rule.type}):`, error);
       }
     }
-
-    console.log('✅ Automated notifications check completed');
-
   } catch (error) {
-    console.error('💥 Error in automated notifications:', error);
+    console.error("💥 Top-level error in sendAutomatedNotifications:", error);
   }
 });
 
-// 🎂 Process birthday notifications
+// Helper for birthday notifications
 async function processBirthdayNotifications(rule, ruleId) {
-  const today = new Date();
-  const todayStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}`;
-
-  console.log(`🎂 Checking for birthdays on ${todayStr}`);
-
-  const usersSnapshot = await db.collection('users')
-    .where('dob', '==', todayStr)
-    .where('role', '==', 'customer')
-    .get();
-
-  if (usersSnapshot.empty) {
-    console.log('🎂 No birthdays today');
-    return;
-  }
-
-  console.log(`🎉 Found ${usersSnapshot.size} birthday(s) today!`);
-
-  await db.collection('notifications').add({
-    type: 'automated',
-    ruleId: ruleId,
-    title: rule.title,
-    body: rule.body,
-    target: 'birthday_today',
-    clickAction: rule.clickAction || '/profile',
+  console.log(`🎂 [${ruleId}] Creating birthday notification job.`);
+  await db.collection("notifications").add({
+    title: rule.title || "Buon Compleanno!",
+    body: rule.body || "Vieni a festeggiare con noi, ti aspetta una sorpresa!",
+    target: "birthday_today",
+    type: "birthday",
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    status: 'pending'
+    status: "pending",
+    ruleId: ruleId,
   });
-
-  await db.collection('automatedNotifications').doc(ruleId).update({
-    lastTriggered: admin.firestore.FieldValue.serverTimestamp(),
-    totalSent: admin.firestore.FieldValue.increment(1)
-  });
-
-  console.log('🎂 Birthday notification created');
+  console.log(`✅ [${ruleId}] Birthday notification created.`);
 }
 
-// ⭐ Process stamp milestone notifications (6-8 stamps)
+// Placeholder for stamp milestone notifications
 async function processStampMilestoneNotifications(rule, ruleId) {
-  console.log('⭐ Checking for users near stamp milestone...');
-
-  const stampsSnapshot = await db.collection('stamps').get();
-  const usersNearMilestone = [];
-
-  stampsSnapshot.docs.forEach(doc => {
-    const stampsData = doc.data();
-    const stampCount = stampsData.stamps ? stampsData.stamps.length : 0;
-
-    // Users with 6, 7, or 8 stamps
-    if (stampCount >= 6 && stampCount <= 8) {
-      usersNearMilestone.push(doc.id);
-    }
-  });
-
-  if (usersNearMilestone.length === 0) {
-    console.log('⭐ No users near milestone found');
-    return;
-  }
-
-  console.log(`⭐ Found ${usersNearMilestone.length} users near milestone`);
-
-  // Send notifications to these users
-  for (const userId of usersNearMilestone) {
-    await db.collection('notifications').add({
-      type: 'automated',
-      ruleId: ruleId,
-      title: rule.title,
-      body: rule.body,
-      target: 'specific_user',
-      targetUserId: userId,
-      clickAction: rule.clickAction || '/stamps',
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      status: 'pending'
-    });
-  }
-
-  await db.collection('automatedNotifications').doc(ruleId).update({
-    lastTriggered: admin.firestore.FieldValue.serverTimestamp(),
-    totalSent: admin.firestore.FieldValue.increment(1)
-  });
-
-  console.log('⭐ Milestone notifications created');
-}
-
-// 🎁 Process reward available notifications (9 stamps)
-async function processRewardNotifications(rule, ruleId) {
-  console.log('🎁 Checking for users with 9 stamps...');
-
-  const stampsSnapshot = await db.collection('stamps').get();
-  const usersWithReward = [];
-
-  stampsSnapshot.docs.forEach(doc => {
-    const stampsData = doc.data();
-    const stampCount = stampsData.stamps ? stampsData.stamps.length : 0;
-
-    // Users with exactly 9 stamps
-    if (stampCount === 9) {
-      usersWithReward.push(doc.id);
-    }
-  });
-
-  if (usersWithReward.length === 0) {
-    console.log('🎁 No users with 9 stamps found');
-    return;
-  }
-
-  console.log(`🎁 Found ${usersWithReward.length} users with rewards available`);
-
-  await db.collection('notifications').add({
-    type: 'automated',
-    ruleId: ruleId,
-    title: rule.title,
-    body: rule.body,
-    target: 'reward_eligible',
-    clickAction: rule.clickAction || '/stamps',
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    status: 'pending'
-  });
-
-  await db.collection('automatedNotifications').doc(ruleId).update({
-    lastTriggered: admin.firestore.FieldValue.serverTimestamp(),
-    totalSent: admin.firestore.FieldValue.increment(1)
-  });
-
-  console.log('🎁 Reward notifications created');
-}
-
-// 💔 Process inactive user notifications
-async function processInactiveUserNotifications(rule, ruleId) {
-  console.log('💔 Checking for inactive users...');
-
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  const usersSnapshot = await db.collection('users')
-    .where('role', '==', 'customer')
-    .get();
-
-  const inactiveUsers = [];
-
-  usersSnapshot.docs.forEach(doc => {
-    const userData = doc.data();
-    const lastLogin = userData.lastLogin ? new Date(userData.lastLogin) : null;
-
-    if (!lastLogin || lastLogin < thirtyDaysAgo) {
-      inactiveUsers.push(doc.id);
-    }
-  });
-
-  if (inactiveUsers.length === 0) {
-    console.log('💔 No inactive users found');
-    return;
-  }
-
-  console.log(`💔 Found ${inactiveUsers.length} inactive users`);
-
-  // Send notifications to inactive users
-  for (const userId of inactiveUsers) {
-    await db.collection('notifications').add({
-      type: 'automated',
-      ruleId: ruleId,
-      title: rule.title,
-      body: rule.body,
-      target: 'specific_user',
-      targetUserId: userId,
-      clickAction: rule.clickAction || '/menu',
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      status: 'pending'
-    });
-  }
-
-  await db.collection('automatedNotifications').doc(ruleId).update({
-    lastTriggered: admin.firestore.FieldValue.serverTimestamp(),
-    totalSent: admin.firestore.FieldValue.increment(1)
-  });
-
-  console.log('💔 Inactive user notifications created');
+  console.log(`🏆 [${ruleId}] Processing stamp milestone notifications.`);
+  console.log(`[${ruleId}] Stamp milestone logic is a placeholder and needs implementation.`);
 }
