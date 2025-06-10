@@ -20,8 +20,9 @@ export default function Scan() {
   const scannerRef = useRef(null);
   const readerRef = useRef(null);
 
-  // Initialize Cloud Function
+  // Initialize Cloud Functions
   const processStampScan = httpsCallable(functions, 'processStampScan');
+  const redeemRewardQR = httpsCallable(functions, 'redeemRewardQR'); // NEW: For reward QR redemption
 
   // Scanner configuration
   const qrConfig = {
@@ -114,12 +115,54 @@ export default function Scan() {
     setSelectedCamera(e.target.value);
   };
 
-  // Process QR scan using Cloud Function
-  const processQRScan = async (decodedText) => {
-    setProcessing(true);
-
+  // NEW: Process reward QR scan using Cloud Function
+  const processRewardQRScan = async (decodedText) => {
     try {
-      console.log("QR code detected:", decodedText);
+      console.log("Reward QR code detected:", decodedText);
+
+      // Call Cloud Function to redeem the reward QR
+      console.log("Calling redeemRewardQR Cloud Function...");
+      const result = await redeemRewardQR({ qrCode: decodedText });
+
+      if (result.data.success) {
+        const {
+          message,
+          customerName,
+          customerEmail,
+          remainingRewards
+        } = result.data;
+
+        console.log("Reward QR redeemed successfully:", result.data);
+
+        // Set customer info for display
+        setCustomerInfo({
+          name: customerName,
+          email: customerEmail,
+          message: message,
+          rewardRedeemed: true,
+          remainingRewards: remainingRewards,
+          stampsReset: true // Indicate that this was a reward redemption
+        });
+
+        setSuccess(true);
+        setResult(decodedText);
+
+        console.log("🎁 Reward successfully redeemed via QR!");
+
+      } else {
+        throw new Error('Cloud Function returned unsuccessful result for reward QR');
+      }
+
+    } catch (error) {
+      console.error('Error processing reward QR scan:', error);
+      throw new Error(`Failed to redeem reward: ${error.message}`);
+    }
+  };
+
+  // Process regular stamp QR scan using Cloud Function
+  const processStampQRScan = async (decodedText) => {
+    try {
+      console.log("Regular stamp QR code detected:", decodedText);
 
       // Extract user ID from QR code URL
       let userId;
@@ -172,7 +215,8 @@ export default function Scan() {
           rewardEarned: rewardEarned,
           currentStamps: currentStamps,
           newStampCount: rewardEarned ? 0 : currentStamps,
-          stampsReset: rewardEarned
+          stampsReset: rewardEarned,
+          rewardRedeemed: false // This is a stamp scan, not reward redemption
         });
 
         setSuccess(true);
@@ -189,6 +233,26 @@ export default function Scan() {
 
       } else {
         throw new Error('Cloud Function returned unsuccessful result');
+      }
+
+    } catch (error) {
+      console.error('Error processing stamp QR scan:', error);
+      throw new Error(`Failed to process stamp scan: ${error.message}`);
+    }
+  };
+
+  // NEW: Main QR processing function - determines QR type and routes accordingly
+  const processQRScan = async (decodedText) => {
+    setProcessing(true);
+
+    try {
+      // Check if this is a reward QR code
+      if (decodedText.startsWith('reward://dandy-app/')) {
+        console.log("🎁 Detected reward QR code");
+        await processRewardQRScan(decodedText);
+      } else {
+        console.log("📋 Detected regular stamp QR code");
+        await processStampQRScan(decodedText);
       }
 
     } catch (error) {
@@ -250,7 +314,7 @@ export default function Scan() {
             scannerRef.current = null;
             setScanning(false);
 
-            // Process the QR scan using Cloud Function
+            // Process the QR scan (either reward or stamp)
             await processQRScan(decodedText);
 
           } catch (err) {
@@ -363,27 +427,44 @@ export default function Scan() {
       {success && customerInfo && (
         <div className="success-message">
           <h2>
-            {customerInfo.stampsReset
-              ? '🎁 Premio Riscattato!'
-              : customerInfo.birthdayBonus
-                ? '🎉 Timbri Aggiunti - Buon Compleanno!'
-                : '✅ Timbro Aggiunto con Successo!'}
+            {customerInfo.rewardRedeemed
+              ? '🎁 Premio Riscattato con Successo!'
+              : customerInfo.stampsReset
+                ? '🎁 Premio Riscattato!'
+                : customerInfo.birthdayBonus
+                  ? '🎉 Timbri Aggiunti - Buon Compleanno!'
+                  : '✅ Timbro Aggiunto con Successo!'}
           </h2>
           <div className="customer-info">
             <p><strong>Cliente:</strong> {customerInfo.name}</p>
             <p><strong>Email:</strong> {customerInfo.email}</p>
             <p><strong>Messaggio:</strong> {customerInfo.message}</p>
 
-            {customerInfo.birthdayBonus && (
+            {customerInfo.rewardRedeemed && (
+              <>
+                <p style={{color: '#ff6b6b', fontWeight: 'bold'}}>
+                  🎁 Premio riscattato tramite QR!
+                </p>
+                {customerInfo.remainingRewards !== undefined && (
+                  <p><strong>Premi rimanenti:</strong> {customerInfo.remainingRewards}</p>
+                )}
+              </>
+            )}
+
+            {customerInfo.birthdayBonus && !customerInfo.rewardRedeemed && (
               <p style={{color: '#ff6b6b', fontWeight: 'bold'}}>
                 🎂 Bonus compleanno: +{customerInfo.stampsAdded} timbri!
               </p>
             )}
 
-            {customerInfo.stampsReset ? (
-              <p><strong>Timbri resettati:</strong> Inizia nuova raccolta</p>
-            ) : (
-              <p><strong>Timbri Attuali:</strong> {customerInfo.newStampCount}/9</p>
+            {!customerInfo.rewardRedeemed && (
+              <>
+                {customerInfo.stampsReset ? (
+                  <p><strong>Timbri resettati:</strong> Inizia nuova raccolta</p>
+                ) : (
+                  <p><strong>Timbri Attuali:</strong> {customerInfo.newStampCount}/9</p>
+                )}
+              </>
             )}
           </div>
           <button className="scan-again-button" onClick={startScanner}>
