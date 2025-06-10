@@ -1,0 +1,216 @@
+/* Add these styles to your existing App.css */
+
+/* 📱 UNIVERSAL SCROLL & KEYBOARD HANDLING */
+
+/* Ensure proper scrolling on all devices */
+html, body {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  scroll-behavior: smooth;
+}
+
+/* Main app container */
+#root {
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
+  position: relative;
+}
+
+/* Ensure all pages can scroll */
+.min-h-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Keyboard visible state */
+.keyboard-visible {
+  min-height: auto !important;
+  height: auto !important;
+}
+
+/* Form containers */
+form {
+  position: relative;
+  z-index: 1;
+}
+
+/* Input field improvements */
+input, textarea, select {
+  font-size: 16px !important; /* Prevent zoom on iOS */
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: white;
+  border-radius: 8px;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  transition: all 0.2s ease;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: #007AFF;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+  transform: scale(1.02);
+}
+
+/* Ensure inputs don't get covered by keyboard */
+input:focus, textarea:focus {
+  animation: inputFocus 0.3s ease;
+}
+
+@keyframes inputFocus {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+/* Page containers */
+.page-container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-bottom: 80px; /* Space for nav */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Auth pages specific */
+.auth-wrapper {
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Stamps page specific */
+.stamps-wrapper {
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-y: auto;
+  padding-bottom: 100px;
+}
+
+/* Modal improvements for keyboard */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-content {
+  position: relative;
+  margin: 20px auto;
+  max-width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Better button touch targets */
+button {
+  min-height: 44px; /* iOS recommended touch target */
+  min-width: 44px;
+  touch-action: manipulation; /* Prevent double-tap zoom */
+}
+
+/* Loading state */
+.loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: white;
+  z-index: 9999;
+}
+
+/* Safe area handling for devices with notches */
+@supports (padding: max(0px)) {
+  .page-container {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(80px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Prevent horizontal scroll issues */
+* {
+  box-sizing: border-box;
+}
+
+/* Smooth animations */
+* {
+  transition: transform 0.2s ease;
+}
+
+/* Fix for iOS Safari bounce effect */
+body {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+#root {
+  overflow-y: scroll;
+  height: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Alternative approach for iOS Safari */
+@media screen and (max-width: 768px) {
+  html {
+    height: -webkit-fill-available;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+
+  #root {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* Keyboard specific adjustments */
+@media screen and (max-height: 500px) {
+  /* When keyboard is likely visible (reduced height) */
+  .modal-content {
+    margin: 10px auto;
+    max-height: 95vh;
+  }
+
+  .page-container {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+}
+
+/* Focus within forms - scroll container when any input is focused */
+form:focus-within {
+  scroll-behavior: smooth;
+}
+
+/* Improve tap targets on mobile */
+@media (hover: none) and (pointer: coarse) {
+  button, .button, input[type="submit"], input[type="button"] {
+    min-height: 48px;
+    padding: 12px 20px;
+  }
+
+  input, textarea, select {
+    min-height: 48px;
+    padding: 14px 16px;
+  }
+}
