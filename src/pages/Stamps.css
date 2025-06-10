@@ -35,16 +35,6 @@
   z-index: 0;
 }
 
-.stamps-title {
-  font-size: 2rem;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-  color: #ECF0BA;
-  text-align: center;
-  position: relative;
-  z-index: 1;
-}
-
 .stamps-subtitle {
   font-size: 1.1rem;
   color: #ECF0BA;
@@ -56,11 +46,11 @@
 
 .stamps-container {
   background-color: rgba(226, 240, 227, 0.55);
-  padding: 1rem;
-  border-radius: 1rem;
+  padding: 1.3rem;
+  border-radius: 2rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   max-width: 30rem;
-  margin: 1.5rem auto 0;
+  margin: 1.9rem auto 0;
   position: relative;
   z-index: 1;
   width: calc(100% - 1rem);
@@ -136,7 +126,7 @@
 }
 
 .stamp-date {
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   color: #ECF0BA;
   font-weight: 700;
   transition: color 0.3s ease;
@@ -174,7 +164,7 @@
   background-color: #43221B;
   color: #ECF0BA;
   border: none;
-  padding: 0.5rem 1.2rem;
+  padding: 0.8rem 1.2rem;
   font-size: 0.9rem;
   font-weight: 500;
   border-radius: 2rem;
@@ -186,7 +176,7 @@
 }
 
 .reward-button {
-  background-color: #B8860B;
+  background-color: #000000;
   position: relative;
 }
 
@@ -204,7 +194,7 @@
 }
 
 .reward-button:hover {
-  background-color: #DAA520;
+  background-color: #cfaa4d;
 }
 
 .popup-notification {
@@ -291,9 +281,9 @@
 }
 
 .claim-reward-button {
-  background-color: #B8860B;
+  background-color: #000000;
   color: white;
-  padding: 0.8rem 1.5rem;
+  padding: 0.6rem 1.5rem;
   border-radius: 2rem;
   border: none;
   font-size: 1rem;
@@ -316,7 +306,7 @@
 }
 
 .close-button {
-  background-color: #616843;
+  background-color: #43221B;
   color: #ECF0BA;
   padding: 0.6rem 1.5rem;
   border-radius: 2rem;
@@ -446,5 +436,5 @@
   .stamps-grid { gap: 0.5rem; }
   .stamp-date { font-size: 0.6rem; }
   .button-container { flex-direction: column; align-items: center; }
-  .qr-button, .reward-button { width: 80%; }
+  .qr-button, .reward-button { width: 50%; }
 }
