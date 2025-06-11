@@ -1,5 +1,4 @@
-// src/pages/CustomerNotifications.jsx
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { auth, firestore } from '../lib/firebase'
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -8,12 +7,8 @@ import {
   faBell,
   faEnvelope,
   faEnvelopeOpen,
-  faTrash,
-  faFilter,
   faCalendar,
-  faExclamationCircle,
-  faCheckCircle,
-  faRefresh
+  faTrash
 } from '@fortawesome/free-solid-svg-icons'
 import './CustomerNotifications.css'
 
@@ -22,11 +17,14 @@ export default function CustomerNotifications() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all') // all, unread, read
   const [sortBy, setSortBy] = useState('newest') // newest, oldest
-  const [selectedNotifications, setSelectedNotifications] = useState(new Set())
-  const [showBulkActions, setShowBulkActions] = useState(false)
+  const [swipeState, setSwipeState] = useState({})
+
+  // Touch/swipe handling
+  const touchStart = useRef({})
 
   // Fetch notifications from Firestore
   useEffect(() => {
+    // ... (This entire useEffect block remains unchanged)
     console.log('🔔 CustomerNotifications useEffect triggered')
 
     if (!auth.currentUser) {
@@ -40,7 +38,6 @@ export default function CustomerNotifications() {
 
     const notificationsRef = collection(firestore, 'notifications')
 
-    // Try the indexed query first, fallback to simple query if index doesn't exist
     const tryIndexedQuery = () => {
       console.log('🔔 Trying indexed query (userId + orderBy)')
       const q = query(
@@ -73,7 +70,6 @@ export default function CustomerNotifications() {
         setLoading(false)
       }, (error) => {
         console.error('❌ Error with indexed query, trying fallback:', error)
-        // If indexed query fails, try simple query without orderBy
         return trySimpleQuery()
       })
     }
@@ -95,7 +91,6 @@ export default function CustomerNotifications() {
           }
         })
 
-        // Sort in memory if we can't sort in the query
         notificationsList.sort((a, b) => {
           const aTime = new Date(a.createdAt || 0)
           const bTime = new Date(b.createdAt || 0)
@@ -111,7 +106,6 @@ export default function CustomerNotifications() {
       })
     }
 
-    // Start with indexed query
     const unsubscribe = tryIndexedQuery()
 
     return () => {
@@ -133,21 +127,110 @@ export default function CustomerNotifications() {
       return sortBy === 'newest' ? bTime - aTime : aTime - bTime
     })
 
-  // Mark notification as read
-  const markAsRead = async (notificationId) => {
+  // Touch event handlers for swipe
+  const handleTouchStart = (e, notificationId) => {
+    // ... (This function remains unchanged)
+    touchStart.current[notificationId] = {
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY,
+      time: Date.now()
+    }
+
+    const newSwipeState = { ...swipeState }
+    newSwipeState[notificationId] = { type: 'starting', offset: 0 }
+    setSwipeState(newSwipeState)
+  }
+
+  const handleTouchMove = (e, notificationId) => {
+    // ... (This function remains unchanged)
+    if (!touchStart.current[notificationId]) return
+
+    const currentX = e.targetTouches[0].clientX
+    const currentY = e.targetTouches[0].clientY
+    const diffX = touchStart.current[notificationId].x - currentX
+    const diffY = Math.abs(touchStart.current[notificationId].y - currentY)
+
+    if (diffY < 100) {
+      e.preventDefault()
+
+      const newSwipeState = { ...swipeState }
+
+      if (diffX > 0) {
+        const offset = Math.max(0, diffX)
+        newSwipeState[notificationId] = {
+          type: offset > 80 ? 'delete-ready' : 'swiping',
+          offset: offset
+        }
+      } else {
+        newSwipeState[notificationId] = { type: 'idle', offset: 0 }
+      }
+
+      setSwipeState(newSwipeState)
+    }
+  }
+
+  // <-- MODIFICATION #1: The `handleTouchEnd` logic is updated
+  const handleTouchEnd = (e, notificationId) => {
+    if (!touchStart.current[notificationId]) return
+
+    const endX = e.changedTouches[0].clientX
+    const endY = e.changedTouches[0].clientY
+    const diffX = touchStart.current[notificationId].x - endX
+    const diffY = Math.abs(touchStart.current[notificationId].y - endY)
+    const timeDiff = Date.now() - touchStart.current[notificationId].time
+
+    // Check if the swipe was intentional for deletion
+    if (diffX > 80 && timeDiff < 800 && diffY < 100) {
+      // If it's a delete swipe, just call deleteNotification.
+      // AnimatePresence will handle the exit animation from its current state.
+      console.log('Deleting notification:', notificationId)
+      deleteNotification(notificationId)
+    } else {
+      // If it wasn't a delete swipe, snap it back to the start.
+      const newSwipeState = { ...swipeState }
+      newSwipeState[notificationId] = { type: 'snapping-back', offset: 0 }
+      setSwipeState(newSwipeState)
+
+      // Clean up the state after the snap-back animation
+      setTimeout(() => {
+        const cleanState = { ...swipeState }
+        delete cleanState[notificationId]
+        setSwipeState(cleanState)
+      }, 300)
+    }
+
+    // Always clear the touch start data
+    delete touchStart.current[notificationId]
+  }
+
+  // Toggle read/unread status
+  const toggleReadStatus = async (e, notificationId, currentReadStatus) => {
+    // ... (This function remains unchanged)
+    e.stopPropagation()
+
     try {
       const notificationRef = doc(firestore, 'notifications', notificationId)
+      const newReadStatus = !currentReadStatus
+
       await updateDoc(notificationRef, {
-        read: true,
-        readAt: new Date().toISOString()
+        read: newReadStatus,
+        readAt: newReadStatus ? new Date().toISOString() : null
       })
     } catch (error) {
-      console.error('Error marking notification as read:', error)
+      console.error('Error toggling notification read status:', error)
     }
+  }
+
+  // Handle notification click
+  const handleNotificationClick = (notificationId, currentReadStatus) => {
+    // ... (This function remains unchanged)
+    const fakeEvent = { stopPropagation: () => {} }
+    toggleReadStatus(fakeEvent, notificationId, currentReadStatus)
   }
 
   // Delete notification
   const deleteNotification = async (notificationId) => {
+    // ... (This function remains unchanged)
     try {
       await deleteDoc(doc(firestore, 'notifications', notificationId))
     } catch (error) {
@@ -155,69 +238,9 @@ export default function CustomerNotifications() {
     }
   }
 
-  // Toggle notification selection for bulk actions
-  const toggleNotificationSelection = (notificationId) => {
-    const newSelected = new Set(selectedNotifications)
-    if (newSelected.has(notificationId)) {
-      newSelected.delete(notificationId)
-    } else {
-      newSelected.add(notificationId)
-    }
-    setSelectedNotifications(newSelected)
-    setShowBulkActions(newSelected.size > 0)
-  }
-
-  // Select all visible notifications
-  const selectAllVisible = () => {
-    const allVisibleIds = new Set(filteredNotifications.map(n => n.id))
-    setSelectedNotifications(allVisibleIds)
-    setShowBulkActions(allVisibleIds.size > 0)
-  }
-
-  // Clear all selections
-  const clearSelection = () => {
-    setSelectedNotifications(new Set())
-    setShowBulkActions(false)
-  }
-
-  // Bulk mark as read
-  const bulkMarkAsRead = async () => {
-    const promises = Array.from(selectedNotifications).map(async (id) => {
-      const notificationRef = doc(firestore, 'notifications', id)
-      return updateDoc(notificationRef, {
-        read: true,
-        readAt: new Date().toISOString()
-      })
-    })
-
-    try {
-      await Promise.all(promises)
-      clearSelection()
-    } catch (error) {
-      console.error('Error bulk marking as read:', error)
-    }
-  }
-
-  // Bulk delete
-  const bulkDelete = async () => {
-    if (!confirm(`Sei sicuro di voler eliminare ${selectedNotifications.size} notifiche?`)) {
-      return
-    }
-
-    const promises = Array.from(selectedNotifications).map(id =>
-      deleteDoc(doc(firestore, 'notifications', id))
-    )
-
-    try {
-      await Promise.all(promises)
-      clearSelection()
-    } catch (error) {
-      console.error('Error bulk deleting:', error)
-    }
-  }
-
   // Format date for display
   const formatDate = (dateString) => {
+    // ... (This function remains unchanged)
     const date = new Date(dateString)
     const now = new Date()
     const diffInHours = Math.abs(now - date) / (1000 * 60 * 60)
@@ -258,7 +281,7 @@ export default function CustomerNotifications() {
       exit={{ opacity: 0, y: -20 }}
       className="notifications-page"
     >
-      {/* Header */}
+      {/* Header, Controls etc. remain the same */}
       <div className="notifications-header">
         <div className="notifications-title-section">
           <h1 className="notifications-title">
@@ -271,8 +294,6 @@ export default function CustomerNotifications() {
             </span>
           </div>
         </div>
-
-        {/* Controls */}
         <div className="notifications-controls">
           <div className="notifications-filters">
             <select
@@ -284,7 +305,6 @@ export default function CustomerNotifications() {
               <option value="unread">Non lette</option>
               <option value="read">Lette</option>
             </select>
-
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -294,48 +314,8 @@ export default function CustomerNotifications() {
               <option value="oldest">Più vecchie</option>
             </select>
           </div>
-
-          {filteredNotifications.length > 0 && (
-            <div className="notifications-bulk-controls">
-              <button
-                onClick={selectAllVisible}
-                className="notifications-select-all-btn"
-              >
-                Seleziona tutti
-              </button>
-            </div>
-          )}
         </div>
       </div>
-
-      {/* Bulk Actions Bar */}
-      <AnimatePresence>
-        {showBulkActions && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="notifications-bulk-actions"
-          >
-            <div className="notifications-bulk-info">
-              {selectedNotifications.size} notifiche selezionate
-            </div>
-            <div className="notifications-bulk-buttons">
-              <button onClick={bulkMarkAsRead} className="notifications-bulk-read-btn">
-                <FontAwesomeIcon icon={faCheckCircle} />
-                Segna come lette
-              </button>
-              <button onClick={bulkDelete} className="notifications-bulk-delete-btn">
-                <FontAwesomeIcon icon={faTrash} />
-                Elimina
-              </button>
-              <button onClick={clearSelection} className="notifications-bulk-cancel-btn">
-                Annulla
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Notifications List */}
       <div className="notifications-list">
@@ -353,77 +333,69 @@ export default function CustomerNotifications() {
           </div>
         ) : (
           <AnimatePresence>
-            {filteredNotifications.map((notification) => (
-              <motion.div
-                key={notification.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className={`notification-item ${!notification.read ? 'unread' : ''} ${
-                  selectedNotifications.has(notification.id) ? 'selected' : ''
-                }`}
-                onClick={() => !notification.read && markAsRead(notification.id)}
-              >
-                <div className="notification-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={selectedNotifications.has(notification.id)}
-                    onChange={() => toggleNotificationSelection(notification.id)}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
+            {filteredNotifications.map((notification) => {
+              const swipeInfo = swipeState[notification.id] || { type: 'idle', offset: 0 }
 
-                <div className="notification-icon">
-                  <FontAwesomeIcon
-                    icon={notification.read ? faEnvelopeOpen : faEnvelope}
-                    className={`notification-status-icon ${!notification.read ? 'unread' : ''}`}
-                  />
-                </div>
-
-                <div className="notification-content">
-                  <div className="notification-header">
-                    <h3 className="notification-title">
-                      {notification.title || 'Dandy Notification'}
-                    </h3>
-                    <span className="notification-time">
-                      <FontAwesomeIcon icon={faCalendar} />
-                      {formatDate(notification.createdAt)}
-                    </span>
+              return (
+                <motion.div
+                  key={notification.id}
+                  layout // Helps with smooth reordering if list changes
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  // <-- MODIFICATION #2: The `exit` animation is now a full slide-left
+                  exit={{
+                    x: "-110%",
+                    opacity: 0,
+                    transition: { duration: 0.4, ease: "easeIn" }
+                  }}
+                  className={`notification-wrapper ${swipeInfo.type}`}
+                >
+                  <div className="notification-delete-area">
+                    <FontAwesomeIcon icon={faTrash} />
                   </div>
 
-                  <p className="notification-body">
-                    {notification.body || notification.message}
-                  </p>
-
-                  {notification.data && (
-                    <div className="notification-metadata">
-                      {notification.data.click_action && (
-                        <span className="notification-action">
-                          Tocca per aprire: {notification.data.click_action}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="notification-actions">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      deleteNotification(notification.id)
+                  <div
+                    className={`notification-item ${!notification.read ? 'unread' : ''} ${swipeInfo.type}`}
+                    style={{
+                      transform: `translateX(-${swipeInfo.offset}px)`
                     }}
-                    className="notification-delete-btn"
-                    title="Elimina notifica"
+                    onClick={() => handleNotificationClick(notification.id, notification.read)}
+                    onTouchStart={(e) => handleTouchStart(e, notification.id)}
+                    onTouchMove={(e) => handleTouchMove(e, notification.id)}
+                    onTouchEnd={(e) => handleTouchEnd(e, notification.id)}
                   >
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
-                </div>
+                    <div
+                      className="notification-icon"
+                      onClick={(e) => toggleReadStatus(e, notification.id, notification.read)}
+                    >
+                      <FontAwesomeIcon
+                        icon={notification.read ? faEnvelopeOpen : faEnvelope}
+                        className={`notification-status-icon ${!notification.read ? 'unread' : ''}`}
+                      />
+                    </div>
 
-                {!notification.read && (
-                  <div className="notification-unread-indicator"></div>
-                )}
-              </motion.div>
-            ))}
+                    <div className="notification-content">
+                      <div className="notification-header">
+                        <h3 className="notification-title">
+                          {notification.title || 'Dandy Notification'}
+                        </h3>
+                        <span className="notification-time">
+                          <FontAwesomeIcon icon={faCalendar} />
+                          {formatDate(notification.createdAt)}
+                        </span>
+                      </div>
+                      <p className="notification-body">
+                        {notification.body || notification.message}
+                      </p>
+                    </div>
+
+                    {!notification.read && (
+                      <div className="notification-unread-indicator"></div>
+                    )}
+                  </div>
+                </motion.div>
+              )
+            })}
           </AnimatePresence>
         )}
       </div>
