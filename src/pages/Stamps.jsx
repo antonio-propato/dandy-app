@@ -492,7 +492,7 @@ export default function Stamps() {
             <h3>🎉 Tanti Auguri! 🎉</h3>
             <p>È il tuo compleanno! Hai ricevuto <strong>1 timbro extra</strong> in regalo! 🎂❤️</p>
             <button onClick={() => setShowBirthdayModal(false)} className="close-button">
-              Grande!
+              Yay!
             </button>
           </div>
         </div>
