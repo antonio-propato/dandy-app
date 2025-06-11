@@ -24,7 +24,9 @@ import SuperuserDashboard from './pages/SuperuserDashboard'
 import ClientManagement from './pages/ClientManagement'
 import MenuManagement from './pages/MenuManagement'
 import NotificationPanel from './components/NotificationPanel'
-import CustomerNotifications from './pages/CustomerNotifications' // NEW: Customer notifications
+import CustomerNotifications from './pages/CustomerNotifications'
+import RewardsLog from './pages/RewardsLog' // NEW: Rewards log page
+import StampsLog from './pages/StampsLog' // NEW: Stamps log page
 
 function AnimatedRoutes({ user, userRole }) {
   const location = useLocation()
@@ -116,7 +118,7 @@ function AnimatedRoutes({ user, userRole }) {
           }
         />
 
-        {/* NEW: Customer Notifications Route */}
+        {/* Customer Notifications Route */}
         <Route
           path="/notifications"
           element={
@@ -213,6 +215,86 @@ function AnimatedRoutes({ user, userRole }) {
           }
         />
 
+        {/* NEW: Superuser Rewards Log Route */}
+        <Route
+          path="/rewards-log"
+          element={
+            <ProtectedRoute user={user}>
+              {userRole === 'superuser' ? (
+                <>
+                  {console.log("Rewards Log route - User is superuser, showing RewardsLog")}
+                  <RewardsLog />
+                </>
+              ) : (
+                <>
+                  {console.log("Rewards Log route - User is customer, redirecting to Profile")}
+                  <Navigate to="/profile" />
+                </>
+              )}
+            </ProtectedRoute>
+          }
+        />
+
+        {/* NEW: Superuser Stamps Log Route */}
+        <Route
+          path="/stamps-log"
+          element={
+            <ProtectedRoute user={user}>
+              {userRole === 'superuser' ? (
+                <>
+                  {console.log("Stamps Log route - User is superuser, showing StampsLog")}
+                  <StampsLog />
+                </>
+              ) : (
+                <>
+                  {console.log("Stamps Log route - User is customer, redirecting to Profile")}
+                  <Navigate to="/profile" />
+                </>
+              )}
+            </ProtectedRoute>
+          }
+        />
+
+        {/* NEW: Superuser Rewards Log Route */}
+        <Route
+          path="/rewards-log"
+          element={
+            <ProtectedRoute user={user}>
+              {userRole === 'superuser' ? (
+                <>
+                  {console.log("Rewards Log route - User is superuser, showing RewardsLog")}
+                  <RewardsLog />
+                </>
+              ) : (
+                <>
+                  {console.log("Rewards Log route - User is customer, redirecting to Profile")}
+                  <Navigate to="/profile" />
+                </>
+              )}
+            </ProtectedRoute>
+          }
+        />
+
+        {/* NEW: Superuser Stamps Log Route */}
+        <Route
+          path="/stamps-log"
+          element={
+            <ProtectedRoute user={user}>
+              {userRole === 'superuser' ? (
+                <>
+                  {console.log("Stamps Log route - User is superuser, showing StampsLog")}
+                  <StampsLog />
+                </>
+              ) : (
+                <>
+                  {console.log("Stamps Log route - User is customer, redirecting to Profile")}
+                  <Navigate to="/profile" />
+                </>
+              )}
+            </ProtectedRoute>
+          }
+        />
+
         {/* Superuser Notifications Panel Route */}
         <Route
           path="/superuser-notifications"
@@ -244,7 +326,7 @@ function App() {
   const [user, setUser] = useState(null)
   const [userRole, setUserRole] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [keyboardVisible, setKeyboardVisible] = useState(false) // NEW: Track keyboard state
+  const [keyboardVisible, setKeyboardVisible] = useState(false) // Track keyboard state
 
   // 📱 UNIVERSAL KEYBOARD & SCROLL HANDLING
   useEffect(() => {

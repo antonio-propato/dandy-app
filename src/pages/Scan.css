@@ -144,6 +144,41 @@ h1 {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
+/* Processing message styling */
+.processing-message {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background-color: rgba(255, 193, 7, 0.15);
+  backdrop-filter: blur(5px);
+  border-radius: 8px;
+  border-left: 4px solid #ffc107;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.processing-message p {
+  color: #fff;
+  margin-bottom: 1rem;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.loader {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 4px solid #ffc107;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 /* Error message styling */
 .error-message {
   margin-top: 2rem;
@@ -238,58 +273,342 @@ h1 {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* Back button - centered single button */
-.nav-buttons {
-  margin-top: auto;
-  margin-bottom: 20px;
+/* TODAY'S STAMPS SECTION - COMPACT DESIGN */
+.todays-stamps-section {
+  width: 100%;
+  max-width: 600px;
+  margin: 1.5rem 0;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.todays-stamps-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #28a745, #20c997);
+  border-radius: 12px 12px 0 0;
+}
+
+/* Refresh button outside section */
+.refresh-container {
+  width: 100%;
+  max-width: 600px;
   display: flex;
   justify-content: center;
-  width: 100%;
-  padding: 1rem 0;
+  margin-bottom: 1rem;
+}
+
+.refresh-today-button {
+  background: rgba(255, 255, 255, 0.2);
+  color: #FFD700;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 20px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.refresh-today-button:hover {
+  background: rgba(255, 215, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+.refresh-today-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.section-header h2 {
+  color: #FFD700;
+  margin: 0;
+  font-size: 16px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  font-weight: 600;
+}
+
+.today-counter {
+  display: flex;
+  align-items: center;
+}
+
+.count-badge {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
+}
+
+.mini-loader {
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 2px solid #FFD700;
+  width: 14px;
+  height: 14px;
+  animation: spin 1s linear infinite;
+}
+
+/* COMPACT LOG LIST - SINGLE LINE DESIGN */
+.compact-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 180px; /* Reduced height */
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.compact-log-list::-webkit-scrollbar {
+  width: 3px;
+}
+
+.compact-log-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.compact-log-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 0, 0.5);
+  border-radius: 2px;
+}
+
+/* SINGLE LINE LOG ITEM */
+.compact-log-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  padding: 4px 8px;
+  border-left: 2px solid #28a745;
+  transition: all 0.3s;
+  font-size: 11px;
+  min-height: 24px;
+}
+
+.compact-log-item:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateX(2px);
+}
+
+.log-time {
+  color: #FFD700;
+  font-weight: 700;
+  font-size: 10px;
+  min-width: 35px;
+  text-align: center;
+  background: rgba(255, 215, 0, 0.1);
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.log-customer {
+  color: white;
+  font-weight: 600;
+  font-size: 11px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  flex: 1;
+  margin: 0 6px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.log-addedby {
+  color: #28a745;
+  font-weight: 500;
+  font-size: 9px;
+  min-width: 50px;
+  text-align: right;
+  opacity: 0.9;
+}
+
+.loading-today {
+  text-align: center;
+  padding: 15px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.loading-today p {
+  margin: 0;
+  font-style: italic;
+  font-size: 12px;
+}
+
+.no-stamps-today {
+  text-align: center;
+  padding: 20px 15px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.no-stamps-today p {
+  font-size: 12px;
+  margin: 0;
+  font-style: italic;
+}
+
+/* HIDE BACK BUTTON */
+.nav-buttons {
+  display: none;
 }
 
 .back-button {
-  background-color: rgba(117, 117, 117, 0.8);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 12px 0;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s;
-  width: 220px;
-  text-align: center;
-}
-
-.back-button:hover {
-  background-color: rgba(117, 117, 117, 1);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  display: none;
 }
 
 /* Fixed styles for html5-qrcode library elements */
 .html5-qrcode-element {
-  color: #000 !important; /* Force black text on QR scanner components */
+  color: #000 !important;
 }
 
-/* Responsive adjustments */
+/* MOBILE RESPONSIVE ADJUSTMENTS */
 @media (max-width: 600px) {
   .scan-container {
-    padding: 60px 15px 15px 15px;
+    padding: 60px 10px 15px 10px;
   }
 
   h1 {
-    font-size: 1.5rem;
-    margin-bottom: 1.5rem;
+    font-size: 1.4rem;
+    margin-bottom: 1.2rem;
   }
 
   #reader {
-    max-height: 50vh;
+    max-height: 40vh;
   }
 
-  .back-button {
-    width: 180px;
-    bottom: 50px; /* Adjusted for smaller screens */
-    position: fixed;
+  /* More compact on mobile */
+  .todays-stamps-section {
+    margin: 1rem 0;
+    padding: 12px;
+  }
+
+  .section-header h2 {
+    font-size: 14px;
+  }
+
+  .compact-log-list {
+    max-height: 140px;
+  }
+
+  /* FORCE SINGLE LINE LAYOUT ON MOBILE */
+  .compact-log-item {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 3px 6px;
+    font-size: 10px;
+    min-height: 20px;
+  }
+
+  .log-time {
+    font-size: 9px;
+    min-width: 30px;
+    padding: 1px 3px;
+    flex-shrink: 0;
+  }
+
+  .log-customer {
+    font-size: 10px;
+    margin: 0 4px;
+    flex: 1;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .log-addedby {
+    font-size: 8px;
+    min-width: 40px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .count-badge {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+
+  .refresh-today-button {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .scan-container {
+    padding: 60px 8px 15px 8px;
+  }
+
+  .todays-stamps-section {
+    padding: 10px;
+  }
+
+  /* Keep single line layout even on very small screens */
+  .compact-log-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 9px;
+    padding: 2px 5px;
+    min-height: 18px;
+  }
+
+  .log-time {
+    font-size: 8px;
+    min-width: 25px;
+    padding: 1px 2px;
+  }
+
+  .log-customer {
+    font-size: 9px;
+    margin: 0 2px;
+    flex: 1;
+    text-align: center;
+  }
+
+  .log-addedby {
+    font-size: 7px;
+    min-width: 30px;
+    text-align: right;
+  }
+
+  .section-header h2 {
+    font-size: 13px;
+  }
+
+  .refresh-today-button {
+    font-size: 11px;
+    padding: 5px 50px;
+    margin-top: 40px;
   }
 }

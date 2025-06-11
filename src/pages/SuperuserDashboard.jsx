@@ -9,14 +9,17 @@ export default function SuperuserDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userData, setUserData] = useState(null);
-  const [recentScans, setRecentScans] = useState([]);
+  const [todayStamps, setTodayStamps] = useState([]);
+  const [showTodayLog, setShowTodayLog] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
-    totalStamps: 0,    // Sum of all lifetimeStamps across all users
-    stampsToday: 0,    // Count of stamps added today only (not redemptions)
-    totalRewards: 0    // Sum of all rewardsEarned across all users
+    totalStamps: 0,
+    stampsToday: 0,
+    totalRewardsLifetime: 0,
+    totalRewardsToday: 0
   });
   const scrollRef = useRef(null);
+  const todayLogRef = useRef(null);
 
   useEffect(() => {
     const checkSuperUser = async () => {
@@ -28,7 +31,6 @@ export default function SuperuserDashboard() {
       try {
         const userDoc = await getDoc(doc(firestore, 'users', auth.currentUser.uid));
         if (!userDoc.exists() || userDoc.data().role !== 'superuser') {
-          // Not a superuser, redirect to profile
           navigate('/profile');
           return;
         }
@@ -40,7 +42,6 @@ export default function SuperuserDashboard() {
         navigate('/signin');
       } finally {
         setLoading(false);
-        // Ensure scroll position is at top when dashboard loads
         window.scrollTo(0, 0);
       }
     };
@@ -52,11 +53,11 @@ export default function SuperuserDashboard() {
     setRefreshing(true);
 
     try {
-      // Get all users count (excluding superusers)
+      // Get ALL users count
       const usersSnapshot = await getDocs(collection(firestore, 'users'));
-      const totalUsers = usersSnapshot.docs.filter(doc => doc.data().role !== 'superuser').length;
+      const totalUsers = usersSnapshot.docs.length;
 
-      // Calculate today's date range (midnight to midnight)
+      // Calculate today's date range
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
@@ -68,8 +69,9 @@ export default function SuperuserDashboard() {
       // Initialize counters
       let totalLifetimeStamps = 0;
       let stampsToday = 0;
-      let totalRewards = 0;
-      const recentActivity = [];
+      let totalRewardsLifetime = 0;
+      let totalRewardsToday = 0;
+      const todayStampsActivity = [];
 
       // Process each stamps document
       for (const stampDoc of stampsSnapshot.docs) {
@@ -86,7 +88,6 @@ export default function SuperuserDashboard() {
 
         // Check if lifetimeStamps is missing OR incorrect
         if (lifetimeStamps < expectedLifetimeStamps) {
-          // Update to the correct calculated value
           lifetimeStamps = expectedLifetimeStamps;
 
           // Update document with correct lifetimeStamps value
@@ -94,61 +95,57 @@ export default function SuperuserDashboard() {
             await updateDoc(doc(firestore, 'stamps', userId), {
               lifetimeStamps: lifetimeStamps
             });
-            console.log(`Updated lifetimeStamps for user ${userId} from ${lifetimeStamps} to ${expectedLifetimeStamps}`);
+            console.log(`Updated lifetimeStamps for user ${userId} to ${expectedLifetimeStamps}`);
           } catch (err) {
             console.error(`Failed to update lifetimeStamps for user ${userId}:`, err);
           }
         }
 
-        // Add to total lifetime stamps
+        // Add to totals
         totalLifetimeStamps += lifetimeStamps;
+        totalRewardsLifetime += rewardsEarned;
 
-        // Add to total rewards
-        totalRewards += rewardsEarned;
-
-        // Count today's stamps - check stamps created today
+        // Count today's stamps and build enhanced activity log
         if (stampsData.stamps && Array.isArray(stampsData.stamps)) {
           stampsData.stamps.forEach(stamp => {
             const stampDate = new Date(stamp.date);
             if (stampDate >= today && stampDate < tomorrow) {
               stampsToday++;
+
+              // Add to today's stamps log with client info
+              todayStampsActivity.push({
+                userId,
+                timestamp: stampDate,
+                date: stamp.date,
+                addedBy: stamp.addedBy || 'unknown',
+                addedByUser: stamp.addedByUser || null,
+                addedByName: stamp.addedByName || null,
+                // Client stats at time of stamp
+                currentStamps,
+                lifetimeStamps,
+                rewardsEarned
+              });
             }
           });
         }
 
-        // Add to recent activity if there are stamps
-        if (stampsData.stamps && stampsData.stamps.length > 0) {
-          // Sort stamps by date (newest first)
-          const sortedStamps = [...stampsData.stamps].sort((a, b) =>
-            new Date(b.date) - new Date(a.date)
-          );
-
-          const latestStamp = sortedStamps[0];
-          const stampDate = new Date(latestStamp.date);
-
-          recentActivity.push({
-            userId,
-            timestamp: stampDate,
-            date: latestStamp.date,
-            currentStamps,
-            lifetimeStamps,
-            rewardsEarned,
-            addedBy: latestStamp.addedBy || 'unknown',
-            addedByUser: latestStamp.addedByUser || null,
-            addedByName: latestStamp.addedByName || null
+        // Count today's rewards redeemed
+        if (stampsData.rewardHistory && Array.isArray(stampsData.rewardHistory)) {
+          stampsData.rewardHistory.forEach(reward => {
+            const rewardDate = new Date(reward.redeemedAt);
+            if (rewardDate >= today && rewardDate < tomorrow) {
+              totalRewardsToday++;
+            }
           });
         }
       }
 
-      // Sort recent activity by timestamp (newest first)
-      recentActivity.sort((a, b) => b.timestamp - a.timestamp);
+      // Sort today's activities by timestamp (newest first)
+      todayStampsActivity.sort((a, b) => b.timestamp - a.timestamp);
 
-      // Get top 10 most recent activities
-      const recentActivities = recentActivity.slice(0, 10);
-
-      // Fetch user names for the recent activities and who added the stamps
-      const enrichedActivities = await Promise.all(
-        recentActivities.map(async (activity) => {
+      // Enrich today's stamps activity with user names
+      const enrichedTodayStamps = await Promise.all(
+        todayStampsActivity.map(async (activity) => {
           try {
             // Get customer info
             const userDoc = await getDoc(doc(firestore, 'users', activity.userId));
@@ -159,10 +156,8 @@ export default function SuperuserDashboard() {
             // Determine who added the stamp
             let addedByText = '';
             if (activity.addedByName) {
-              // Use the stored name if available
               addedByText = activity.addedByName;
             } else if (activity.addedByUser && activity.addedBy === 'manual') {
-              // Try to fetch the staff member's name
               try {
                 const staffDoc = await getDoc(doc(firestore, 'users', activity.addedByUser));
                 if (staffDoc.exists()) {
@@ -188,7 +183,7 @@ export default function SuperuserDashboard() {
               addedByText: addedByText
             };
           } catch (err) {
-            console.error('Error fetching activity details:', err);
+            console.error('Error fetching today activity details:', err);
             return {
               ...activity,
               userName: 'Utente Sconosciuto',
@@ -198,13 +193,14 @@ export default function SuperuserDashboard() {
         })
       );
 
-      // Update state with the calculated stats
-      setRecentScans(enrichedActivities);
+      // Update state
+      setTodayStamps(enrichedTodayStamps);
       setStats({
         totalUsers,
         totalStamps: totalLifetimeStamps,
         stampsToday,
-        totalRewards
+        totalRewardsLifetime,
+        totalRewardsToday
       });
 
     } catch (error) {
@@ -218,12 +214,36 @@ export default function SuperuserDashboard() {
     loadDashboardData();
   };
 
-  const formatDate = (dateString) => {
+  // Navigation handlers for clickable stats
+  const handleTotalUsersClick = () => {
+    navigate('/client-management');
+  };
+
+  const handleTotalStampsClick = () => {
+    navigate('/stamps-log');
+  };
+
+  const handleTodayStampsClick = () => {
+    setShowTodayLog(!showTodayLog);
+    if (!showTodayLog) {
+      setTimeout(() => {
+        todayLogRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  };
+
+  const handleLifetimeRewardsClick = () => {
+    navigate('/rewards-log');
+  };
+
+  const handleTodayRewardsClick = () => {
+    navigate('/rewards-log?filter=today');
+  };
+
+  // Format time only for compact display
+  const formatTime = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleString('it-IT', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
@@ -269,60 +289,77 @@ export default function SuperuserDashboard() {
         </button>
       </div>
 
+      {/* Clickable stats grid */}
       <div className="dashboard-stats">
-        <div className="stat-card">
+        <div className="stat-card clickable" onClick={handleTotalUsersClick}>
           <h3>Clienti Totali</h3>
           <div className="stat-value">{stats.totalUsers}</div>
+          <div className="click-hint">👆 Clicca per gestire</div>
         </div>
-        <div className="stat-card">
+
+        <div className="stat-card clickable" onClick={handleTotalStampsClick}>
           <h3>Timbri Totali</h3>
           <div className="stat-value">{stats.totalStamps}</div>
+          <div className="click-hint">👆 Clicca per log</div>
         </div>
-        <div className="stat-card">
+
+        <div className="stat-card clickable" onClick={handleTodayStampsClick}>
           <h3>Timbri Oggi</h3>
           <div className="stat-value">{stats.stampsToday}</div>
+          <div className="click-hint">👆 Clicca per log</div>
         </div>
-        <div className="stat-card">
+
+        <div className="stat-card rewards-split">
           <h3>Caffè Riscattati</h3>
-          <div className="stat-value">{stats.totalRewards}</div>
+          <div className="rewards-container">
+            <div className="reward-item clickable" onClick={handleLifetimeRewardsClick}>
+              <div className="reward-label">Lifetime</div>
+              <div className="reward-value">{stats.totalRewardsLifetime}</div>
+            </div>
+            <div className="reward-divider">|</div>
+            <div className="reward-item clickable" onClick={handleTodayRewardsClick}>
+              <div className="reward-label">Oggi</div>
+              <div className="reward-value">{stats.totalRewardsToday}</div>
+            </div>
+          </div>
+          <div className="click-hint">👆 Clicca per logs</div>
         </div>
       </div>
 
-      <div className="recent-activity">
-        <h2>Attività Recenti</h2>
-        <div className="activity-list">
-          {recentScans.length > 0 ? (
-            recentScans.map((scan, index) => (
-              <div className="activity-item" key={index}>
-                <div className="activity-content">
-                  {/* Name on top in bold */}
-                  <p className="activity-user">{scan.userName}</p>
+      {/* Enhanced Today's Stamps Log with client info */}
+      {showTodayLog && (
+        <div className="todays-stamps-log" ref={todayLogRef}>
+          <div className="log-header">
+            <h2>Timbri di Oggi ({stats.stampsToday})</h2>
+          </div>
 
-                  {/* Date and timestamp with who added it */}
-                  <p className="activity-title">
-                    Timbro Aggiunto da {scan.addedByText} - {formatDate(scan.date)}
-                  </p>
+          <div className="enhanced-log-list">
+            {todayStamps.length > 0 ? (
+              todayStamps.map((stamp, index) => (
+                <div className="enhanced-log-item" key={index}>
+                  {/* First line: Time, Name, Added By */}
+                  <div className="log-main-line">
+                    <div className="log-time">{formatTime(stamp.date)}</div>
+                    <div className="log-customer">{stamp.userName}</div>
+                    <div className="log-addedby">{stamp.addedByText}</div>
+                  </div>
 
-                  {/* Timbri Attuali stays green */}
-                  <p className="activity-stamps">Timbri Attuali: {scan.currentStamps}</p>
-
-                  {/* Timbri Totali stays yellow */}
-                  <p className="activity-lifetime">
-                    Timbri Totali: {scan.lifetimeStamps}
-                  </p>
-
-                  {/* Premi Riscattati with different color (orange) */}
-                  <p className="activity-lifetime premi-riscattati">
-                    Premi Riscattati: {scan.rewardsEarned}
-                  </p>
+                  {/* Second line: Client stats */}
+                  <div className="log-stats-line">
+                    <span className="stat-attuali">Attuali: {stamp.currentStamps}</span>
+                    <span className="stat-totali">Totali: {stamp.lifetimeStamps}</span>
+                    <span className="stat-riscat">Riscat: {stamp.rewardsEarned}</span>
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="no-stamps-today">
+                <p>📭 Nessun timbro aggiunto oggi</p>
               </div>
-            ))
-          ) : (
-            <p className="no-activity">Nessuna attività recente</p>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
