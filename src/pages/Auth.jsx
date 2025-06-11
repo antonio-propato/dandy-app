@@ -85,7 +85,7 @@ export default function Auth({ mode = 'signin' }) {
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [gdprAccepted, setGdprAccepted] = useState(true);
+  const [gdprAccepted, setGdprAccepted] = useState(true); // Default to checked
   const [showGdprWarning, setShowGdprWarning] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -172,6 +172,10 @@ export default function Auth({ mode = 'signin' }) {
     if (e.target.checked) {
       setShowGdprWarning(false);
     }
+    // Clear any existing errors when user checks the box
+    if (e.target.checked && error) {
+      setError(null);
+    }
   };
 
   const validateForm = async () => {
@@ -255,6 +259,7 @@ export default function Auth({ mode = 'signin' }) {
     e.preventDefault();
     setError(null);
 
+    // Check GDPR consent for signup
     if (mode === 'signup' && !gdprAccepted) {
       setShowGdprWarning(true);
       return;
@@ -319,7 +324,7 @@ export default function Auth({ mode = 'signin' }) {
             rewardsEarned: 0,
             availableRewards: 0,
             receivedFreeStamps: true,
-            birthdayBonusGiven: null,
+            birthdayBonusYear: null,
           });
         }
 
@@ -361,10 +366,11 @@ export default function Auth({ mode = 'signin' }) {
     }
   };
 
-  const handleGdprWarningContinue = async () => {
-    setGdprAccepted(true);
+  const handleGdprWarningContinue = () => {
+    // Close modal and accept GDPR
     setShowGdprWarning(false);
-    handleSubmit({ preventDefault: () => {} });
+    setGdprAccepted(true);
+    setError(null); // Clear any existing errors
   };
 
   if (emailVerificationSent) {
@@ -468,7 +474,12 @@ export default function Auth({ mode = 'signin' }) {
           {mode === 'signup' && (
             <div className="auth-gdpr-section">
               <div className="auth-gdpr-checkbox">
-                <input type="checkbox" id="gdpr-consent" checked={gdprAccepted} onChange={handleGdprChange} />
+                <input
+                  type="checkbox"
+                  id="gdpr-consent"
+                  checked={gdprAccepted}
+                  onChange={handleGdprChange}
+                />
                 <label htmlFor="gdpr-consent" className="auth-gdpr-label">
                   Accetto l'{' '}
                   <span className="auth-privacy-link" onClick={() => setShowPrivacyPolicy(true)}>Informativa Privacy</span>
@@ -484,9 +495,97 @@ export default function Auth({ mode = 'signin' }) {
           </div>
         </form>
       </div>
-      {showForgotPassword && ( <div className="auth-modal-overlay">{/* ... (modal JSX is unchanged) ... */}</div> )}
-      {showGdprWarning && ( <div className="auth-modal-overlay">{/* ... (modal JSX is unchanged) ... */}</div> )}
-      {showPrivacyPolicy && ( <PrivacyPolicy onClose={() => setShowPrivacyPolicy(false)} /> )}
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="auth-modal-overlay">
+          <div className="auth-forgot-modal">
+            <div className="auth-modal-header">
+              <h3>Reset Password</h3>
+              <button
+                className="auth-modal-close"
+                onClick={() => {
+                  setShowForgotPassword(false);
+                  setResetEmail('');
+                  setResetMessage('');
+                  setError(null);
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div className="auth-modal-content">
+              <p>Inserisci il tuo indirizzo email per ricevere le istruzioni per resettare la password.</p>
+              <form onSubmit={handleForgotPassword}>
+                <div className="auth-form-group">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    required
+                    placeholder="Il tuo indirizzo email"
+                  />
+                </div>
+                <div className="auth-modal-buttons">
+                  <button type="submit" className="auth-reset-btn" disabled={loading}>
+                    {loading ? 'Invio...' : 'Invia Reset'}
+                  </button>
+                  <button
+                    type="button"
+                    className="auth-cancel-btn"
+                    onClick={() => {
+                      setShowForgotPassword(false);
+                      setResetEmail('');
+                      setResetMessage('');
+                      setError(null);
+                    }}
+                  >
+                    Annulla
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GDPR Warning Modal */}
+      {showGdprWarning && (
+        <div className="auth-modal-overlay">
+          <div className="auth-gdpr-warning-modal">
+            <h3>Consenso Richiesto</h3>
+            <p>
+              È necessario accettare l'Informativa Privacy e acconsentire al trattamento dei dati personali per poter procedere con la registrazione.
+            </p>
+            <p>
+              Senza questo consenso non è possibile creare un account.
+            </p>
+            <div className="auth-modal-buttons">
+              <button
+                className="auth-gdpr-continue-btn"
+                onClick={handleGdprWarningContinue}
+              >
+                Accetto e Continua
+              </button>
+              <button
+                className="auth-gdpr-cancel-btn"
+                onClick={() => {
+                  setShowGdprWarning(false);
+                  setGdprAccepted(false);
+                }}
+              >
+                Annulla
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Privacy Policy Modal */}
+      {showPrivacyPolicy && (
+        <PrivacyPolicy onClose={() => setShowPrivacyPolicy(false)} />
+      )}
     </div>
   );
 }
