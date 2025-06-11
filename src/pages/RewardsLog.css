@@ -256,8 +256,8 @@
 
 .reward-card {
   background: rgba(255, 255, 255, 0.08);
-  border-radius: 15px;
-  padding: 20px;
+  border-radius: 12px;
+  padding: 15px 20px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   transition: all 0.3s;
   border-left: 4px solid transparent;
@@ -284,11 +284,39 @@
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
 }
 
+.reward-info-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 15px;
+  min-height: 20px;
+}
+
+.customer-name {
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.historical-count {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-left: 8px;
+  font-weight: 500;
+}
+
 .reward-date {
   color: rgba(255, 255, 255, 0.8);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   margin: 0;
+  white-space: nowrap;
 }
 
 .reward-method {
@@ -316,6 +344,12 @@
   background: rgba(23, 162, 184, 0.2);
   color: #17a2b8;
   border: 1px solid rgba(23, 162, 184, 0.3);
+}
+
+.method-badge.historical {
+  background: rgba(108, 117, 125, 0.2);
+  color: #6c757d;
+  border: 1px solid rgba(108, 117, 125, 0.3);
 }
 
 .today-badge {
@@ -413,7 +447,22 @@
   .reward-main {
     flex-direction: column;
     align-items: flex-start;
-    gap: 15px;
+    gap: 12px;
+  }
+
+  .reward-info-line {
+    gap: 10px;
+  }
+
+  .customer-name {
+    font-size: 15px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .reward-date {
+    font-size: 12px;
+    flex-shrink: 0;
   }
 
   .reward-method {
@@ -443,15 +492,22 @@
   }
 
   .reward-card {
-    padding: 15px;
+    padding: 12px 15px;
   }
 
-  .customer-info h3 {
-    font-size: 18px;
+  .customer-name {
+    font-size: 14px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .reward-date {
+    font-size: 11px;
+    flex-shrink: 0;
   }
 
   .method-badge {
-    font-size: 11px;
-    padding: 4px 8px;
+    font-size: 10px;
+    padding: 3px 6px;
   }
 }
