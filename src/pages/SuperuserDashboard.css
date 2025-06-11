@@ -185,6 +185,25 @@ body {
   overflow: hidden;
 }
 
+/* NEW: Clickable stat cards */
+.stat-card.clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.stat-card.clickable:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow:
+    0 15px 50px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 215, 0, 0.6);
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.stat-card.clickable:active {
+  transform: translateY(-4px) scale(1.01);
+}
+
 .stat-card::before {
   content: '';
   position: absolute;
@@ -199,15 +218,6 @@ body {
 
 .stat-card:hover::before {
   opacity: 1;
-}
-
-.stat-card:hover {
-  transform: translateY(-8px) scale(1.02);
-  box-shadow:
-    0 15px 50px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 215, 0, 0.4);
-  background: rgba(255, 255, 255, 0.18);
 }
 
 .stat-card h3 {
@@ -238,6 +248,281 @@ body {
   font-weight: 900; /* Increased from 800 */
   margin-bottom: 15px; /* Increased from 10px */
   text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+}
+
+/* NEW: Click hint for interactive elements */
+.click-hint {
+  color: rgba(255, 215, 0, 0.8);
+  font-size: 12px;
+  margin-top: 8px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-card.clickable:hover .click-hint {
+  opacity: 1;
+}
+
+/* NEW: Rewards split display */
+.stat-card.rewards-split .stat-value {
+  display: none; /* Hide default stat value */
+}
+
+.rewards-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.reward-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+  border-radius: 10px;
+  transition: all 0.3s;
+  cursor: pointer;
+  flex: 1;
+}
+
+.reward-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.05);
+}
+
+.reward-label {
+  color: #FFD700;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.reward-value {
+  color: white;
+  font-size: 28px;
+  font-weight: 900;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.reward-divider {
+  color: rgba(255, 215, 0, 0.6);
+  font-size: 24px;
+  font-weight: 300;
+}
+
+/* ENHANCED TODAY'S STAMPS LOG - Updated for two-line design */
+.todays-stamps-log {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(15px);
+  border-radius: 20px;
+  padding: 25px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow:
+    0 10px 40px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  margin-bottom: 30px;
+  position: relative;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.todays-stamps-log::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #28a745, #20c997, #17a2b8);
+}
+
+.log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.log-header h2 {
+  color: #FFD700;
+  margin: 0;
+  font-size: 22px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  font-weight: 700;
+}
+
+.close-log-button {
+  background: rgba(211, 47, 47, 0.8);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-log-button:hover {
+  background: rgba(211, 47, 47, 1);
+  transform: scale(1.1);
+}
+
+/* ENHANCED LOG LIST - TWO LINE DESIGN */
+.enhanced-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.enhanced-log-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.enhanced-log-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.enhanced-log-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 0, 0.6);
+  border-radius: 3px;
+}
+
+/* ENHANCED LOG ITEM - TWO LINES */
+.enhanced-log-item {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 15px;
+  border-left: 3px solid #28a745;
+  transition: all 0.3s;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.enhanced-log-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateX(5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* FIRST LINE: Time, Name, Added By */
+.log-main-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.log-time {
+  color: #FFD700;
+  font-weight: 700;
+  font-size: 14px;
+  text-align: center;
+  background: rgba(255, 215, 0, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.log-customer {
+  color: white;
+  font-weight: 600;
+  font-size: 15px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  flex: 1;
+  margin: 0 15px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.log-addedby {
+  color: #28a745;
+  font-weight: 500;
+  font-size: 13px;
+  text-align: right;
+  opacity: 0.9;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+/* SECOND LINE: Client Stats */
+.log-stats-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 4px;
+  gap: 20px;
+}
+
+.log-stats-line .stat-attuali {
+  color: #00E676; /* Bright Green for current stamps */
+  font-weight: 700;
+  text-shadow: 0 0 4px rgba(0, 230, 118, 0.3);
+  flex: 1;
+  text-align: center;
+}
+
+.log-stats-line .stat-totali {
+  color: #FFD700; /* Gold for total stamps */
+  font-weight: 700;
+  text-shadow: 0 0 4px rgba(255, 215, 0, 0.3);
+  flex: 1;
+  text-align: center;
+}
+
+.log-stats-line .stat-riscat {
+  color: #FF6B35; /* Bright Orange for rewards */
+  font-weight: 700;
+  text-shadow: 0 0 4px rgba(255, 107, 53, 0.3);
+  flex: 1;
+  text-align: center;
+}
+
+.no-stamps-today {
+  text-align: center;
+  padding: 40px 20px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.no-stamps-today p {
+  font-size: 18px;
+  margin: 0;
+  font-style: italic;
 }
 
 /* Enhanced recent activity section */
@@ -483,7 +768,7 @@ body {
   }
 
   .stat-card {
-    padding: 20px 15px;
+    padding: 10px 15px;
   }
 
   .stat-value {
@@ -512,6 +797,50 @@ body {
     padding: 40px 20px;
     font-size: 16px;
   }
+
+  /* Mobile adjustments for new elements */
+  .rewards-container {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .reward-item {
+    width: 100%;
+  }
+
+  /* Mobile adjustments for enhanced log */
+  .enhanced-log-item {
+    padding: 12px;
+  }
+
+  .log-main-line {
+    margin-bottom: 6px;
+  }
+
+  .log-time {
+    font-size: 12px;
+    padding: 3px 6px;
+    min-width: 50px;
+  }
+
+  .log-customer {
+    font-size: 14px;
+    margin: 0 10px;
+  }
+
+  .log-addedby {
+    font-size: 11px;
+    min-width: 60px;
+  }
+
+  .log-stats-line {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+
+  .todays-stamps-log {
+    padding: 20px 15px;
+  }
 }
 
 /* Extra small screens */
@@ -538,25 +867,34 @@ body {
     font-size: 15px;
     min-height: 52px;
   }
-}
 
-/* Burger menu safe zone indicator (for debugging) */
-/*
-.dashboard-container::before {
-  content: 'Burger Menu Safe Zone';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 120px;
-  background: rgba(255, 0, 0, 0.1);
-  border-bottom: 2px dashed red;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: red;
-  font-weight: bold;
-  z-index: 9999;
-  pointer-events: none;
+  .reward-value {
+    font-size: 24px;
+  }
+
+  /* Mobile adjustments for enhanced log - extra small */
+  .enhanced-log-item {
+    padding: 10px;
+  }
+
+  .log-time {
+    font-size: 11px;
+    min-width: 45px;
+    padding: 2px 5px;
+  }
+
+  .log-customer {
+    font-size: 13px;
+    margin: 0 8px;
+  }
+
+  .log-addedby {
+    font-size: 10px;
+    min-width: 50px;
+  }
+
+  .log-stats-line {
+    font-size: 12px;
+    padding: 5px 8px;
+  }
 }
-*/

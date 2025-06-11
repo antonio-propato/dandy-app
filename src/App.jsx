@@ -24,7 +24,9 @@ import SuperuserDashboard from './pages/SuperuserDashboard'
 import ClientManagement from './pages/ClientManagement'
 import MenuManagement from './pages/MenuManagement'
 import NotificationPanel from './components/NotificationPanel'
-import CustomerNotifications from './pages/CustomerNotifications' // NEW: Customer notifications
+import CustomerNotifications from './pages/CustomerNotifications'
+import RewardsLog from './pages/RewardsLog' // NEW: Rewards log page
+import StampsLog from './pages/StampsLog' // NEW: Stamps log page
 
 function AnimatedRoutes({ user, userRole }) {
   const location = useLocation()
@@ -116,7 +118,7 @@ function AnimatedRoutes({ user, userRole }) {
           }
         />
 
-        {/* NEW: Customer Notifications Route */}
+        {/* Customer Notifications Route */}
         <Route
           path="/notifications"
           element={
@@ -213,6 +215,86 @@ function AnimatedRoutes({ user, userRole }) {
           }
         />
 
+        {/* NEW: Superuser Rewards Log Route */}
+        <Route
+          path="/rewards-log"
+          element={
+            <ProtectedRoute user={user}>
+              {userRole === 'superuser' ? (
+                <>
+                  {console.log("Rewards Log route - User is superuser, showing RewardsLog")}
+                  <RewardsLog />
+                </>
+              ) : (
+                <>
+                  {console.log("Rewards Log route - User is customer, redirecting to Profile")}
+                  <Navigate to="/profile" />
+                </>
+              )}
+            </ProtectedRoute>
+          }
+        />
+
+        {/* NEW: Superuser Stamps Log Route */}
+        <Route
+          path="/stamps-log"
+          element={
+            <ProtectedRoute user={user}>
+              {userRole === 'superuser' ? (
+                <>
+                  {console.log("Stamps Log route - User is superuser, showing StampsLog")}
+                  <StampsLog />
+                </>
+              ) : (
+                <>
+                  {console.log("Stamps Log route - User is customer, redirecting to Profile")}
+                  <Navigate to="/profile" />
+                </>
+              )}
+            </ProtectedRoute>
+          }
+        />
+
+        {/* NEW: Superuser Rewards Log Route */}
+        <Route
+          path="/rewards-log"
+          element={
+            <ProtectedRoute user={user}>
+              {userRole === 'superuser' ? (
+                <>
+                  {console.log("Rewards Log route - User is superuser, showing RewardsLog")}
+                  <RewardsLog />
+                </>
+              ) : (
+                <>
+                  {console.log("Rewards Log route - User is customer, redirecting to Profile")}
+                  <Navigate to="/profile" />
+                </>
+              )}
+            </ProtectedRoute>
+          }
+        />
+
+        {/* NEW: Superuser Stamps Log Route */}
+        <Route
+          path="/stamps-log"
+          element={
+            <ProtectedRoute user={user}>
+              {userRole === 'superuser' ? (
+                <>
+                  {console.log("Stamps Log route - User is superuser, showing StampsLog")}
+                  <StampsLog />
+                </>
+              ) : (
+                <>
+                  {console.log("Stamps Log route - User is customer, redirecting to Profile")}
+                  <Navigate to="/profile" />
+                </>
+              )}
+            </ProtectedRoute>
+          }
+        />
+
         {/* Superuser Notifications Panel Route */}
         <Route
           path="/superuser-notifications"
@@ -244,6 +326,150 @@ function App() {
   const [user, setUser] = useState(null)
   const [userRole, setUserRole] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [keyboardVisible, setKeyboardVisible] = useState(false) // Track keyboard state
+
+  // 📱 UNIVERSAL KEYBOARD & SCROLL HANDLING
+  useEffect(() => {
+    console.log('🔧 Setting up universal keyboard and scroll handling')
+
+    // Set proper viewport for mobile
+    const setViewportMeta = () => {
+      let viewportMeta = document.querySelector('meta[name="viewport"]')
+      if (!viewportMeta) {
+        viewportMeta = document.createElement('meta')
+        viewportMeta.name = 'viewport'
+        document.head.appendChild(viewportMeta)
+      }
+      viewportMeta.content = 'width=device-width, initial-scale=1.0, user-scalable=yes, minimum-scale=1.0, maximum-scale=5.0'
+    }
+
+    // Handle keyboard visibility changes
+    const handleKeyboardShow = () => {
+      console.log('⌨️ Virtual keyboard shown')
+      setKeyboardVisible(true)
+
+      // Scroll focused input into view with delay
+      setTimeout(() => {
+        const activeElement = document.activeElement
+        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+          activeElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'nearest'
+          })
+        }
+      }, 300)
+    }
+
+    const handleKeyboardHide = () => {
+      console.log('⌨️ Virtual keyboard hidden')
+      setKeyboardVisible(false)
+    }
+
+    // Method 1: Visual Viewport API (Modern browsers)
+    if (window.visualViewport) {
+      console.log('✅ Using Visual Viewport API for keyboard detection')
+
+      const initialHeight = window.visualViewport.height
+
+      const handleViewportChange = () => {
+        const currentHeight = window.visualViewport.height
+        const heightDifference = initialHeight - currentHeight
+
+        if (heightDifference > 150) { // Keyboard likely visible
+          handleKeyboardShow()
+        } else {
+          handleKeyboardHide()
+        }
+      }
+
+      window.visualViewport.addEventListener('resize', handleViewportChange)
+
+      return () => {
+        window.visualViewport.removeEventListener('resize', handleViewportChange)
+      }
+    }
+
+    // Method 2: Window resize fallback (Older browsers)
+    else {
+      console.log('⚠️ Using window resize fallback for keyboard detection')
+
+      const initialHeight = window.innerHeight
+
+      const handleWindowResize = () => {
+        const currentHeight = window.innerHeight
+        const heightDifference = initialHeight - currentHeight
+
+        if (heightDifference > 150) {
+          handleKeyboardShow()
+        } else {
+          handleKeyboardHide()
+        }
+      }
+
+      // Set initial viewport
+      setViewportMeta()
+
+      window.addEventListener('resize', handleWindowResize)
+
+      return () => {
+        window.removeEventListener('resize', handleWindowResize)
+      }
+    }
+  }, [])
+
+  // 📱 Handle input focus events for better keyboard handling
+  useEffect(() => {
+    const handleFocusIn = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        console.log('🎯 Input focused:', e.target.type || e.target.tagName)
+
+        // Add a small delay then scroll element into view
+        setTimeout(() => {
+          e.target.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'nearest'
+          })
+        }, 100)
+      }
+    }
+
+    const handleFocusOut = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        console.log('🎯 Input unfocused')
+      }
+    }
+
+    document.addEventListener('focusin', handleFocusIn)
+    document.addEventListener('focusout', handleFocusOut)
+
+    return () => {
+      document.removeEventListener('focusin', handleFocusIn)
+      document.removeEventListener('focusout', handleFocusOut)
+    }
+  }, [])
+
+  // 🔄 Prevent zoom on input focus (iOS Safari)
+  useEffect(() => {
+    const preventZoom = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        // Temporarily increase font size to prevent zoom
+        const originalFontSize = e.target.style.fontSize
+        e.target.style.fontSize = '16px'
+
+        setTimeout(() => {
+          e.target.style.fontSize = originalFontSize
+        }, 100)
+      }
+    }
+
+    document.addEventListener('touchstart', preventZoom)
+
+    return () => {
+      document.removeEventListener('touchstart', preventZoom)
+    }
+  }, [])
 
   useEffect(() => {
     console.log("App - Setting up auth listener");
@@ -386,7 +612,12 @@ function App() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="min-h-screen bg-gray-50"
+        className={`min-h-screen bg-gray-50 ${keyboardVisible ? 'keyboard-visible' : ''}`}
+        style={{
+          // Dynamic styles for keyboard handling
+          minHeight: keyboardVisible ? 'auto' : '100vh',
+          paddingBottom: keyboardVisible ? '20px' : '0'
+        }}
       >
         <AnimatedRoutes user={user} userRole={userRole} />
         <Nav userRole={userRole} />
