@@ -1,18 +1,19 @@
 /* src/pages/Landing.css */
 
-/* Original Landing Page Styles */
+/* Updated Landing Page Styles - Now Scrollable */
 .landing-wrapper {
-  position: fixed;
-  inset: 0;
+  position: relative; /* Changed from fixed to relative */
   width: 100vw;
-  height: 100vh;
+  min-height: 100vh; /* Changed from height to min-height */
   background-image: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.4)), url('/images/Barseat.png');
   background-size: cover;
   background-repeat: no-repeat;
+  background-attachment: fixed; /* Keep background fixed for visual effect */
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow-y: auto; /* Changed from hidden to auto */
+  overflow-x: hidden; /* Prevent horizontal scroll */
   z-index: 1;
 }
 
@@ -22,8 +23,9 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 100%;
+  min-height: 100vh; /* Ensure minimum full height */
   position: relative;
+  padding: 20px 0; /* Add some padding for better spacing */
 }
 
 .landing-logo {
@@ -37,6 +39,7 @@
   margin: 0 auto;
   position: relative;
   bottom: 50px;
+  flex-shrink: 0; /* Prevent logo from shrinking */
 }
 
 .landing-buttons {
@@ -45,6 +48,7 @@
   gap: 1rem;
   width: 70%;
   margin-top: 350px;
+  flex-shrink: 0; /* Prevent buttons from shrinking */
 }
 
 .landing-button {
@@ -97,6 +101,7 @@
   align-items: center;
   z-index: 9999;
   padding: 20px;
+  overflow-y: auto; /* Allow scrolling in overlay if needed */
 }
 
 .pwa-install-modal {
@@ -120,9 +125,10 @@
     inset 0 -1px 0 rgba(67, 34, 27, 0.1);
   max-width: 420px;
   width: 100%;
+  max-height: 90vh; /* Prevent modal from being too tall */
+  overflow-y: auto; /* Allow scrolling within modal if needed */
   animation: pwa-modal-entrance 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
-  overflow: hidden;
 }
 
 .pwa-install-modal::before {
@@ -357,6 +363,18 @@
 
 /* Mobile specific styles for PWA prompt */
 @media (max-width: 480px) {
+  .landing-wrapper {
+    background-attachment: scroll; /* Change to scroll on mobile for better performance */
+  }
+
+  .landing-card {
+    padding: 40px 20px; /* Increase padding on mobile */
+  }
+
+  .landing-buttons {
+    margin-top: 280px; /* Adjust spacing on mobile */
+  }
+
   .pwa-install-overlay {
     padding: 16px;
   }
@@ -365,6 +383,7 @@
     margin: 15px;
     max-width: none;
     border-radius: 7px;
+    max-height: 85vh; /* Slightly smaller on mobile */
   }
 
   .pwa-install-content {
@@ -396,5 +415,21 @@
 @media (min-width: 481px) and (max-width: 768px) {
   .pwa-install-modal {
     max-width: 400px;
+  }
+}
+
+/* Landscape orientation adjustments */
+@media (orientation: landscape) and (max-height: 600px) {
+  .landing-card {
+    min-height: auto; /* Allow shrinking in landscape */
+    padding: 20px 0;
+  }
+
+  .landing-buttons {
+    margin-top: 100px; /* Reduce spacing in landscape */
+  }
+
+  .landing-logo {
+    bottom: 20px; /* Reduce logo offset */
   }
 }
