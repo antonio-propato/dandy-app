@@ -1,974 +1,947 @@
-/* MenuManagement.css - Compact and streamlined design with mobile fixes */
+/* MenuManagement.css - Compact and streamlined design with improved mobile experience */
 .menu-management-container {
- min-height: 100vh;
- background-image: url('/images/Couch.jpg');
- background-size: cover;
- background-position: center;
- background-attachment: fixed;
- padding: 2rem;
- font-family: 'Raleway', sans-serif;
- position: relative;
+  min-height: 100vh;
+  background-image: url('/images/Couch.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  padding: 2rem;
+  font-family: 'Raleway', sans-serif;
+  position: relative;
 }
-
 
 .menu-management-container::before {
- content: '';
- position: absolute;
- top: 0;
- left: 0;
- right: 0;
- bottom: 0;
- background: rgba(0, 0, 0, 0.3);
- pointer-events: none;
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  pointer-events: none;
 }
-
 
 .menu-management-content {
- max-width: 700px;
- margin: 0 auto;
- padding-top: 4rem;
- position: relative;
- z-index: 1;
+  max-width: 700px;
+  margin: 0 auto;
+  padding-top: 4rem;
+  position: relative;
+  z-index: 1;
 }
-
 
 .menu-management-header {
- background: rgba(255, 255, 255, 0.18);
- backdrop-filter: blur(15px);
- padding: 2rem;
- border-radius: 20px;
- margin-bottom: 2rem;
- box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
- border: 1px solid rgba(255, 255, 255, 0.25);
- text-align: center;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(15px);
+  padding: 2rem;
+  border-radius: 20px;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  text-align: center;
 }
-
 
 .menu-management-header h1 {
- margin: 0 0 0.5rem 0;
- color: #ffffff;
- font-size: 28px;
- font-weight: 800;
- text-align: center;
- letter-spacing: 1px;
- text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+  margin: 0 0 0.5rem 0;
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 1px;
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
 }
-
 
 .menu-management-header p {
- margin: 0 0 1.5rem 0;
- color: rgba(255, 255, 255, 0.9);
- font-size: 1rem;
- text-align: center;
- text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  margin: 0 0 1.5rem 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  text-align: center;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
-
 
 /* Category Cards - Big tabs for categories */
 .category-card {
- background: rgba(255, 255, 255, 0.18);
- backdrop-filter: blur(15px);
- border-radius: 20px;
- margin-bottom: 1.5rem;
- box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
- border: 1px solid rgba(255, 255, 255, 0.25);
- transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
- cursor: grab;
- position: relative;
- overflow: hidden;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(15px);
+  border-radius: 20px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: grab;
+  position: relative;
+  overflow: hidden;
 }
-
 
 .category-card::before {
- content: '';
- position: absolute;
- top: 0;
- left: 0;
- right: 0;
- height: 3px;
- background: linear-gradient(90deg, #FFD700, #FFA500, #FFD700);
- opacity: 0;
- transition: opacity 0.3s;
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #FFD700, #FFA500, #FFD700);
+  opacity: 0;
+  transition: opacity 0.3s;
 }
-
 
 .category-card:hover {
- transform: translateY(-4px) scale(1.01);
- box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
- border-color: rgba(255, 215, 0, 0.4);
- background: rgba(255, 255, 255, 0.22);
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 215, 0, 0.4);
+  background: rgba(255, 255, 255, 0.22);
 }
-
 
 .category-card:hover::before {
- opacity: 1;
+  opacity: 1;
 }
-
 
 .category-card:active {
- cursor: grabbing;
+  cursor: grabbing;
 }
-
 
 .add-category-card {
- padding: 1.5rem;
- border: 2px dashed #FFD700;
- background: rgba(255, 215, 0, 0.1);
- backdrop-filter: blur(10px);
- cursor: default;
- text-align: center;
+  padding: 1.5rem;
+  border: 2px dashed #FFD700;
+  background: rgba(255, 215, 0, 0.1);
+  backdrop-filter: blur(10px);
+  cursor: default;
+  text-align: center;
 }
-
 
 .add-category-card:hover {
- transform: none;
- background: rgba(255, 215, 0, 0.15);
+  transform: none;
+  background: rgba(255, 215, 0, 0.15);
 }
-
 
 .category-header {
- display: flex;
- justify-content: space-between;
- align-items: center;
- padding: 1.5rem 1.5rem 1rem;
- border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
-
 
 .category-title-section {
- display: flex;
- align-items: center;
- gap: 1rem;
- flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
 }
-
 
 .category-title-section h2 {
- margin: 0;
- color: #FFD700;
- font-size: 1.3rem;
- font-weight: 700;
- letter-spacing: 0.5px;
- text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
- flex: 1;
+  margin: 0;
+  color: #FFD700;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  flex: 1;
 }
-
 
 .category-arrow-controls {
- display: flex;
- flex-direction: column;
- gap: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
-
 
 .arrow-btn {
- background: rgba(255, 255, 255, 0.15) !important;
- color: #FFD700 !important;
- border: 1px solid rgba(255, 215, 0, 0.3) !important;
- padding: 0.25rem !important;
- border-radius: 6px !important;
- cursor: pointer !important;
- font-size: 0.8rem !important;
- display: flex !important;
- align-items: center !important;
- justify-content: center !important;
- width: 24px !important;
- height: 24px !important;
- transition: all 0.3s ease !important;
- backdrop-filter: blur(5px) !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #FFD700 !important;
+  border: 1px solid rgba(255, 215, 0, 0.3) !important;
+  padding: 0.25rem !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-size: 0.8rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 24px !important;
+  height: 24px !important;
+  transition: all 0.3s ease !important;
+  backdrop-filter: blur(5px) !important;
 }
-
 
 .arrow-btn:hover:not(:disabled) {
- background: rgba(255, 215, 0, 0.2) !important;
- transform: scale(1.1) !important;
- box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3) !important;
+  background: rgba(255, 215, 0, 0.2) !important;
+  transform: scale(1.1) !important;
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3) !important;
 }
-
 
 .arrow-btn:disabled {
- background: rgba(255, 255, 255, 0.05) !important;
- color: rgba(255, 255, 255, 0.3) !important;
- cursor: not-allowed !important;
- border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(255, 255, 255, 0.3) !important;
+  cursor: not-allowed !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
 }
-
 
 .drag-handle {
- color: rgba(255, 255, 255, 0.6);
- cursor: grab;
- font-size: 1.2rem;
- transition: color 0.3s ease;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: grab;
+  font-size: 1.2rem;
+  transition: color 0.3s ease;
 }
-
 
 .drag-handle:hover {
- color: #FFD700;
+  color: #FFD700;
 }
-
 
 .collapse-btn {
- background: rgba(255, 255, 255, 0.15) !important;
- color: #FFD700 !important;
- border: 1px solid rgba(255, 215, 0, 0.3) !important;
- padding: 0.5rem !important;
- border-radius: 50% !important;
- cursor: pointer !important;
- font-size: 0.9rem !important;
- width: 32px !important;
- height: 32px !important;
- display: flex !important;
- align-items: center !important;
- justify-content: center !important;
- transition: all 0.3s ease !important;
- backdrop-filter: blur(5px) !important;
- margin-right: 10px;
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #FFD700 !important;
+  border: 1px solid rgba(255, 215, 0, 0.3) !important;
+  padding: 0.5rem !important;
+  border-radius: 50% !important;
+  cursor: pointer !important;
+  font-size: 0.9rem !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.3s ease !important;
+  backdrop-filter: blur(5px) !important;
+  margin-right: 10px;
 }
-
 
 .collapse-btn:hover {
- background: rgba(255, 215, 0, 0.2) !important;
- transform: scale(1.05) !important;
- box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3) !important;
+  background: rgba(255, 215, 0, 0.2) !important;
+  transform: scale(1.05) !important;
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3) !important;
 }
-
 
 .category-buttons {
- display: flex;
- gap: 0.5rem;
- align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
-
 
 /* Force category buttons to always be compact (no text labels) */
 .category-buttons .add-btn,
 .category-buttons .delete-btn {
- padding: 0.5rem !important;
- width: 40px !important;
- height: 40px !important;
- justify-content: center !important;
- font-size: 1rem !important;
- min-height: auto !important;
+  padding: 0.5rem !important;
+  width: 40px !important;
+  height: 40px !important;
+  justify-content: center !important;
+  font-size: 1rem !important;
+  min-height: auto !important;
 }
-
 
 .category-buttons .btn-text {
- display: none !important;
+  display: none !important;
 }
-
 
 .category-content {
- padding: 0 1.5rem 1.5rem;
+  padding: 0 1.5rem 1.5rem;
 }
-
 
 /* Compact Item Layout - Everything on one line */
 .compact-form {
- background: rgba(255, 215, 0, 0.1);
- border: 2px dashed rgba(255, 215, 0, 0.5);
- border-radius: 15px;
- padding: 1rem;
- margin-bottom: 1rem;
- backdrop-filter: blur(5px);
+  background: rgba(255, 215, 0, 0.1);
+  border: 2px dashed rgba(255, 215, 0, 0.5);
+  border-radius: 15px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  backdrop-filter: blur(5px);
 }
-
 
 .compact-item-row {
- display: flex;
- align-items: center;
- gap: 0.75rem;
- width: 100%;
- padding: 0 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0 0.5rem;
 }
-
 
 .compact-item-row.editing {
- background: rgba(255, 215, 0, 0.1);
- border-radius: 10px;
- padding: 0.5rem;
- flex-wrap: wrap;
+  background: rgba(255, 215, 0, 0.1);
+  border-radius: 10px;
+  padding: 0.5rem;
+  flex-wrap: wrap;
 }
-
 
 .compact-list {
- display: flex;
- flex-direction: column;
- gap: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
-
 
 .menu-item-row.compact-item {
- background: rgba(255, 255, 255, 0.08);
- border: 1px solid rgba(255, 255, 255, 0.15);
- border-radius: 15px;
- padding: 0.75rem 0.5rem;
- transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
- cursor: grab;
- backdrop-filter: blur(5px);
- position: relative;
- overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 15px;
+  padding: 0.75rem 0.5rem;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: grab;
+  backdrop-filter: blur(5px);
+  position: relative;
+  overflow: hidden;
 }
-
 
 .menu-item-row.compact-item::before {
- content: '';
- position: absolute;
- left: 0;
- top: 0;
- bottom: 0;
- width: 4px;
- background: linear-gradient(180deg, #FFD700, #FFA500);
- transform: scaleY(0);
- transition: transform 0.3s;
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #FFD700, #FFA500);
+  transform: scaleY(0);
+  transition: transform 0.3s;
 }
-
 
 .menu-item-row.compact-item:hover::before {
- transform: scaleY(1);
+  transform: scaleY(1);
 }
-
 
 .menu-item-row.compact-item:hover {
- transform: translateX(8px) scale(1.01);
- background: rgba(255, 255, 255, 0.15);
- border-color: rgba(255, 215, 0, 0.3);
- box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  transform: translateX(8px) scale(1.01);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 215, 0, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
 }
-
 
 .menu-item-row.compact-item:active {
- cursor: grabbing;
+  cursor: grabbing;
 }
-
 
 .drag-handle-small {
- color: rgba(255, 255, 255, 0.6);
- cursor: grab;
- font-size: 1rem;
- flex-shrink: 0;
- transition: color 0.3s ease;
- min-width: 20px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: grab;
+  font-size: 1rem;
+  flex-shrink: 0;
+  transition: color 0.3s ease;
+  min-width: 20px;
 }
-
 
 .drag-handle-small:hover {
- color: #FFD700;
+  color: #FFD700;
 }
-
 
 .item-name {
- font-weight: 600;
- color: white;
- text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
- flex: 1;
- min-width: 0;
- text-overflow: ellipsis;
- overflow: hidden;
- white-space: nowrap;
+  font-weight: 600;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  flex: 1;
+  min-width: 0;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
-
 
 .item-price {
- color: white;
- font-weight: 700;
- text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
- min-width: 80px;
- text-align: right;
- flex-shrink: 0;
+  color: white;
+  font-weight: 700;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  min-width: 80px;
+  text-align: right;
+  flex-shrink: 0;
 }
-
 
 .compact-arrows {
- display: flex;
- flex-direction: column;
- gap: 0.2rem;
- flex-shrink: 0;
- margin: 0 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex-shrink: 0;
+  margin: 0 0.5rem;
 }
-
 
 .arrow-btn-small {
- background: rgba(255, 255, 255, 0.15) !important;
- color: #FFD700 !important;
- border: 1px solid rgba(255, 215, 0, 0.3) !important;
- padding: 0.2rem !important;
- border-radius: 4px !important;
- cursor: pointer !important;
- font-size: 0.7rem !important;
- display: flex !important;
- align-items: center !important;
- justify-content: center !important;
- width: 20px !important;
- height: 20px !important;
- transition: all 0.3s ease !important;
- backdrop-filter: blur(3px) !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #FFD700 !important;
+  border: 1px solid rgba(255, 215, 0, 0.3) !important;
+  padding: 0.2rem !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  font-size: 0.7rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 20px !important;
+  height: 20px !important;
+  transition: all 0.3s ease !important;
+  backdrop-filter: blur(3px) !important;
 }
-
 
 .arrow-btn-small:hover:not(:disabled) {
- background: rgba(255, 215, 0, 0.2) !important;
- transform: scale(1.1) !important;
- box-shadow: 0 2px 6px rgba(255, 215, 0, 0.3) !important;
+  background: rgba(255, 215, 0, 0.2) !important;
+  transform: scale(1.1) !important;
+  box-shadow: 0 2px 6px rgba(255, 215, 0, 0.3) !important;
 }
-
 
 .arrow-btn-small:disabled {
- background: rgba(255, 255, 255, 0.05) !important;
- color: rgba(255, 255, 255, 0.3) !important;
- cursor: not-allowed !important;
- border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(255, 255, 255, 0.3) !important;
+  cursor: not-allowed !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
 }
-
 
 .compact-actions {
- display: flex;
- gap: 0.5rem;
- align-items: center;
- flex-shrink: 0;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
 }
-
 
 /* Compact Input Fields */
 .item-name-input {
- flex: 1 !important;
- min-width: 120px !important;
+  flex: 1 !important;
+  min-width: 120px !important;
 }
-
 
 .item-price-input {
- width: 90px !important;
- flex-shrink: 0 !important;
+  width: 90px !important;
+  flex-shrink: 0 !important;
 }
-
 
 /* Form Elements */
 .mobile-friendly-input {
- padding: 0.75rem !important;
- border: 1px solid rgba(255, 255, 255, 0.3) !important;
- border-radius: 8px !important;
- font-size: 14px !important;
- box-sizing: border-box !important;
- font-family: 'Raleway', sans-serif !important;
- background: rgba(255, 255, 255, 0.1) !important;
- backdrop-filter: blur(10px) !important;
- color: white !important;
- text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5) !important;
- width: 80%;
- display: flex;
+  padding: 0.75rem !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  box-sizing: border-box !important;
+  font-family: 'Raleway', sans-serif !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px) !important;
+  color: white !important;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5) !important;
+  width: 80%;
+  display: flex;
 }
-
 
 .mobile-friendly-input::placeholder {
- color: rgba(255, 255, 255, 0.6) !important;
- font-style: italic;
- font-size: 13px !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-style: italic;
+  font-size: 13px !important;
 }
-
 
 .mobile-friendly-input:focus {
- outline: none !important;
- border-color: #FFD700 !important;
- box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2) !important;
- background: rgba(255, 255, 255, 0.15) !important;
+  outline: none !important;
+  border-color: #FFD700 !important;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2) !important;
+  background: rgba(255, 255, 255, 0.15) !important;
 }
-
 
 .mobile-button-group {
- display: flex !important;
- gap: 0.75rem !important;
- justify-content: flex-end !important;
- flex-wrap: nowrap !important;
- margin-top: 0.75rem !important;
+  display: flex !important;
+  gap: 0.75rem !important;
+  justify-content: flex-end !important;
+  flex-wrap: nowrap !important;
+  margin-top: 0.75rem !important;
 }
-
 
 /* Circle Icon Buttons for Save and Cancel */
 .circle-btn {
- width: 40px !important;
- height: 40px !important;
- border-radius: 50% !important;
- display: flex !important;
- align-items: center !important;
- justify-content: center !important;
- padding: 0 !important;
- font-size: 1rem !important;
- border: none !important;
- cursor: pointer !important;
- transition: all 0.3s ease !important;
- box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  font-size: 1rem !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
 }
-
 
 .circle-btn:hover {
- transform: translateY(-2px) !important;
- box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4) !important;
 }
-
 
 .circle-btn.save-btn {
- background: #28a745 !important;
- color: white !important;
+  background: #28a745 !important;
+  color: white !important;
 }
-
 
 .circle-btn.cancel-btn {
- background: #6c757d !important;
- color: white !important;
+  background: #6c757d !important;
+  color: white !important;
 }
-
 
 /* Compact Buttons */
 .add-btn, .edit-btn, .delete-btn, .save-btn, .cancel-btn {
- border: none !important;
- border-radius: 12px !important;
- cursor: pointer !important;
- font-size: 0.9rem !important;
- display: flex !important;
- align-items: center !important;
- gap: 0.3rem !important;
- transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
- white-space: nowrap !important;
- font-family: 'Raleway', sans-serif !important;
- font-weight: 600 !important;
- letter-spacing: 0.5px;
- position: relative;
- overflow: hidden;
+  border: none !important;
+  border-radius: 12px !important;
+  cursor: pointer !important;
+  font-size: 0.9rem !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.3rem !important;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  white-space: nowrap !important;
+  font-family: 'Raleway', sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
 }
-
 
 .compact-btn {
- padding: 0.4rem !important;
- width: 32px !important;
- height: 32px !important;
- justify-content: center !important;
- font-size: 0.8rem !important;
+  padding: 0.4rem !important;
+  width: 32px !important;
+  height: 32px !important;
+  justify-content: center !important;
+  font-size: 0.8rem !important;
 }
-
 
 .add-btn {
- background: linear-gradient(135deg, #28a745 0%, #20c997 50%, #17a2b8 100%) !important;
- color: white !important;
- padding: 0.5rem 1rem !important;
- min-height: 36px !important;
- box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4) !important;
+  background: linear-gradient(135deg, #28a745 0%, #20c997 50%, #17a2b8 100%) !important;
+  color: white !important;
+  padding: 0.5rem 1rem !important;
+  min-height: 36px !important;
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4) !important;
 }
-
 
 .add-btn::before {
- content: '';
- position: absolute;
- top: 0;
- left: -100%;
- width: 100%;
- height: 100%;
- background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
- transition: left 0.6s;
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.6s;
 }
-
 
 .add-btn:hover:not(:disabled)::before {
- left: 100%;
+  left: 100%;
 }
-
 
 .add-btn:hover:not(:disabled) {
- transform: translateY(-2px) scale(1.02) !important;
- box-shadow: 0 12px 35px rgba(40, 167, 69, 0.6) !important;
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 12px 35px rgba(40, 167, 69, 0.6) !important;
 }
-
 
 .add-btn:disabled {
- background: rgba(255, 255, 255, 0.2) !important;
- color: rgba(255, 255, 255, 0.5) !important;
- cursor: not-allowed !important;
- transform: none !important;
- box-shadow: none !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
-
 
 .edit-btn {
- background: linear-gradient(135deg, #007bff, #0056b3) !important;
- color: white !important;
- padding: 0.4rem !important;
- width: 32px !important;
- height: 32px !important;
- justify-content: center !important;
- font-size: 0.8rem !important;
- box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4) !important;
+  background: linear-gradient(135deg, #007bff, #0056b3) !important;
+  color: white !important;
+  padding: 0.4rem !important;
+  width: 32px !important;
+  height: 32px !important;
+  justify-content: center !important;
+  font-size: 0.8rem !important;
+  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4) !important;
 }
-
 
 .edit-btn:hover {
- transform: translateY(-1px) scale(1.05) !important;
- box-shadow: 0 6px 20px rgba(0, 123, 255, 0.6) !important;
+  transform: translateY(-1px) scale(1.05) !important;
+  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.6) !important;
 }
-
 
 .delete-btn {
- background: linear-gradient(135deg, #dc3545, #c82333) !important;
- color: white !important;
- padding: 0.4rem !important;
- width: 32px !important;
- height: 32px !important;
- justify-content: center !important;
- font-size: 0.8rem !important;
- box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4) !important;
+  background: linear-gradient(135deg, #dc3545, #c82333) !important;
+  color: white !important;
+  padding: 0.4rem !important;
+  width: 32px !important;
+  height: 32px !important;
+  justify-content: center !important;
+  font-size: 0.8rem !important;
+  box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4) !important;
 }
-
 
 .delete-btn:hover {
- transform: translateY(-1px) scale(1.05) !important;
- box-shadow: 0 6px 20px rgba(220, 53, 69, 0.6) !important;
+  transform: translateY(-1px) scale(1.05) !important;
+  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.6) !important;
 }
-
 
 .save-btn {
- background: linear-gradient(135deg, #28a745, #20c997) !important;
- color: white !important;
- box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4) !important;
+  background: linear-gradient(135deg, #28a745, #20c997) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4) !important;
 }
-
 
 .save-btn:hover {
- transform: translateY(-1px) scale(1.02) !important;
- box-shadow: 0 6px 20px rgba(40, 167, 69, 0.6) !important;
+  transform: translateY(-1px) scale(1.02) !important;
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.6) !important;
 }
-
 
 .cancel-btn {
- background: linear-gradient(135deg, #6c757d, #545b62) !important;
- color: white !important;
- box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4) !important;
- padding: 1rem !important;
- padding-left: 35px !important; /* this adjusts the annulla button in the modal to make it equal to the conferma*/
- padding-right: 35px !important;
+  background: linear-gradient(135deg, #6c757d, #545b62) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4) !important;
+  padding: 1rem !important;
+  padding-left: 35px !important; /* this adjusts the annulla button in the modal to make it equal to the conferma*/
+  padding-right: 35px !important;
 }
-
 
 .cancel-btn:hover {
- transform: translateY(-1px) scale(1.02) !important;
- box-shadow: 0 6px 20px rgba(108, 117, 125, 0.6) !important;
+  transform: translateY(-1px) scale(1.02) !important;
+  box-shadow: 0 6px 20px rgba(108, 117, 125, 0.6) !important;
 }
-
 
 .saving-indicator {
- position: fixed;
- bottom: 2rem;
- right: 2rem;
- background: rgba(255, 255, 255, 0.15);
- backdrop-filter: blur(15px);
- border: 1px solid rgba(255, 215, 0, 0.3);
- color: #FFD700;
- padding: 1rem 1.5rem;
- border-radius: 15px;
- box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
- z-index: 1000;
- font-weight: 600;
- display: flex;
- align-items: center;
- gap: 0.5rem;
- animation: slideInBounce 0.4s ease;
- text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  color: #FFD700;
+  padding: 1rem 1.5rem;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  animation: slideInBounce 0.4s ease;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
-
 
 /* Custom Alert/Confirm Modal */
 .custom-alert-overlay {
- position: fixed;
- top: 0;
- left: 0;
- right: 0;
- bottom: 0;
- background: rgba(0, 0, 0, 0.7);
- display: flex;
- align-items: center;
- justify-content: center;
- z-index: 2000;
- backdrop-filter: blur(5px);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(5px);
 }
-
 
 .custom-alert {
- background: rgba(255, 255, 255, 0.18);
- backdrop-filter: blur(15px);
- border-radius: 20px;
- padding: 2rem;
- width: 90%;
- max-width: 400px;
- box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
- border: 1px solid rgba(255, 255, 255, 0.25);
- animation: alertAppear 0.3s ease;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(15px);
+  border-radius: 20px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  animation: alertAppear 0.3s ease;
 }
-
 
 @keyframes alertAppear {
- from {
-   opacity: 0;
-   transform: scale(0.8);
- }
- to {
-   opacity: 1;
-   transform: scale(1);
- }
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
-
 
 .custom-alert h3 {
- margin: 0 0 1rem 0;
- color: #FFD700;
- font-size: 1.5rem;
- text-align: center;
- text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  margin: 0 0 1rem 0;
+  color: #FFD700;
+  font-size: 1.5rem;
+  text-align: center;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
 }
-
 
 .custom-alert p {
- margin: 0 0 1.5rem 0;
- color: white;
- font-size: 1rem;
- text-align: center;
- text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  margin: 0 0 1.5rem 0;
+  color: white;
+  font-size: 1rem;
+  text-align: center;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
-
 
 .alert-buttons {
- display: flex;
- justify-content: center;
- gap: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
 }
-
 
 .confirm-btn {
- background: linear-gradient(135deg, #28a745, #20c997) !important;
- color: white !important;
- border: none !important;
- border-radius: 12px !important;
- padding: 0.75rem 1.5rem !important;
- font-size: 1rem !important;
- font-weight: 600 !important;
- cursor: pointer !important;
- transition: all 0.3s ease !important;
- box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4) !important;
+  background: linear-gradient(135deg, #28a745, #20c997) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 12px !important;
+  padding: 0.75rem 1.5rem !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4) !important;
 }
-
 
 .confirm-btn:hover {
- transform: translateY(-2px) !important;
- box-shadow: 0 12px 35px rgba(40, 167, 69, 0.6) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 12px 35px rgba(40, 167, 69, 0.6) !important;
 }
-
 
 @keyframes slideInBounce {
- 0% {
-   transform: translateX(100%) scale(0.8);
-   opacity: 0;
- }
- 60% {
-   transform: translateX(-10px) scale(1.05);
-   opacity: 1;
- }
- 100% {
-   transform: translateX(0) scale(1);
-   opacity: 1;
- }
+  0% {
+    transform: translateX(100%) scale(0.8);
+    opacity: 0;
+  }
+  60% {
+    transform: translateX(-10px) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
 }
 
-
-/* Mobile Responsiveness */
+/* Mobile Responsiveness - IMPROVED */
 @media (max-width: 768px) {
- .menu-management-container {
-   padding: 1rem;
-   background-attachment: scroll;
- }
+  .menu-management-container {
+    padding: 0.5rem;
+    background-attachment: scroll;
+  }
 
+  .menu-management-content {
+    padding-top: 1rem;
+    max-width: 100%;
+  }
 
- .menu-management-content {
-   padding-top: 2rem;
-   max-width: 100%;
- }
+  .menu-management-header {
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
+  }
 
+  .menu-management-header h1 {
+    font-size: 1.5rem;
+  }
 
- .menu-management-header {
-   padding: 1rem;
-   border-radius: 12px;
-   margin-bottom: 1rem;
- }
+  .menu-management-header p {
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
 
+  .category-card,
+  .add-category-card {
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
+  }
 
- .category-card,
- .add-category-card {
-   border-radius: 12px;
-   margin-bottom: 1rem;
- }
+  /* Much more compact category header */
+  .category-header {
+    flex-direction: row;
+    align-items: center;
+    padding: 0.75rem 1rem 0.5rem;
+    gap: 0.5rem;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  }
 
+  .category-title-section {
+    gap: 0.5rem;
+    flex: 1;
+    justify-content: flex-start;
+  }
 
- .category-header {
-   flex-direction: row;
-   align-items: center;
-   padding: 1rem 1rem 0.5rem;
-   gap: 0.5rem;
-   justify-content: space-between;
- }
+  .category-title-section h2 {
+    font-size: 1rem;
+    margin: 0;
+    flex: 1;
+  }
 
+  /* Smaller drag handle */
+  .drag-handle {
+    font-size: 0.9rem;
+    margin-right: 0.25rem;
+  }
 
- /* Better spacing on mobile for category header */
- .category-title-section {
-   gap: 0.5rem;
-   flex: 1;
-   justify-content: space-between;
- }
+  /* Position controls more compactly */
+  .category-arrow-controls {
+    margin-left: auto;
+    margin-right: 0.5rem;
+  }
 
+  .arrow-btn {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 0.7rem !important;
+  }
 
- .category-title-section h2 {
-   font-size: 1.1rem;
-   margin-right: auto;
- }
+  .collapse-btn {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 0.7rem !important;
+    margin-right: 0.5rem;
+  }
 
+  /* Smaller category action buttons */
+  .category-buttons {
+    margin-left: auto;
+  }
 
- /* Position arrows and eye button with proper spacing */
- .category-arrow-controls {
-   margin-left: auto;
-   margin-right: 0.rem;
- }
+  .category-buttons .add-btn,
+  .category-buttons .delete-btn {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.7rem !important;
+  }
 
+  /* Much more compact category content */
+  .category-content {
+    padding: 0 0.75rem 0.75rem;
+  }
 
+  .compact-form {
+    padding: 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+  }
 
+  /* MAJOR IMPROVEMENT: Much more compact item list */
+  .compact-list {
+    gap: 0.25rem; /* Reduced from 0.75rem */
+  }
 
- /* Move category buttons to far right and make them smaller */
- .category-buttons {
-   margin-left: auto;
- }
+  .menu-item-row.compact-item {
+    border-radius: 8px;
+    padding: 0.5rem 0.5rem; /* Reduced from 0.75rem */
+    margin: 0;
+  }
 
+  /* Compact item row with two-line layout on mobile */
+  .compact-item-row {
+    gap: 0.5rem;
+    padding: 0;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
 
- .category-buttons .add-btn,
- .category-buttons .delete-btn {
-   width: 32px !important;
-   height: 32px !important;
-   font-size: 0.8rem !important;
- }
+  /* First line: drag handle + arrows + item name + actions */
+  .compact-item-row .mobile-item-first-line {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    width: 100%;
+    margin-bottom: 0.25rem;
+  }
 
+  /* Second line: price */
+  .compact-item-row .mobile-item-second-line {
+    display: flex;
+    width: 100%;
+    padding-left: 1rem; /* Align with name */
+  }
 
- .category-content {
-   padding: 0 1rem 1rem;
- }
+  /* When editing, keep it more compact */
+  .compact-item-row.editing {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
 
+  .compact-item-row.editing .mobile-button-group {
+    justify-content: flex-start !important;
+    margin-top: 0.5rem !important;
+  }
 
- .compact-form {
-   padding: 0.75rem;
-   border-radius: 10px;
- }
+  /* More compact inputs when editing */
+  .compact-item-row.editing .mobile-friendly-input {
+    width: 100% !important;
+    flex: 1;
+    padding: 0.5rem !important;
+    font-size: 14px !important;
+  }
 
+  .compact-item-row.editing .item-name-input {
+    min-width: auto !important;
+  }
 
- /* Better item row spacing on mobile */
- .compact-item-row {
-   gap: 0.2rem;
-   padding: 0;
-   flex-wrap: nowrap;
- }
+  .compact-item-row.editing .item-price-input {
+    width: 100% !important;
+  }
 
+  /* Create a flex container for inputs */
+  .compact-item-row.editing > div:first-child {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+  }
 
- /* When editing, move buttons to next line for more space */
- .compact-item-row.editing {
-   flex-direction: column;
-   align-items: stretch;
-   gap: 0.75rem;
-   padding: 0.75rem;
- }
+  /* Mobile two-line layout for items */
+  .item-name {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: normal; /* Allow wrapping if needed */
+    overflow: visible;
+    text-overflow: initial;
+  }
 
+  .item-price {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 600;
+  }
 
- .compact-item-row.editing .mobile-button-group {
-   justify-content: flex-start !important;
-   margin-top: 0 !important;
- }
+  /* Much smaller drag handle */
+  .drag-handle-small {
+    font-size: 0.7rem;
+    min-width: 12px;
+    flex-shrink: 0;
+  }
 
+  /* Arrows now come right after drag handle - smaller */
+  .compact-arrows {
+    margin: 0;
+    gap: 0.1rem;
+    flex-shrink: 0;
+  }
 
- /* Make editing inputs take full width */
- .compact-item-row.editing .mobile-friendly-input {
-   width: 100% !important;
-   flex: 1;
- }
+  .arrow-btn-small {
+    width: 14px !important;
+    height: 14px !important;
+    font-size: 0.45rem !important;
+    padding: 0.05rem !important;
+    border-radius: 3px !important;
+  }
 
+  /* Smaller action buttons */
+  .compact-actions .compact-btn {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 0.65rem !important;
+  }
 
- .compact-item-row.editing .item-name-input {
-   min-width: auto !important;
- }
+  .compact-actions {
+    gap: 0.25rem;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
 
+  /* Smaller form inputs */
+  .mobile-friendly-input {
+    font-size: 14px !important;
+    padding: 0.5rem !important;
+  }
 
- .compact-item-row.editing .item-price-input {
-   width: 100% !important;
- }
+  .mobile-button-group {
+    gap: 0.5rem !important;
+    margin-top: 0.5rem !important;
+  }
 
+  .circle-btn {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 0.85rem !important;
+  }
 
- /* Create a flex container for inputs */
- .compact-item-row.editing > div:first-child {
-   display: flex;
-   gap: 0.5rem;
-   width: 100%;
- }
+  /* Add category card more compact */
+  .add-category-card {
+    padding: 1rem;
+  }
 
-
- .menu-item-row.compact-item {
-   border-radius: 10px;
-   padding: 0.75rem 0.5rem;
- }
-
-
- /* Extend item width so names are more readable */
- .item-name {
-   min-width: 120px;
-   flex: 2;
- }
-
-
- .item-price {
-   min-width: 70px;
-   font-size: 0.9rem;
- }
-
-
- /* Make drag handle smaller on mobile */
- .drag-handle-small {
-   font-size: 0.8rem;
-   min-width: 16px;
- }
-
-
- /* Adjust compact arrows */
- .compact-arrows {
-   margin: 0 0.25rem;
- }
-
-
- .arrow-btn-small {
-   width: 18px !important;
-   height: 18px !important;
-   font-size: 0.6rem !important;
- }
-
-
- /* Make action buttons smaller on mobile */
- .compact-actions .compact-btn {
-   width: 28px !important;
-   height: 28px !important;
-   font-size: 0.7rem !important;
- }
-
-
- .mobile-friendly-input {
-   font-size: 13px !important;
-   padding: 0.6rem !important;
- }
-
-
- .mobile-button-group {
-   gap: 0.5rem !important;
-   margin-top: 0.5rem !important;
- }
-
-
- .circle-btn {
-   width: 32px !important;
-   height: 32px !important;
-   font-size: 0.9rem !important;
- }
+  .add-category-card .mobile-friendly-input {
+    width: 100% !important;
+    margin-bottom: 0.5rem;
+  }
 }
