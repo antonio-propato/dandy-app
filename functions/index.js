@@ -11,7 +11,7 @@ admin.initializeApp();
 const db = admin.firestore();
 const messaging = admin.messaging();
 
-// 🎁 NEW FUNCTION: Generate Reward QR Code
+// 🎁 UPDATED FUNCTION: Generate Reward QR Code
 exports.generateRewardQR = onCall({
   region: "europe-west2"
 }, async (request) => {
@@ -89,7 +89,7 @@ exports.generateRewardQR = onCall({
   }
 });
 
-// 🎁 NEW FUNCTION: Redeem Reward QR Code
+// 🎁 UPDATED FUNCTION: Redeem Reward QR Code (with reward history tracking)
 exports.redeemRewardQR = onCall({
   region: "europe-west2"
 }, async (request) => {
@@ -158,9 +158,10 @@ exports.redeemRewardQR = onCall({
     }
 
     // Get user and stamps data
-    const [userSnap, stampsSnap] = await Promise.all([
+    const [userSnap, stampsSnap, redeemerSnap] = await Promise.all([
       db.doc(`users/${userId}`).get(),
-      db.doc(`stamps/${userId}`).get()
+      db.doc(`stamps/${userId}`).get(),
+      db.doc(`users/${request.auth.uid}`).get()
     ]);
 
     if (!userSnap.exists) {
@@ -173,6 +174,7 @@ exports.redeemRewardQR = onCall({
 
     const userData = userSnap.data();
     const stampsData = stampsSnap.data();
+    const redeemerData = redeemerSnap.exists ? redeemerSnap.data() : null;
 
     if (stampsData.availableRewards <= 0) {
       throw new HttpsError("failed-precondition", "No rewards available to redeem");
@@ -182,6 +184,13 @@ exports.redeemRewardQR = onCall({
 
     // Use transaction to ensure atomicity
     const result = await db.runTransaction(async (transaction) => {
+      const rewardEntry = {
+        redeemedAt: new Date().toISOString(),
+        redemptionMethod: 'qr',
+        redeemedBy: request.auth.uid,
+        redeemedByName: redeemerData ? `${redeemerData.firstName || ''} ${redeemerData.lastName || ''}`.trim() : 'Unknown Staff'
+      };
+
       // Mark reward QR as used
       transaction.update(rewardQRRef, {
         used: true,
@@ -189,11 +198,12 @@ exports.redeemRewardQR = onCall({
         redeemedBy: request.auth.uid
       });
 
-      // Update user's stamps data - same logic as claimAndResetReward
+      // Update user's stamps data with reward history
       const updateData = {
         availableRewards: stampsData.availableRewards - 1,
-        rewardsEarned: stampsData.rewardsEarned || 0,
-        lastRewardClaimed: new Date().toISOString()
+        rewardsEarned: (stampsData.rewardsEarned || 0) + 1,
+        lastRewardClaimed: new Date().toISOString(),
+        rewardHistory: admin.firestore.FieldValue.arrayUnion(rewardEntry)
       };
 
       // If user has exactly 9 stamps, reset the grid
@@ -227,7 +237,7 @@ exports.redeemRewardQR = onCall({
   }
 });
 
-// 🎁 EXISTING FUNCTION: Claim and Reset Reward (manual claiming)
+// 🎁 UPDATED FUNCTION: Claim and Reset Reward (manual claiming with history tracking)
 exports.claimAndResetReward = onCall({
   region: "europe-west2"
 }, async (request) => {
@@ -240,25 +250,37 @@ exports.claimAndResetReward = onCall({
   try {
     console.log(`🎁 Processing manual reward claim for user: ${userId}`);
 
-    const stampsRef = db.doc(`stamps/${userId}`);
-    const stampsSnap = await stampsRef.get();
+    const [stampsSnap, userSnap] = await Promise.all([
+      db.doc(`stamps/${userId}`).get(),
+      db.doc(`users/${userId}`).get()
+    ]);
 
     if (!stampsSnap.exists) {
       throw new HttpsError("not-found", "User stamps data not found");
     }
 
     const stampsData = stampsSnap.data();
+    const userData = userSnap.exists ? userSnap.data() : null;
     const availableRewards = stampsData.availableRewards || 0;
 
     if (availableRewards <= 0) {
       throw new HttpsError("failed-precondition", "No rewards available to claim");
     }
 
+    // Create reward history entry
+    const rewardEntry = {
+      redeemedAt: new Date().toISOString(),
+      redemptionMethod: 'manual',
+      redeemedBy: userId,
+      redeemedByName: userData ? `${userData.firstName || ''} ${userData.lastName || ''}`.trim() : 'Self Service'
+    };
+
     // Update the user's stamp data
     const updateData = {
       availableRewards: availableRewards - 1,
-      rewardsEarned: stampsData.rewardsEarned || 0,
-      lastRewardClaimed: new Date().toISOString()
+      rewardsEarned: (stampsData.rewardsEarned || 0) + 1,
+      lastRewardClaimed: new Date().toISOString(),
+      rewardHistory: admin.firestore.FieldValue.arrayUnion(rewardEntry)
     };
 
     // If user has exactly 9 stamps, reset the grid
@@ -266,7 +288,7 @@ exports.claimAndResetReward = onCall({
       updateData.stamps = [];
     }
 
-    await stampsRef.update(updateData);
+    await db.doc(`stamps/${userId}`).update(updateData);
 
     console.log(`✅ Manual reward claimed successfully for user ${userId}`);
 
@@ -398,6 +420,7 @@ exports.processStampScan = onCall({
       availableRewards: stampsData.availableRewards || 0,
       receivedFreeStamps: stampsData.receivedFreeStamps || false,
       birthdayBonusGiven: stampsData.birthdayBonusGiven || null,
+      rewardHistory: stampsData.rewardHistory || []
     };
 
     if (stampsData.pendingStamps?.length) {
@@ -447,6 +470,7 @@ exports.processStampScan = onCall({
         availableRewards: stampsData.availableRewards + 1,
         receivedFreeStamps: stampsData.receivedFreeStamps,
         lastStampDate: new Date().toISOString(),
+        rewardHistory: stampsData.rewardHistory
       };
 
       const successMessage = overflowStamps > 0
@@ -467,6 +491,7 @@ exports.processStampScan = onCall({
         availableRewards: stampsData.availableRewards,
         receivedFreeStamps: stampsData.receivedFreeStamps,
         lastStampDate: new Date().toISOString(),
+        rewardHistory: stampsData.rewardHistory
       };
 
       response = { success: true, stampsAdded: stampsToAdd, message, currentStamps: newStampsArray.length, rewardEarned: false, birthdayBonus: isBirthdayBonus };
@@ -566,3 +591,73 @@ async function processStampMilestoneNotifications(rule, ruleId) {
   console.log(`🏆 [${ruleId}] Processing stamp milestone notifications.`);
   console.log(`[${ruleId}] Stamp milestone logic is a placeholder and needs implementation.`);
 }
+
+// 🔧 OPTIONAL: Data Migration Function (one-time use)
+exports.migrateRewardData = onCall({
+  region: "europe-west2"
+}, async (request) => {
+  // Add authentication check to ensure only superuser can run this
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be logged in");
+  }
+
+  // Check if user is superuser
+  const userDoc = await db.doc(`users/${request.auth.uid}`).get();
+  if (!userDoc.exists || userDoc.data().role !== 'superuser') {
+    throw new HttpsError("permission-denied", "Only superusers can run migration");
+  }
+
+  console.log('🔄 Starting reward data migration...');
+
+  try {
+    const stampsSnapshot = await db.collection('stamps').get();
+    const batch = db.batch();
+    let processedCount = 0;
+
+    for (const doc of stampsSnapshot.docs) {
+      const data = doc.data();
+      const userId = doc.id;
+
+      // Check if user needs migration
+      if (data.rewardsEarned > 0 && (!data.rewardHistory || data.rewardHistory.length === 0)) {
+        console.log(`📝 Migrating user ${userId}: ${data.rewardsEarned} historical rewards`);
+
+        // Create a clean data structure
+        const updateData = {
+          rewardsEarned: data.rewardsEarned || 0,
+          availableRewards: data.availableRewards || 0,
+          stamps: data.stamps || [],
+          lifetimeStamps: data.lifetimeStamps || 0,
+          rewardHistory: [],
+          // Remove any legacy fields
+          pendingStamps: admin.firestore.FieldValue.delete(),
+          // Keep other important fields
+          receivedFreeStamps: data.receivedFreeStamps || false,
+          birthdayBonusGiven: data.birthdayBonusGiven || null,
+          lastStampDate: data.lastStampDate || null,
+          lastRewardClaimed: data.lastRewardClaimed || null
+        };
+
+        batch.set(doc.ref, updateData, { merge: false });
+        processedCount++;
+      }
+    }
+
+    if (processedCount > 0) {
+      await batch.commit();
+      console.log(`✅ Migration completed! Processed ${processedCount} users.`);
+    } else {
+      console.log('ℹ️ No users needed migration.');
+    }
+
+    return {
+      success: true,
+      message: `Migration completed successfully. Processed ${processedCount} users.`,
+      processedCount
+    };
+
+  } catch (error) {
+    console.error('💥 Migration failed:', error);
+    throw new HttpsError("internal", "Migration failed", { detail: error.message });
+  }
+});
