@@ -5,6 +5,7 @@ import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
   sendEmailVerification,
+  onAuthStateChanged,
 } from 'firebase/auth';
 import { auth, firestore } from '../lib/firebase';
 import { doc, setDoc, getDoc, query, collection, where, getDocs, serverTimestamp } from 'firebase/firestore';
@@ -94,7 +95,9 @@ export default function Auth({ mode = 'signin' }) {
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
 
-  // 🔒 REMOVED: Email verification polling - now handled by URL parameters in App.jsx
+  // 🔄 NEW: Email verification polling state
+  const [pollingForVerification, setPollingForVerification] = useState(false);
+  const [verificationPollingInterval, setVerificationPollingInterval] = useState(null);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -121,6 +124,84 @@ export default function Auth({ mode = 'signin' }) {
       }
     };
   }, []);
+
+  // 🔄 NEW: Email verification polling effect
+  useEffect(() => {
+    if (emailVerificationSent && !pollingForVerification) {
+      console.log('📧 Starting email verification polling...');
+      setPollingForVerification(true);
+
+      const pollInterval = setInterval(async () => {
+        try {
+          if (auth.currentUser) {
+            // Reload the user to get fresh verification status
+            await auth.currentUser.reload();
+
+            console.log('🔄 Checking verification status:', auth.currentUser.emailVerified);
+
+            if (auth.currentUser.emailVerified) {
+              console.log('✅ Email verified! Auto-logging in user...');
+
+              // Clear the polling
+              clearInterval(pollInterval);
+              setPollingForVerification(false);
+
+              // Update Firestore with verification status
+              try {
+                await setDoc(doc(firestore, 'users', auth.currentUser.uid), {
+                  emailVerified: true,
+                  emailVerifiedAt: new Date().toISOString()
+                }, { merge: true });
+
+                console.log('✅ Updated Firestore with verification status');
+              } catch (firestoreError) {
+                console.error('Error updating Firestore:', firestoreError);
+              }
+
+              // Get user role and redirect appropriately
+              try {
+                const userDoc = await getDoc(doc(firestore, 'users', auth.currentUser.uid));
+                const userData = userDoc.data();
+
+                if (userData && userData.role === 'superuser') {
+                  console.log('🔄 Redirecting superuser to scan page');
+                  navigate('/scan');
+                } else {
+                  console.log('🔄 Redirecting customer to profile page');
+                  navigate('/profile');
+                }
+              } catch (roleError) {
+                console.error('Error getting user role:', roleError);
+                // Default to profile if role check fails
+                navigate('/profile');
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error during verification polling:', error);
+        }
+      }, 3000); // Check every 3 seconds
+
+      setVerificationPollingInterval(pollInterval);
+    }
+
+    // Cleanup polling on unmount or when verification is complete
+    return () => {
+      if (verificationPollingInterval) {
+        clearInterval(verificationPollingInterval);
+        setVerificationPollingInterval(null);
+      }
+    };
+  }, [emailVerificationSent, pollingForVerification, navigate]);
+
+  // 🔄 NEW: Cleanup polling when component unmounts
+  useEffect(() => {
+    return () => {
+      if (verificationPollingInterval) {
+        clearInterval(verificationPollingInterval);
+      }
+    };
+  }, [verificationPollingInterval]);
 
   const handleChange = e => {
     const { name, value } = e.target;
@@ -327,7 +408,7 @@ export default function Auth({ mode = 'signin' }) {
     setError(null); // Clear any existing errors
   };
 
-  // 📧 UPDATED: Simplified email verification screen - no polling
+  // 📧 UPDATED: Email verification screen with polling status
   if (emailVerificationSent) {
     return (
       <div className="auth-wrapper">
@@ -347,9 +428,11 @@ export default function Auth({ mode = 'signin' }) {
             <p>
               Clicca sul link nell'email per attivare il tuo account.
             </p>
-            <p style={{ fontSize: '0.9rem', color: '#FFD700', marginTop: '1rem' }}>
-              💡 <strong>Il link ti reindirizzerà automaticamente all'app una volta verificato</strong>
-            </p>
+            {pollingForVerification && (
+              <p style={{ fontSize: '0.9rem', color: '#FFD700', marginTop: '1rem' }}>
+                In attesa della verifica...
+              </p>
+            )}
             <div className="auth-verification-buttons">
               <button
                 className="auth-resend-btn"
@@ -361,11 +444,15 @@ export default function Auth({ mode = 'signin' }) {
               <button
                 className="auth-continue-btn"
                 onClick={() => {
+                  if (verificationPollingInterval) {
+                    clearInterval(verificationPollingInterval);
+                  }
                   setEmailVerificationSent(false);
+                  setPollingForVerification(false);
                   navigate('/signin');
                 }}
               >
-                Torna al Login
+                Continua
               </button>
             </div>
             {resetMessage && <div className="auth-success">{resetMessage}</div>}

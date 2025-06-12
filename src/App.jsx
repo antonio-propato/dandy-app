@@ -33,6 +33,7 @@ function EmailVerificationHandler() {
   const location = useLocation()
   const [verificationStatus, setVerificationStatus] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState(false)
 
   useEffect(() => {
     const handleEmailVerification = async () => {
@@ -70,27 +71,7 @@ function EmailVerificationHandler() {
           }
 
           setVerificationStatus('success')
-
-          // Redirect after 3 seconds
-          setTimeout(() => {
-            // Get user role and redirect appropriately
-            if (auth.currentUser) {
-              getDoc(doc(firestore, 'users', auth.currentUser.uid))
-                .then(userDoc => {
-                  const userData = userDoc.data()
-                  if (userData && userData.role === 'superuser') {
-                    window.location.href = '/scan'
-                  } else {
-                    window.location.href = '/profile'
-                  }
-                })
-                .catch(() => {
-                  window.location.href = '/profile'
-                })
-            } else {
-              window.location.href = '/signin'
-            }
-          }, 3000)
+          setShowModal(true) // 🔄 NEW: Show modal instead of auto-redirecting
 
         } catch (error) {
           console.error('❌ Email verification failed:', error)
@@ -103,6 +84,7 @@ function EmailVerificationHandler() {
           }
 
           setVerificationStatus('error')
+          setShowModal(true) // 🔄 NEW: Show modal for errors too
         }
       }
 
@@ -111,6 +93,36 @@ function EmailVerificationHandler() {
 
     handleEmailVerification()
   }, [location])
+
+  // 🔄 UPDATED: Handle modal close - smart navigation
+  const handleModalClose = () => {
+    setShowModal(false)
+
+    console.log('📱 Modal closed. Attempting smart navigation...')
+
+    // Try to close the window/tab if it was opened from an email link
+    try {
+      // Check if this window was opened by another window (popup/new tab from email)
+      if (window.opener || window.history.length <= 1) {
+        console.log('🔄 Attempting to close verification tab...')
+        window.close()
+
+        // If window.close() doesn't work (some browsers block it), redirect after a short delay
+        setTimeout(() => {
+          console.log('🔄 Window close failed, redirecting to main app...')
+          window.location.href = window.location.origin + '/'
+        }, 1000)
+      } else {
+        // If this is the main tab, redirect to authenticated area
+        console.log('🔄 Redirecting to main app...')
+        window.location.href = window.location.origin + '/'
+      }
+    } catch (error) {
+      console.error('Error during navigation:', error)
+      // Fallback: redirect to main app
+      window.location.href = window.location.origin + '/'
+    }
+  }
 
   if (loading) {
     return (
@@ -124,39 +136,47 @@ function EmailVerificationHandler() {
     )
   }
 
-  if (verificationStatus === 'success') {
+  // 🔄 UPDATED: Show modal with improved styling and navigation
+  if (showModal) {
     return (
       <div className="verification-handler">
-        <div className="verification-content">
-          <img src="/images/Dandy.jpeg" alt="Dandy Logo" style={{ width: '100px', marginBottom: '20px' }} />
-          <h2>✅ Email Verificata!</h2>
-          <p>Il tuo account è stato attivato con successo.</p>
-          <p>Verrai reindirizzato automaticamente...</p>
-        </div>
-      </div>
-    )
-  }
+        <div className="verification-modal-overlay">
+          <div className="verification-modal">
+            <img src="/images/Dandy.jpeg" alt="Dandy Logo" style={{ width: '80px', marginBottom: '20px' }} />
 
-  if (verificationStatus === 'error') {
-    return (
-      <div className="verification-handler">
-        <div className="verification-content">
-          <img src="/images/Dandy.jpeg" alt="Dandy Logo" style={{ width: '100px', marginBottom: '20px' }} />
-          <h2>❌ Verifica Fallita</h2>
-          <p>Il link di verifica non è valido o è scaduto.</p>
-          <button
-            onClick={() => window.location.href = '/signin'}
-            style={{
-              padding: '12px 24px',
-              backgroundColor: '#FFD700',
-              border: 'none',
-              borderRadius: '8px',
-              marginTop: '20px',
-              cursor: 'pointer'
-            }}
-          >
-            Torna al Login
-          </button>
+            {verificationStatus === 'success' ? (
+              <>
+                <h2>✅ Email Verificata!</h2>
+                <p>Il tuo account è stato attivato con successo.</p>
+              </>
+            ) : (
+              <>
+                <h2>❌ Verifica Fallita</h2>
+                <p>Il link di verifica non è valido o è scaduto.</p>
+                <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '15px' }}>
+                  Torna all'app e richiedi un nuovo link di verifica.
+                </p>
+              </>
+            )}
+
+            <button
+              onClick={handleModalClose}
+              style={{
+                padding: '12px 24px',
+                background: 'linear-gradient(97deg, #43221B, #43221bd3)',
+                color: '#ECF0BA',
+                border: '1px groove #ECF0BA',
+                borderRadius: '8px',
+                marginTop: '20px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '16px',
+                textTransform: 'uppercase'
+              }}
+            >
+              {verificationStatus === 'success' ? 'Continua' : 'Torna all\'App'}
+            </button>
+          </div>
         </div>
       </div>
     )
