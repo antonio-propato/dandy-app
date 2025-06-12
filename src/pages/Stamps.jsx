@@ -31,7 +31,7 @@ export default function Stamps() {
   const lastStampCountRef = useRef(0);
   const lastAvailableRewardsRef = useRef(0);
   const lastLifetimeStampsRef = useRef(0);
-  const lastBirthdayBonusRef = useRef(null); // NEW: Track previous birthday bonus state
+  const lastBirthdayBonusRef = useRef(null); // FIXED: Track previous birthday bonus year
 
   const totalSlots = 9;
   const dandyMessages = ["Vuoi un caffe'? E stat angour 😁", "Tu si' bell com o cafe' Dandy!", "E' l'ora del Dandy!", "Un timbro in più, nu cafe' di chiu!", "Come me, non c'e' nessuuuuno!"];
@@ -116,18 +116,21 @@ export default function Stamps() {
       const newLifetimeStamps = data.lifetimeStamps || 0;
       const currentAvailableRewards = data.availableRewards || 0;
       const receivedFreeStamps = data.receivedFreeStamps || false; // Check if user got signup bonus
-      const birthdayBonusGiven = data.birthdayBonusGiven; // Check if birthday bonus was given
+      const birthdayBonusYear = data.birthdayBonusYear; // FIXED: Check for birthdayBonusYear instead
 
       const prevStampCount = lastStampCountRef.current;
       const prevAvailableRewards = lastAvailableRewardsRef.current;
       const prevLifetimeStamps = lastLifetimeStampsRef.current;
-      const prevBirthdayBonus = lastBirthdayBonusRef.current; // Previous birthday bonus state
+      const prevBirthdayBonusYear = lastBirthdayBonusRef.current; // FIXED: Track previous birthday bonus year
 
       const stampsAdded = newStamps.length - prevStampCount;
       const lifetimeStampsAdded = newLifetimeStamps - prevLifetimeStamps;
       const rewardEarned = currentAvailableRewards > prevAvailableRewards;
       const rewardRedeemed = currentAvailableRewards < prevAvailableRewards;
-      const birthdayBonusJustGiven = birthdayBonusGiven && birthdayBonusGiven !== prevBirthdayBonus; // NEW: Birthday bonus JUST given
+
+      // FIXED: Check if birthday bonus was JUST given by comparing years
+      const currentYear = new Date().getFullYear();
+      const birthdayBonusJustGiven = birthdayBonusYear === currentYear && birthdayBonusYear !== prevBirthdayBonusYear;
 
       // Handle new cycle and completed grid display logic
       if (showingCompletedGrid && lifetimeStampsAdded > 0) {
@@ -236,8 +239,9 @@ export default function Stamps() {
           }
         }, 500);
       }
-      // 4. Birthday bonus during QR scan (JUST given, not during reward earning)
+      // 4. Birthday bonus during QR scan (FIXED: Proper birthday detection)
       else if (birthdayBonusJustGiven && prevLifetimeStamps > 0 && lifetimeStampsAdded > 0 && !rewardEarned) {
+        console.log('🎂 Birthday bonus detected! Showing birthday modal...');
         setTimeout(() => setShowQRModal(false), 150);
 
         // Show birthday modal for existing users scanning on birthday
@@ -284,7 +288,8 @@ export default function Stamps() {
       lastStampCountRef.current = newStamps.length;
       lastAvailableRewardsRef.current = currentAvailableRewards;
       lastLifetimeStampsRef.current = newLifetimeStamps;
-      lastBirthdayBonusRef.current = birthdayBonusGiven; // NEW: Track birthday bonus state
+      lastBirthdayBonusRef.current = birthdayBonusYear; // FIXED: Track birthdayBonusYear instead
+
     }, (error) => {
       console.error("Error in stamps listener:", error);
     });
@@ -310,7 +315,7 @@ export default function Stamps() {
       lastStampCountRef.current = 0;
       lastAvailableRewardsRef.current = 0;
       lastLifetimeStampsRef.current = 0;
-      lastBirthdayBonusRef.current = null; // NEW: Reset birthday bonus ref
+      lastBirthdayBonusRef.current = null; // FIXED: Reset birthday bonus ref
     };
 
     const unsubscribe = onAuthStateChanged(auth, async (u) => {

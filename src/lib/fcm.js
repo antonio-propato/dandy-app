@@ -1,31 +1,31 @@
-// src/lib/fcm.js
+// Clean FCM Manager - v4.0.0
 import { getMessaging, getToken, onMessage } from 'firebase/messaging'
-import { doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore'
+import { doc, updateDoc, getDoc, arrayUnion, arrayRemove } from 'firebase/firestore'
 import { firestore } from './firebase'
 
 const messaging = getMessaging()
-
-// Your Firebase project's VAPID key - get this from Firebase Console > Project Settings > Cloud Messaging
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY
 
 class FCMManager {
   constructor() {
     this.currentToken = null
     this.onMessageCallback = null
+    this.isInitialized = false // Make sure this property exists
   }
 
   // Initialize FCM and request permission
   async initialize(userId) {
-    try {
-      // Check if notifications are supported
-      if (!('Notification' in window)) {
-        console.log('This browser does not support notifications')
-        return false
-      }
+    if (this.isInitialized) {
+      console.log('FCM already initialized')
+      return true
+    }
 
-      // Check if service worker is supported
-      if (!('serviceWorker' in navigator)) {
-        console.log('Service Worker not supported')
+    try {
+      console.log('🔥 Initializing FCM...')
+
+      // Check browser support
+      if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+        console.log('❌ Browser does not support notifications or service workers')
         return false
       }
 
@@ -35,7 +35,7 @@ class FCMManager {
       // Request permission
       const permission = await this.requestPermission()
       if (permission !== 'granted') {
-        console.log('Notification permission denied')
+        console.log('❌ Notification permission denied')
         return false
       }
 
@@ -45,12 +45,15 @@ class FCMManager {
         await this.saveTokenToFirestore(userId, token)
       }
 
-      // Listen for foreground messages
+      // Setup foreground message listener
       this.setupForegroundMessageListener()
 
+      this.isInitialized = true
+      console.log('✅ FCM initialized successfully')
       return true
+
     } catch (error) {
-      console.error('FCM initialization failed:', error)
+      console.error('💥 FCM initialization failed:', error)
       return false
     }
   }
@@ -58,11 +61,18 @@ class FCMManager {
   // Register service worker
   async registerServiceWorker() {
     try {
-      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
-      console.log('Service Worker registered:', registration)
+      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+        scope: '/'
+      })
+
+      console.log('✅ Service Worker registered successfully')
+
+      // Wait for service worker to be ready
+      await navigator.serviceWorker.ready
+
       return registration
     } catch (error) {
-      console.error('Service Worker registration failed:', error)
+      console.error('❌ Service Worker registration failed:', error)
       throw error
     }
   }
@@ -76,9 +86,10 @@ class FCMManager {
         permission = await Notification.requestPermission()
       }
 
+      console.log(`🔔 Notification permission: ${permission}`)
       return permission
     } catch (error) {
-      console.error('Permission request failed:', error)
+      console.error('❌ Permission request failed:', error)
       return 'denied'
     }
   }
@@ -86,125 +97,166 @@ class FCMManager {
   // Get FCM token
   async getToken() {
     try {
-      const token = await getToken(messaging, { vapidKey: VAPID_KEY })
-      this.currentToken = token
-      console.log('FCM Token:', token)
-      return token
+      const token = await getToken(messaging, {
+        vapidKey: VAPID_KEY,
+        serviceWorkerRegistration: await navigator.serviceWorker.ready
+      })
+
+      if (token) {
+        this.currentToken = token
+        console.log('✅ FCM Token retrieved')
+        return token
+      } else {
+        console.log('❌ No FCM token available')
+        return null
+      }
     } catch (error) {
-      console.error('Failed to get FCM token:', error)
+      console.error('❌ Failed to get FCM token:', error)
       return null
     }
   }
 
-  // Save token to Firestore (and clean up old tokens)
+  // Save token to Firestore (clean implementation)
   async saveTokenToFirestore(userId, token) {
     try {
       const userRef = doc(firestore, 'users', userId)
-
-      // Get current user document to check existing tokens
       const userDoc = await getDoc(userRef)
-      const userData = userDoc.data()
-      const currentTokens = userData?.fcmTokens || []
 
-      // Only add token if it doesn't already exist
+      if (!userDoc.exists()) {
+        console.error('❌ User document does not exist')
+        return
+      }
+
+      const userData = userDoc.data()
+      const currentTokens = userData.fcmTokens || []
+
+      // Only update if token is not already present
       if (!currentTokens.includes(token)) {
-        // Keep only the latest token (remove old ones)
+        // Remove duplicate tokens and add the new one
+        const uniqueTokens = [...new Set([...currentTokens, token])]
+
+        // Keep only the latest 3 tokens per user (mobile + desktop + backup)
+        const latestTokens = uniqueTokens.slice(-3)
+
         await updateDoc(userRef, {
-          fcmTokens: [token], // Replace with single current token
+          fcmTokens: latestTokens,
           lastTokenUpdate: new Date().toISOString()
         })
-        console.log('FCM token saved to Firestore (duplicates removed)')
+
+        console.log('✅ FCM token saved to Firestore')
       } else {
-        console.log('FCM token already exists, no update needed')
+        console.log('ℹ️ FCM token already exists in Firestore')
       }
     } catch (error) {
-      console.error('Failed to save FCM token:', error)
+      console.error('❌ Failed to save FCM token:', error)
     }
   }
 
-  // Remove token from Firestore (when user logs out)
-  async removeTokenFromFirestore(userId, token) {
+  // Remove token from Firestore
+  async removeTokenFromFirestore(userId) {
+    if (!this.currentToken || !userId) return
+
     try {
       const userRef = doc(firestore, 'users', userId)
       await updateDoc(userRef, {
-        fcmTokens: arrayRemove(token)
+        fcmTokens: arrayRemove(this.currentToken),
+        lastTokenUpdate: new Date().toISOString()
       })
-      console.log('FCM token removed from Firestore')
+      console.log('✅ FCM token removed from Firestore')
     } catch (error) {
-      console.error('Failed to remove FCM token:', error)
+      console.error('❌ Failed to remove FCM token:', error)
     }
   }
 
   // Setup foreground message listener
   setupForegroundMessageListener() {
     onMessage(messaging, (payload) => {
-      console.log('Foreground message received:', payload)
+      console.log('🔔 Foreground message received:', payload)
 
-      // When app is in foreground, don't show system notification
-      // to avoid duplicates with the service worker notification
-      console.log('Message received while app is open - letting service worker handle notification')
+      // When app is in foreground, we have two options:
+      // 1. Let the service worker handle it (recommended to avoid duplicates)
+      // 2. Show custom in-app notification
 
-      // If you have a custom callback (for in-app notifications), use it
+      // Option 1: Do nothing - let service worker handle
+      console.log('ℹ️ App is in foreground - service worker will handle notification')
+
+      // Option 2: Show custom in-app notification
       if (this.onMessageCallback) {
         this.onMessageCallback(payload)
       }
 
-      // Don't call showForegroundNotification to avoid duplicates
+      // DON'T call showNotification here to avoid duplicates
     })
   }
 
-  // Show notification when app is in foreground (DISABLED to prevent duplicates)
-  showForegroundNotification(payload) {
-    console.log('🔔 showForegroundNotification called - but disabled to prevent duplicates')
-
-    // This method is now disabled to prevent duplicate notifications
-    // The service worker will handle all notifications
-    return
-  }
-
-  // Set custom message handler
+  // Set custom message handler for in-app notifications
   setOnMessageCallback(callback) {
     this.onMessageCallback = callback
   }
 
   // Clean up when user logs out
   async cleanup(userId) {
-    if (this.currentToken && userId) {
-      await this.removeTokenFromFirestore(userId, this.currentToken)
+    try {
+      if (this.currentToken && userId) {
+        await this.removeTokenFromFirestore(userId)
+      }
+
+      this.currentToken = null
+      this.onMessageCallback = null
+      this.isInitialized = false
+
+      console.log('✅ FCM cleanup completed')
+    } catch (error) {
+      console.error('❌ FCM cleanup failed:', error)
     }
-    this.currentToken = null
-    this.onMessageCallback = null
   }
 
-  // Test notification method for debugging
-  async testNotification() {
-    console.log('🧪 Testing notification...')
-
-    if (Notification.permission === 'granted') {
-      try {
-        const notification = new Notification('Test Notification', {
-          body: 'This is a test notification from Dandy!',
-          icon: '/images/favicon.png',
-          tag: 'test'
-        })
-
-        notification.onshow = () => {
-          console.log('✅ Test notification shown successfully')
-        }
-
-        notification.onerror = (error) => {
-          console.error('❌ Test notification error:', error)
-        }
-
-        console.log('✅ Test notification created')
-      } catch (error) {
-        console.error('💥 Error creating test notification:', error)
-      }
-    } else {
-      console.error('❌ Test notification failed - permission not granted:', Notification.permission)
+  // Test notification (for debugging)
+  async testNotification(title = 'Test Notification', body = 'This is a test from Dandy!') {
+    if (Notification.permission !== 'granted') {
+      console.error('❌ Notification permission not granted')
+      return false
     }
+
+    try {
+      // Create a simple browser notification for testing
+      const notification = new Notification(title, {
+        body,
+        icon: '/images/favicon.png',
+        tag: 'test-notification'
+      })
+
+      notification.onclick = () => {
+        console.log('🔔 Test notification clicked')
+        notification.close()
+      }
+
+      console.log('✅ Test notification shown')
+      return true
+    } catch (error) {
+      console.error('❌ Test notification failed:', error)
+      return false
+    }
+  }
+
+  // Get current permission status
+  getPermissionStatus() {
+    return Notification.permission
+  }
+
+  // Check if notifications are supported
+  isSupported() {
+    return 'Notification' in window && 'serviceWorker' in navigator
+  }
+
+  // Get current token (useful for debugging)
+  getCurrentToken() {
+    return this.currentToken
   }
 }
 
 // Export singleton instance
 export const fcmManager = new FCMManager()
+
+// Export class for testing
+export { FCMManager }

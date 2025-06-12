@@ -92,35 +92,9 @@ export default function Auth({ mode = 'signin' }) {
   const [resetEmail, setResetEmail] = useState('');
   const [resetMessage, setResetMessage] = useState('');
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
-  const [justCreatedUser, setJustCreatedUser] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
 
-  useEffect(() => {
-    let intervalId;
-    if (emailVerificationSent && justCreatedUser) {
-      intervalId = setInterval(async () => {
-        try {
-          await justCreatedUser.reload();
-          if (justCreatedUser.emailVerified) {
-            await setDoc(doc(firestore, 'users', justCreatedUser.uid), { emailVerified: true }, { merge: true });
-            const userDoc = await getDoc(doc(firestore, 'users', justCreatedUser.uid));
-            const userData = userDoc.data();
-            clearInterval(intervalId);
-            if (userData && userData.role === 'superuser') {
-              navigate('/scan');
-            } else {
-              navigate('/profile');
-            }
-          }
-        } catch (error) {
-          console.error('Error checking verification status:', error);
-        }
-      }, 3000);
-    }
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [emailVerificationSent, justCreatedUser, navigate]);
+  // 🔒 REMOVED: Email verification polling - now handled by URL parameters in App.jsx
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -217,39 +191,14 @@ export default function Auth({ mode = 'signin' }) {
   };
 
   const handleResendVerification = async () => {
-    if (!justCreatedUser) return;
+    if (!auth.currentUser) return;
     setLoading(true);
     setError(null);
     try {
-      await sendEmailVerification(justCreatedUser);
+      await sendEmailVerification(auth.currentUser);
       setResetMessage('Email di verifica inviata nuovamente!');
     } catch (err) {
       setError('Errore nell\'invio dell\'email di verifica.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCheckVerification = async () => {
-    if (!justCreatedUser) return;
-    setLoading(true);
-    setError(null);
-    try {
-      await justCreatedUser.reload();
-      if (justCreatedUser.emailVerified) {
-        await setDoc(doc(firestore, 'users', justCreatedUser.uid), { emailVerified: true }, { merge: true });
-        const userDoc = await getDoc(doc(firestore, 'users', justCreatedUser.uid));
-        const userData = userDoc.data();
-        if (userData && userData.role === 'superuser') {
-          navigate('/scan');
-        } else {
-          navigate('/profile');
-        }
-      } else {
-        setError('Email non ancora verificata. Controlla la tua casella di posta e clicca sul link.');
-      }
-    } catch (err) {
-      setError('Errore durante la verifica. Riprova.');
     } finally {
       setLoading(false);
     }
@@ -282,7 +231,14 @@ export default function Auth({ mode = 'signin' }) {
       if (mode === 'signup') {
         userCred = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCred.user;
-        await sendEmailVerification(user);
+
+        // 📧 UPDATED: Configure email verification to redirect to your app
+        const actionCodeSettings = {
+          url: `${window.location.origin}/`, // This will redirect back to your app
+          handleCodeInApp: true // This tells Firebase to handle the code in the app
+        };
+
+        await sendEmailVerification(user, actionCodeSettings);
 
         const qrData = `https://dandy.app/profile/${user.uid}`;
         const qrCodeURL = await QRCode.toDataURL(qrData);
@@ -329,8 +285,6 @@ export default function Auth({ mode = 'signin' }) {
         }
 
         await Promise.all([userDocPromise, stampsDocPromise]);
-
-        setJustCreatedUser(user);
         setEmailVerificationSent(true);
 
       } else {
@@ -373,6 +327,7 @@ export default function Auth({ mode = 'signin' }) {
     setError(null); // Clear any existing errors
   };
 
+  // 📧 UPDATED: Simplified email verification screen - no polling
   if (emailVerificationSent) {
     return (
       <div className="auth-wrapper">
@@ -391,22 +346,26 @@ export default function Auth({ mode = 'signin' }) {
             </p>
             <p>
               Clicca sul link nell'email per attivare il tuo account.
-              La verifica avverrà automatically.
+            </p>
+            <p style={{ fontSize: '0.9rem', color: '#FFD700', marginTop: '1rem' }}>
+              💡 <strong>Il link ti reindirizzerà automaticamente all'app una volta verificato</strong>
             </p>
             <div className="auth-verification-buttons">
-              <button
-                className="auth-continue-btn"
-                onClick={handleCheckVerification}
-                disabled={loading}
-              >
-                {loading ? 'Verifica...' : 'Continua'}
-              </button>
               <button
                 className="auth-resend-btn"
                 onClick={handleResendVerification}
                 disabled={loading}
               >
                 {loading ? 'Invio...' : 'Invia di nuovo'}
+              </button>
+              <button
+                className="auth-continue-btn"
+                onClick={() => {
+                  setEmailVerificationSent(false);
+                  navigate('/signin');
+                }}
+              >
+                Torna al Login
               </button>
             </div>
             {resetMessage && <div className="auth-success">{resetMessage}</div>}

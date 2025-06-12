@@ -1,4 +1,4 @@
-// src/service-worker.js
+// src/service-worker.js - FIXED VERSION
 import { precacheAndRoute } from 'workbox-precaching'
 import { clientsClaim    } from 'workbox-core'
 
@@ -27,26 +27,40 @@ const messaging = firebase.messaging()
 messaging.onBackgroundMessage(async payload => {
   console.log('🆕 onBackgroundMessage:', payload)
 
-  // close any old Dandy notifications
+  // close any old notifications
   const old = await self.registration.getNotifications()
-  old.forEach(n => n.tag?.includes('dandy') && n.close())
+  old.forEach(n => n.close())
   await new Promise(r => setTimeout(r, 100))
 
-  // show the one-and-only notification
-  const title = payload.notification?.title || 'Dandy Notification'
-  const opts  = {
-    body:    payload.notification?.body || '',
-    icon:    '/images/favicon.png',
-    badge:   '/images/favicon.png',
-    tag:     'dandy-single',
+  // AGGRESSIVE: Try to eliminate "from" completely
+  const originalTitle = payload.notification?.title || ''
+  const originalBody = payload.notification?.body || ''
+
+  // Put everything in body, use "Dandy" as title
+  let fullContent = ''
+  if (originalTitle && originalBody) {
+    fullContent = `${originalTitle}\n${originalBody}`
+  } else if (originalTitle) {
+    fullContent = originalTitle
+  } else {
+    fullContent = originalBody
+  }
+
+  const opts = {
+    body: fullContent,
+    icon: '/images/favicon.png',
+    badge: '/images/favicon.png',
+    tag: 'app-notification', // Generic tag
     renotify: true,
     requireInteraction: true,
-    data:    { click_action: payload.data?.click_action || '/', ...payload.data },
+    data: { click_action: payload.data?.click_action || '/', ...payload.data },
     vibrate: [200,100,200],
     actions: [
-      { action: 'view',    title: 'View',    icon: '/images/favicon.png' },
+      { action: 'view', title: 'Open', icon: '/images/favicon.png' },
       { action: 'dismiss', title: 'Dismiss' }
     ]
   }
-  await self.registration.showNotification(title, opts)
+
+  // Try "Dandy" as title to move it to top
+  await self.registration.showNotification("Dandy", opts)
 })

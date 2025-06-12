@@ -225,47 +225,66 @@ export default function Scan() {
     setSelectedCamera(e.target.value);
   };
 
-  // Process reward QR scan using Cloud Function
-  const processRewardQRScan = async (decodedText) => {
-    try {
-      console.log("Reward QR code detected:", decodedText);
+// Update the processRewardQRScan function in your Scan.js component:
 
-      const result = await redeemRewardQR({ qrCode: decodedText });
+// Complete the processRewardQRScan function in your Scan.js:
 
-      if (result.data.success) {
-        const {
-          message,
-          customerName,
-          customerEmail,
-          remainingRewards
-        } = result.data;
+const processRewardQRScan = async (decodedText) => {
+  try {
+    console.log("Reward QR code detected:", decodedText);
 
-        console.log("Reward QR redeemed successfully:", result.data);
+    const result = await redeemRewardQR({ qrCode: decodedText });
 
-        setCustomerInfo({
-          name: customerName,
-          email: customerEmail,
-          message: message,
-          rewardRedeemed: true,
-          remainingRewards: remainingRewards,
-          stampsReset: true
-        });
+    if (result.data.success) {
+      const {
+        message,
+        customerName,
+        customerEmail,
+        remainingRewards
+      } = result.data;
 
-        setSuccess(true);
-        setResult(decodedText);
+      console.log("Reward QR redeemed successfully:", result.data);
 
-        console.log("🎁 Reward successfully redeemed via QR!");
-        await loadTodayStamps();
+      setCustomerInfo({
+        name: customerName,
+        email: customerEmail,
+        message: message,
+        rewardRedeemed: true,
+        remainingRewards: remainingRewards,
+        stampsReset: true
+      });
 
-      } else {
-        throw new Error('Cloud Function returned unsuccessful result for reward QR');
-      }
+      setSuccess(true);
+      setResult(decodedText);
 
-    } catch (error) {
-      console.error('Error processing reward QR scan:', error);
-      throw new Error(`Failed to redeem reward: ${error.message}`);
+      console.log("🎁 Reward successfully redeemed via QR!");
+      await loadTodayStamps();
+
+    } else {
+      throw new Error('Cloud Function returned unsuccessful result for reward QR');
     }
-  };
+
+  } catch (error) {
+    console.error('Error processing reward QR scan:', error);
+
+    // Enhanced error handling with specific Italian messages and emojis
+    let errorMessage = error.message;
+
+    // Check for specific QR validation errors and add appropriate emoji/styling
+    if (errorMessage.includes('già stato utilizzato')) {
+      errorMessage = `🔄 ${errorMessage}`;
+    } else if (errorMessage.includes('non è valido')) {
+      errorMessage = `⚠️ ${errorMessage}`;
+    } else if (errorMessage.includes('scaduto')) {
+      errorMessage = `⏰ ${errorMessage}`;
+    } else {
+      // Fallback for other errors
+      errorMessage = `❌ Errore durante il riscatto: ${errorMessage}`;
+    }
+
+    throw new Error(errorMessage);
+  }
+};
 
   // Process regular stamp QR scan using Cloud Function
   const processStampQRScan = async (decodedText) => {
