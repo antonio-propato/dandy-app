@@ -3,9 +3,9 @@ import React, { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import './App.css'
-import { onAuthStateChanged } from 'firebase/auth'
+import { onAuthStateChanged, applyActionCode, checkActionCode } from 'firebase/auth'
 import { auth, firestore } from './lib/firebase'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { fcmManager } from './lib/fcm' // Import FCM manager
 
 // Components
@@ -28,10 +28,156 @@ import CustomerNotifications from './pages/CustomerNotifications'
 import RewardsLog from './pages/RewardsLog' // NEW: Rewards log page
 import StampsLog from './pages/StampsLog' // NEW: Stamps log page
 
+// 🔗 NEW: Email Verification Handler Component
+function EmailVerificationHandler() {
+  const location = useLocation()
+  const [verificationStatus, setVerificationStatus] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const handleEmailVerification = async () => {
+      console.log('🔗 Checking URL for email verification parameters')
+
+      const urlParams = new URLSearchParams(location.search)
+      const mode = urlParams.get('mode')
+      const actionCode = urlParams.get('oobCode')
+
+      console.log('URL params - mode:', mode, 'actionCode:', actionCode ? 'present' : 'missing')
+
+      if (mode === 'verifyEmail' && actionCode) {
+        console.log('📧 Processing email verification from URL')
+
+        try {
+          // Check if the action code is valid
+          const info = await checkActionCode(auth, actionCode)
+          console.log('✅ Action code is valid for:', info.data.email)
+
+          // Apply the email verification
+          await applyActionCode(auth, actionCode)
+          console.log('✅ Email verification applied successfully')
+
+          // Update the user's emailVerified status in Firestore
+          if (auth.currentUser) {
+            await auth.currentUser.reload()
+            console.log('🔄 User reloaded, emailVerified:', auth.currentUser.emailVerified)
+
+            // Update Firestore
+            await updateDoc(doc(firestore, 'users', auth.currentUser.uid), {
+              emailVerified: true,
+              emailVerifiedAt: new Date().toISOString()
+            })
+            console.log('✅ Updated Firestore with verification status')
+          }
+
+          setVerificationStatus('success')
+
+          // Redirect after 3 seconds
+          setTimeout(() => {
+            // Get user role and redirect appropriately
+            if (auth.currentUser) {
+              getDoc(doc(firestore, 'users', auth.currentUser.uid))
+                .then(userDoc => {
+                  const userData = userDoc.data()
+                  if (userData && userData.role === 'superuser') {
+                    window.location.href = '/scan'
+                  } else {
+                    window.location.href = '/profile'
+                  }
+                })
+                .catch(() => {
+                  window.location.href = '/profile'
+                })
+            } else {
+              window.location.href = '/signin'
+            }
+          }, 3000)
+
+        } catch (error) {
+          console.error('❌ Email verification failed:', error)
+          let errorMessage = 'Verification failed'
+
+          if (error.code === 'auth/invalid-action-code') {
+            errorMessage = 'Invalid or expired verification link'
+          } else if (error.code === 'auth/expired-action-code') {
+            errorMessage = 'Verification link has expired'
+          }
+
+          setVerificationStatus('error')
+        }
+      }
+
+      setLoading(false)
+    }
+
+    handleEmailVerification()
+  }, [location])
+
+  if (loading) {
+    return (
+      <div className="verification-handler">
+        <div className="verification-content">
+          <img src="/images/Dandy.jpeg" alt="Dandy Logo" style={{ width: '100px', marginBottom: '20px' }} />
+          <h2>Verifica in corso...</h2>
+          <p>Stiamo verificando il tuo account.</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (verificationStatus === 'success') {
+    return (
+      <div className="verification-handler">
+        <div className="verification-content">
+          <img src="/images/Dandy.jpeg" alt="Dandy Logo" style={{ width: '100px', marginBottom: '20px' }} />
+          <h2>✅ Email Verificata!</h2>
+          <p>Il tuo account è stato attivato con successo.</p>
+          <p>Verrai reindirizzato automaticamente...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (verificationStatus === 'error') {
+    return (
+      <div className="verification-handler">
+        <div className="verification-content">
+          <img src="/images/Dandy.jpeg" alt="Dandy Logo" style={{ width: '100px', marginBottom: '20px' }} />
+          <h2>❌ Verifica Fallita</h2>
+          <p>Il link di verifica non è valido o è scaduto.</p>
+          <button
+            onClick={() => window.location.href = '/signin'}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#FFD700',
+              border: 'none',
+              borderRadius: '8px',
+              marginTop: '20px',
+              cursor: 'pointer'
+            }}
+          >
+            Torna al Login
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return null
+}
+
 function AnimatedRoutes({ user, userRole }) {
   const location = useLocation()
   console.log("AnimatedRoutes - Current user role:", userRole);
   console.log("AnimatedRoutes - Current path:", location.pathname);
+
+  // 🔗 NEW: Check if this is an email verification URL
+  const urlParams = new URLSearchParams(location.search)
+  const mode = urlParams.get('mode')
+
+  if (mode === 'verifyEmail') {
+    console.log('📧 Email verification URL detected')
+    return <EmailVerificationHandler />
+  }
 
   return (
     <AnimatePresence mode="wait">
@@ -208,46 +354,6 @@ function AnimatedRoutes({ user, userRole }) {
               ) : (
                 <>
                   {console.log("Menu Management route - User is customer, redirecting to Profile")}
-                  <Navigate to="/profile" />
-                </>
-              )}
-            </ProtectedRoute>
-          }
-        />
-
-        {/* NEW: Superuser Rewards Log Route */}
-        <Route
-          path="/rewards-log"
-          element={
-            <ProtectedRoute user={user}>
-              {userRole === 'superuser' ? (
-                <>
-                  {console.log("Rewards Log route - User is superuser, showing RewardsLog")}
-                  <RewardsLog />
-                </>
-              ) : (
-                <>
-                  {console.log("Rewards Log route - User is customer, redirecting to Profile")}
-                  <Navigate to="/profile" />
-                </>
-              )}
-            </ProtectedRoute>
-          }
-        />
-
-        {/* NEW: Superuser Stamps Log Route */}
-        <Route
-          path="/stamps-log"
-          element={
-            <ProtectedRoute user={user}>
-              {userRole === 'superuser' ? (
-                <>
-                  {console.log("Stamps Log route - User is superuser, showing StampsLog")}
-                  <StampsLog />
-                </>
-              ) : (
-                <>
-                  {console.log("Stamps Log route - User is customer, redirecting to Profile")}
                   <Navigate to="/profile" />
                 </>
               )}

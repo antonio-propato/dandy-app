@@ -1,12 +1,15 @@
-// src/components/NotificationPanel.jsx
+// Updated NotificationPanel.jsx with proper FCM integration
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { Bell, Send, Calendar, Users, Gift, Star, Clock, CheckCircle, AlertTriangle, Loader2, Trash2, Edit } from 'lucide-react'
+import { Bell, Send, Calendar, Users, Gift, Star, Clock, CheckCircle, AlertTriangle, Loader2, Trash2, Edit, Bug } from 'lucide-react'
 import { collection, getDocs, addDoc, query, where, orderBy, limit, updateDoc, doc, writeBatch, deleteDoc } from 'firebase/firestore'
-import { firestore } from '../lib/firebase'
+import { httpsCallable } from 'firebase/functions'
+import { firestore, functions, auth } from '../lib/firebase'
+import { FCMDebugHelper } from '../utils/fcmDebug'
+import { fcmManager } from '../lib/fcm'
 import './NotificationPanel.css'
 
 export default function NotificationPanel() {
-  const [activeTab, setActiveTab] = useState('immediate')
+  const [activeTab, setActiveTab] = useState('immediate') // Start with debug tab to fix tokens
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [userStats, setUserStats] = useState({ total: 0, withTokens: 0 })
@@ -14,6 +17,10 @@ export default function NotificationPanel() {
   const [automatedRules, setAutomatedRules] = useState([])
   const [refreshing, setRefreshing] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState({})
+
+  // Cloud Functions
+  const sendPushNotification = httpsCallable(functions, 'sendPushNotification')
+  const testNotification = httpsCallable(functions, 'testNotification')
 
   // Immediate notification state
   const [immediateForm, setImmediateForm] = useState({
@@ -138,6 +145,7 @@ export default function NotificationPanel() {
     }
   }, [])
 
+  // UPDATED: Send immediate notification using Cloud Function
   const sendImmediateNotification = useCallback(async () => {
     if (!immediateForm.title?.trim() || !immediateForm.body?.trim()) {
       setMessage('❌ Titolo e messaggio sono richiesti')
@@ -146,105 +154,45 @@ export default function NotificationPanel() {
 
     setLoading(true)
     try {
-      // Get target users
-      let targetUsers = []
-      const usersSnapshot = await getDocs(collection(firestore, 'users'))
-      const allUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      console.log('📱 Sending push notification via Cloud Function...')
 
-      switch (immediateForm.target) {
-        case 'all':
-          targetUsers = allUsers.filter(u => u.role !== 'superuser' && u.fcmTokens?.length > 0)
-          break
-        case 'customers':
-          targetUsers = allUsers.filter(u => u.role === 'customer' && u.fcmTokens?.length > 0)
-          break
-        case 'birthday_today':
-          const today = new Date()
-          const todayStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}`
-          targetUsers = allUsers.filter(u =>
-            u.role !== 'superuser' &&
-            u.fcmTokens?.length > 0 &&
-            u.dob === todayStr
-          )
-          break
-        case 'inactive_users':
-          const thirtyDaysAgo = new Date()
-          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-          targetUsers = allUsers.filter(u =>
-            u.role !== 'superuser' &&
-            u.fcmTokens?.length > 0 &&
-            (!u.lastLogin || new Date(u.lastLogin) < thirtyDaysAgo)
-          )
-          break
-        case 'reward_eligible':
-          // Users with exactly 9 stamps
-          targetUsers = allUsers.filter(u =>
-            u.role !== 'superuser' &&
-            u.fcmTokens?.length > 0 &&
-            u.stampsCount === 9
-          )
-          break
-      }
-
-      if (targetUsers.length === 0) {
-        setMessage('⚠️ Nessun utente trovato per i criteri selezionati')
-        setLoading(false)
-        return
-      }
-
-      const now = new Date().toISOString()
-      const batch = writeBatch(firestore)
-
-      // Create individual notification records for each customer
-      targetUsers.forEach(user => {
-        const customerNotificationRef = doc(collection(firestore, 'notifications'))
-        batch.set(customerNotificationRef, {
-          userId: user.id,
-          title: immediateForm.title.trim(),
-          body: immediateForm.body.trim(),
-          createdAt: now,
-          read: false,
-          readAt: null,
-          data: {
-            click_action: immediateForm.clickAction,
-            type: 'admin_broadcast',
-            priority: 'normal'
-          },
-          sentBy: 'superuser',
-          campaign: immediateForm.target
-        })
+      // Call the Cloud Function
+      const result = await sendPushNotification({
+        title: immediateForm.title.trim(),
+        body: immediateForm.body.trim(),
+        target: immediateForm.target,
+        clickAction: immediateForm.clickAction,
+        data: {
+          type: 'admin_broadcast',
+          priority: 'normal'
+        }
       })
+
+      console.log('✅ Push notification result:', result.data)
 
       // Create admin tracking record
-      const adminNotificationRef = doc(collection(firestore, 'adminNotifications'))
-      batch.set(adminNotificationRef, {
+      const now = new Date().toISOString()
+      await addDoc(collection(firestore, 'adminNotifications'), {
         type: 'immediate',
         title: immediateForm.title.trim(),
         body: immediateForm.body.trim(),
         target: immediateForm.target,
         clickAction: immediateForm.clickAction,
-        targetCount: targetUsers.length,
+        targetCount: result.data.targetCount || 0,
+        successCount: result.data.successCount || 0,
+        failedCount: result.data.failedCount || 0,
         createdAt: now,
-        status: 'delivered',
-        successCount: targetUsers.length,
-        targetUserIds: targetUsers.map(u => u.id)
+        status: 'delivered'
       })
 
-      await batch.commit()
+      // Show success message
+      const successMsg = result.data.targetCount > 0
+        ? `✅ Notifica inviata con successo a ${result.data.successCount} utenti!`
+        : '⚠️ Nessun utente trovato per i criteri selezionati'
 
-      // Send push notifications via Cloud Function
-      await addDoc(collection(firestore, 'notifications'), {
-        type: 'immediate',
-        title: immediateForm.title.trim(),
-        body: immediateForm.body.trim(),
-        target: immediateForm.target,
-        clickAction: immediateForm.clickAction,
-        targetCount: targetUsers.length,
-        createdAt: now,
-        status: 'pending'
-      })
+      setMessage(successMsg)
 
-      setMessage(`✅ Notifica inviata con successo a ${targetUsers.length} utenti!`)
+      // Reset form
       setImmediateForm({
         title: '',
         body: '',
@@ -254,13 +202,101 @@ export default function NotificationPanel() {
 
       // Reload history
       await loadNotificationHistory()
+
     } catch (error) {
-      console.error('Error sending notification:', error)
-      setMessage('❌ Errore nell\'invio della notifica')
+      console.error('💥 Error sending notification:', error)
+      const errorMsg = error.message || 'Errore sconosciuto'
+      setMessage(`❌ Errore nell'invio: ${errorMsg}`)
     } finally {
       setLoading(false)
     }
-  }, [immediateForm, loadNotificationHistory])
+  }, [immediateForm, loadNotificationHistory, sendPushNotification])
+
+  // Test notification function
+  const sendTestNotification = useCallback(async () => {
+    try {
+      setLoading(true)
+      console.log('🧪 Sending test notification...')
+
+      const result = await testNotification({
+        title: 'Test Dandy 🧪',
+        body: 'Questa è una notifica di test dal pannello admin!'
+      })
+
+      console.log('✅ Test result:', result.data)
+      setMessage(`✅ ${result.data.message}`)
+
+    } catch (error) {
+      console.error('❌ Test notification failed:', error)
+      setMessage(`❌ Test fallito: ${error.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }, [testNotification])
+
+  // Debug functions
+  const debugFCM = useCallback(async () => {
+    const currentUser = auth.currentUser
+    if (currentUser) {
+      await FCMDebugHelper.debugFCMStatus(currentUser.uid)
+    }
+  }, [])
+
+  const cleanTokens = useCallback(async () => {
+    try {
+      setLoading(true)
+      const currentUser = auth.currentUser
+      if (!currentUser) {
+        setMessage('❌ User not logged in')
+        return
+      }
+
+      const success = await FCMDebugHelper.cleanUserTokens(currentUser.uid)
+      if (success) {
+        setMessage('✅ Token puliti con successo! Ora ricarica la pagina.')
+      } else {
+        setMessage('❌ Errore nella pulizia dei token')
+      }
+    } catch (error) {
+      console.error('❌ Clean tokens error:', error)
+      setMessage('❌ Errore nella pulizia dei token')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const refreshTokens = useCallback(async () => {
+    try {
+      setLoading(true)
+      const currentUser = auth.currentUser
+      if (!currentUser) {
+        setMessage('❌ User not logged in')
+        return
+      }
+
+      const success = await FCMDebugHelper.refreshUserToken(currentUser.uid)
+      if (success) {
+        setMessage('✅ Token aggiornati! Ora prova a inviare una notifica di test.')
+        await loadUserStats() // Refresh stats
+      } else {
+        setMessage('❌ Errore nell\'aggiornamento dei token')
+      }
+    } catch (error) {
+      console.error('❌ Refresh tokens error:', error)
+      setMessage('❌ Errore nell\'aggiornamento dei token')
+    } finally {
+      setLoading(false)
+    }
+  }, [loadUserStats])
+
+  const testBrowserNotification = useCallback(async () => {
+    const success = await FCMDebugHelper.testBrowserNotification()
+    if (success) {
+      setMessage('✅ Notifica browser inviata! Controlla se è apparsa.')
+    } else {
+      setMessage('❌ Notifica browser fallita. Controlla i permessi.')
+    }
+  }, [])
 
   const saveAutomatedRule = useCallback(async () => {
     if (!automatedForm.title?.trim() || !automatedForm.body?.trim()) {
@@ -428,13 +464,23 @@ export default function NotificationPanel() {
               <div className="stats-label">Utenti Totali</div>
               <div className="stats-number">{userStats.total}</div>
               <div className="stats-sub">{userStats.withTokens} con notifiche abilitate</div>
-              <button
-                onClick={loadAllData}
-                className="notification-refresh-btn"
-                disabled={refreshing}
-              >
-                {refreshing ? <Loader2 size={16} className="spin" /> : ''} Aggiorna
-              </button>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                <button
+                  onClick={loadAllData}
+                  className="notification-refresh-btn"
+                  disabled={refreshing}
+                >
+                  {refreshing ? <Loader2 size={16} className="spin" /> : ''} Aggiorna
+                </button>
+                <button
+                  onClick={sendTestNotification}
+                  className="notification-refresh-btn"
+                  disabled={loading}
+                  style={{ background: 'rgba(40, 167, 69, 0.1)', borderColor: 'rgba(40, 167, 69, 0.3)', color: '#28a745' }}
+                >
+                  {loading ? <Loader2 size={16} className="spin" /> : '🧪'} Test
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -462,6 +508,7 @@ export default function NotificationPanel() {
           <div className="notification-tabs">
             <nav className="notification-tabs-nav">
               {[
+                // { id: 'debug', label: 'Debug FCM', icon: Bug },
                 { id: 'immediate', label: 'Invia Ora', icon: Send },
                 { id: 'automated', label: 'Regole Automatiche', icon: Clock },
                 { id: 'history', label: 'Cronologia', icon: CheckCircle }
@@ -479,6 +526,103 @@ export default function NotificationPanel() {
           </div>
 
           <div className="notification-tab-content">
+            {/* Debug Tab */}
+            {activeTab === 'debug' && (
+              <div>
+                <h3 className="tab-section-title">🐛 Debug FCM - Risolvi Problemi Token</h3>
+
+                <div className="notification-info-box" style={{ background: 'rgba(255, 193, 7, 0.15)', borderColor: 'rgba(255, 193, 7, 0.4)' }}>
+                  <div className="notification-info-text">
+                    <strong>⚠️ PROBLEMA RILEVATO:</strong> I tuoi token FCM sono scaduti/invalidi.<br/>
+                    <strong>💡 SOLUZIONE:</strong> Segui questi passaggi nell'ordine per risolvere il problema.
+                  </div>
+                </div>
+
+                <div className="notification-form-grid">
+                  <div className="notification-form-section">
+                    <h4 style={{ color: '#FFD700', marginBottom: '20px' }}>🔧 Strumenti di Debug</h4>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                      <button
+                        onClick={debugFCM}
+                        className="notification-btn"
+                        style={{ background: 'rgba(139, 92, 246, 0.2)', borderColor: 'rgba(139, 92, 246, 0.4)', color: '#8b5cf6' }}
+                      >
+                        <Bug size={16} />
+                        1. Debug Status FCM
+                      </button>
+
+                      <button
+                        onClick={cleanTokens}
+                        disabled={loading}
+                        className="notification-btn"
+                        style={{ background: 'rgba(255, 193, 7, 0.2)', borderColor: 'rgba(255, 193, 7, 0.4)', color: '#ffc107' }}
+                      >
+                        {loading ? <Loader2 size={16} className="spin" /> : '🧹'}
+                        2. Pulisci Token Scaduti
+                      </button>
+
+                      <button
+                        onClick={refreshTokens}
+                        disabled={loading}
+                        className="notification-btn notification-btn-success"
+                      >
+                        {loading ? <Loader2 size={16} className="spin" /> : '🔄'}
+                        3. Ottieni Nuovi Token
+                      </button>
+
+                      <button
+                        onClick={testBrowserNotification}
+                        className="notification-btn"
+                        style={{ background: 'rgba(67, 34, 27, 0.2)', borderColor: 'rgba(67, 34, 27, 0.4)', color: '#FFD700' }}
+                      >
+                        🧪 Test Notifica Browser
+                      </button>
+
+                      <button
+                        onClick={sendTestNotification}
+                        disabled={loading}
+                        className="notification-btn notification-btn-primary"
+                      >
+                        {loading ? <Loader2 size={16} className="spin" /> : '🚀'}
+                        4. Test Notifica FCM
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="notification-preview">
+                    <h4 className="notification-preview-title">📋 Istruzioni</h4>
+                    <div style={{ color: 'white', lineHeight: '1.6' }}>
+                      <div style={{ marginBottom: '15px' }}>
+                        <strong style={{ color: '#FFD700' }}>STEP 1:</strong> Clicca "Debug Status FCM" e controlla la console del browser (F12) per vedere i dettagli.
+                      </div>
+
+                      <div style={{ marginBottom: '15px' }}>
+                        <strong style={{ color: '#FFD700' }}>STEP 2:</strong> Clicca "Pulisci Token Scaduti" per rimuovere i token invalidi dal database.
+                      </div>
+
+                      <div style={{ marginBottom: '15px' }}>
+                        <strong style={{ color: '#FFD700' }}>STEP 3:</strong> Clicca "Ottieni Nuovi Token" per registrare nuovi token FCM validi.
+                      </div>
+
+                      <div style={{ marginBottom: '15px' }}>
+                        <strong style={{ color: '#FFD700' }}>STEP 4:</strong> Clicca "Test Notifica FCM" per verificare che tutto funzioni.
+                      </div>
+
+                      <div style={{ marginTop: '20px', padding: '15px', background: 'rgba(40, 167, 69, 0.1)', borderRadius: '8px', border: '1px solid rgba(40, 167, 69, 0.3)' }}>
+                        <strong style={{ color: '#28a745' }}>💡 NOTA:</strong> Se il problema persiste, assicurati che:
+                        <ul style={{ marginLeft: '20px', marginTop: '8px' }}>
+                          <li>Le notifiche siano abilitate nel browser</li>
+                          <li>Il service worker sia registrato</li>
+                          <li>Non ci siano errori nella console</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Immediate Notifications Tab */}
             {activeTab === 'immediate' && (
               <div>
@@ -594,7 +738,7 @@ export default function NotificationPanel() {
                         <strong>Portata stimata:</strong> {getEstimatedReach(immediateForm.target)}
                       </div>
                       <div className="notification-preview-info-item">
-                        <strong>💡 Info:</strong> Le notifiche vengono salvate nella cronologia di ogni cliente
+                        <strong>💡 Info:</strong> Le notifiche vengono inviate tramite Firebase Cloud Messaging
                       </div>
                     </div>
                   </div>
@@ -602,11 +746,23 @@ export default function NotificationPanel() {
               </div>
             )}
 
+            {/* Rest of the component remains the same... */}
+            {/* I'll keep the other tabs unchanged since they don't need FCM integration */}
+
             {/* Automated Rules Tab */}
             {activeTab === 'automated' && (
               <div>
                 <h3 className="tab-section-title">Crea Regola Automatica</h3>
+                <div className="notification-info-box">
+                  <div className="notification-info-text">
+                    <strong>ℹ️ Le regole automatiche vengono eseguite dai server Firebase:</strong><br/>
+                    • Compleanni: ogni giorno alle 9:00<br/>
+                    • Pulizia token FCM: ogni domenica alle 2:00<br/>
+                    • Le notifiche vengono inviate automaticamente agli utenti idonei
+                  </div>
+                </div>
 
+                {/* Rest of automated rules content... */}
                 <div className="notification-rules-grid">
                   <div className="notification-form-section">
                     <div className="notification-form-group">
@@ -664,18 +820,6 @@ export default function NotificationPanel() {
                       <label htmlFor="enabled" className="notification-checkbox-label">
                         Abilita questa regola
                       </label>
-                    </div>
-
-                    <div className="notification-info-box">
-                      <div className="notification-info-text">
-                        <strong>Info Trigger:</strong>
-                        {automatedForm.type === 'birthday' && ' Eseguito giornalmente alle 9:00 per utenti con compleanno oggi (include timbro bonus)'}
-                        {automatedForm.type === 'stamp_milestone' && ' Eseguito giornalmente per utenti con 7-8 timbri'}
-                        {automatedForm.type === 'reward_available' && ' Eseguito giornalmente per utenti con esattamente 9 timbri'}
-                        {automatedForm.type === 'inactive_user' && ' Eseguito settimanalmente per utenti inattivi da 30+ giorni'}
-                        {automatedForm.type === 'special_offer' && ' Trigger manuale o schedulato'}
-                        {automatedForm.type === 'new_menu_item' && ' Trigger manuale quando aggiungi nuovi prodotti'}
-                      </div>
                     </div>
 
                     <button
@@ -929,8 +1073,8 @@ export default function NotificationPanel() {
             <div className="notification-tip">
               <div className="notification-tip-icon">📊</div>
               <div className="notification-tip-content">
-                <strong>Testa e Ottimizza</strong>
-                <p>Monitora i tassi di apertura e adatta i messaggi di conseguenza</p>
+                <strong>Sistema Automatico</strong>
+                <p>Le notifiche vengono inviate tramite Firebase Cloud Functions per massima affidabilità</p>
               </div>
             </div>
           </div>

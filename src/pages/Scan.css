@@ -612,3 +612,84 @@ h1 {
     margin-top: 40px;
   }
 }
+
+/* Add these enhanced error styles to your Scan.css */
+
+/* Enhanced error message styling for QR validation */
+.error-message {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background-color: rgba(211, 47, 47, 0.15);
+  backdrop-filter: blur(5px);
+  border-radius: 8px;
+  border-left: 4px solid #d32f2f;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+/* Special styling for QR validation errors */
+.error-message p {
+  color: #fff;
+  margin-bottom: 1rem;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  font-weight: 500;
+}
+
+/* Add subtle animation for QR validation errors */
+.error-message:has(p:contains("già stato utilizzato")),
+.error-message:has(p:contains("non è valido")),
+.error-message:has(p:contains("scaduto")) {
+  animation: qrErrorPulse 0.5s ease-in-out;
+  border-left-color: #ff9800;
+  background-color: rgba(255, 152, 0, 0.15);
+}
+
+@keyframes qrErrorPulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.02); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Enhanced retry button for QR errors */
+.retry-button {
+  background-color: rgba(76, 175, 80, 0.9);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 25px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.retry-button::before {
+  content: '🔄';
+  margin-right: 8px;
+}
+
+.retry-button:hover {
+  background-color: rgba(56, 142, 60, 0.95);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Add visual indicators for different QR error types */
+.error-message p[data-error-type="invalid"]::before {
+  content: '⚠️ ';
+  font-size: 1.2em;
+}
+
+.error-message p[data-error-type="used"]::before {
+  content: '🔄 ';
+  font-size: 1.2em;
+}
+
+.error-message p[data-error-type="expired"]::before {
+  content: '⏰ ';
+  font-size: 1.2em;
+}
