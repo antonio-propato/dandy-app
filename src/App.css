@@ -1,7 +1,3 @@
-/* Add these styles to your existing App.css */
-
-/* 📱 UNIVERSAL SCROLL & KEYBOARD HANDLING */
-
 /* Ensure proper scrolling on all devices */
 html, body {
   height: 100%;
@@ -215,8 +211,7 @@ form:focus-within {
   }
 }
 
-/* Add these styles to your App.css file */
-
+/* Original verification handler styles */
 .verification-handler {
   position: fixed;
   top: 0;
@@ -258,33 +253,162 @@ form:focus-within {
 .verification-content button {
   margin-top: 20px;
   padding: 12px 24px;
-  background-color: #FFD700;
-  border: none;
+  background: linear-gradient(97deg, #43221B, #43221bd3);
+  color: #ECF0BA;
+  border: 1px groove #ECF0BA;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  text-transform: uppercase;
 }
 
 .verification-content button:hover {
-  background-color: #FFC700;
+  filter: brightness(1.2);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(67, 34, 27, 0.3);
 }
 
-/* Mobile responsiveness */
+/* 🔄 NEW: Email Verification Modal Styles */
+.verification-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+
+.verification-modal {
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  max-width: 450px;
+  width: 90%;
+  margin: 20px;
+  animation: modalSlideIn 0.3s ease-out;
+  border: 2px solid #43221B;
+}
+
+@keyframes modalSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.verification-modal h2 {
+  margin: 20px 0 15px 0;
+  color: #333;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.verification-modal p {
+  color: #666;
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 10px 0;
+}
+
+.verification-modal button {
+  margin-top: 25px;
+  padding: 14px 28px;
+  background: linear-gradient(97deg, #43221B, #43221bd3);
+  color: #ECF0BA;
+  border: 1px groove #ECF0BA;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(67, 34, 27, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.verification-modal button:hover {
+  filter: brightness(1.2);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(67, 34, 27, 0.4);
+}
+
+.verification-modal button:active {
+  transform: translateY(0);
+  filter: brightness(1.1);
+  box-shadow: 0 2px 10px rgba(67, 34, 27, 0.3);
+}
+
+/* Mobile responsiveness for modal */
 @media (max-width: 480px) {
-  .verification-content {
+  .verification-modal {
     padding: 30px 20px;
     margin: 10px;
+    max-width: 95%;
   }
 
-  .verification-content h2 {
+  .verification-modal h2 {
     font-size: 20px;
   }
 
-  .verification-content p {
+  .verification-modal p {
     font-size: 14px;
   }
+
+  .verification-modal button {
+    padding: 12px 24px;
+    font-size: 14px;
+    width: 100%;
+    max-width: 250px;
+  }
+}
+
+@media (max-height: 600px) {
+  .verification-modal {
+    padding: 25px 20px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+/* Ensure modal appears above everything */
+.verification-modal-overlay {
+  z-index: 99999 !important;
+}
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+/* Loading animation for verification */
+.verification-loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #43221B;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
