@@ -9,7 +9,8 @@ import {
   onSnapshot,
   doc,
   updateDoc,
-  getDocs
+  getDocs,
+  serverTimestamp
 } from 'firebase/firestore'
 import { firestore } from '../lib/firebase'
 import Nav from '../components/Nav'
@@ -29,7 +30,8 @@ import {
   faCreditCard,
   faCalendarAlt,
   faVolumeUp,
-  faVolumeMute
+  faVolumeMute,
+  faTimes
 } from '@fortawesome/free-solid-svg-icons'
 import './Orders.css'
 
@@ -43,6 +45,7 @@ export default function Orders() {
   const [loading, setLoading] = useState(true)
   const [userOrderCounts, setUserOrderCounts] = useState({})
   const [soundEnabled, setSoundEnabled] = useState(true)
+  const [processingOrders, setProcessingOrders] = useState(new Set()) // Track which orders are being processed
   const audioRef = useRef(null)
 
   useEffect(() => {
@@ -72,7 +75,7 @@ export default function Orders() {
       collection(firestore, 'orders'),
       where('timestamp', '>=', today),
       orderBy('timestamp', 'desc'),
-      limit(20)
+      limit(50) // Increased limit to see more orders
     )
 
     return onSnapshot(todayQuery, (snapshot) => {
@@ -81,11 +84,22 @@ export default function Orders() {
         ...doc.data(),
         timestamp: doc.data().timestamp?.toDate()
       }))
+
+      // Sort by timestamp descending, with pending orders first
+      orders.sort((a, b) => {
+        if (a.status === 'pending' && b.status !== 'pending') return -1
+        if (b.status === 'pending' && a.status !== 'pending') return 1
+        return (b.timestamp || new Date(0)).getTime() - (a.timestamp || new Date(0)).getTime()
+      })
+
       setTodayOrders(orders)
       if (loading) setLoading(false)
 
       // Log orders for debugging
-      console.log('📦 Today\'s orders updated:', orders)
+      console.log('📦 Today\'s orders updated:', orders.length, 'Pending:', orders.filter(o => o.status === 'pending').length)
+    }, (error) => {
+      console.error('❌ Error setting up today orders listener:', error)
+      if (loading) setLoading(false)
     })
   }
 
@@ -97,7 +111,7 @@ export default function Orders() {
       collection(firestore, 'orders'),
       where('timestamp', '<', today),
       orderBy('timestamp', 'desc'),
-      limit(50)
+      limit(100) // Increased limit
     )
 
     return onSnapshot(olderQuery, (snapshot) => {
@@ -109,7 +123,9 @@ export default function Orders() {
       setOlderOrders(orders)
 
       // Log orders for debugging
-      console.log('📦 Older orders updated:', orders)
+      console.log('📦 Older orders updated:', orders.length)
+    }, (error) => {
+      console.error('❌ Error setting up older orders listener:', error)
     })
   }
 
@@ -182,9 +198,13 @@ export default function Orders() {
     try {
       console.log('✅ Confirming order:', orderId)
 
+      // Add to processing set to prevent double-clicks
+      setProcessingOrders(prev => new Set([...prev, orderId]))
+
       await updateDoc(doc(firestore, 'orders', orderId), {
         status: 'confirmed',
-        confirmedAt: new Date()
+        confirmedAt: serverTimestamp(),
+        confirmedBy: 'superuser'
       })
 
       console.log('✅ Order confirmed successfully')
@@ -203,6 +223,56 @@ export default function Orders() {
     } catch (error) {
       console.error('❌ Error confirming order:', error)
       alert('Errore nella conferma dell\'ordine. Riprova.')
+    } finally {
+      // Remove from processing set
+      setProcessingOrders(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(orderId)
+        return newSet
+      })
+    }
+  }
+
+  const cancelOrder = async (orderId) => {
+    if (!window.confirm('Sei sicuro di voler cancellare questo ordine?')) {
+      return
+    }
+
+    try {
+      console.log('❌ Cancelling order:', orderId)
+
+      // Add to processing set to prevent double-clicks
+      setProcessingOrders(prev => new Set([...prev, orderId]))
+
+      await updateDoc(doc(firestore, 'orders', orderId), {
+        status: 'cancelled',
+        cancelledAt: serverTimestamp(),
+        cancelledBy: 'superuser'
+      })
+
+      console.log('❌ Order cancelled successfully')
+
+      // Visual feedback
+      const orderElement = document.querySelector(`[data-order-id="${orderId}"]`)
+      if (orderElement) {
+        orderElement.style.backgroundColor = '#f8d7da'
+        orderElement.style.transform = 'scale(1.02)'
+        setTimeout(() => {
+          orderElement.style.backgroundColor = ''
+          orderElement.style.transform = ''
+        }, 2000)
+      }
+
+    } catch (error) {
+      console.error('❌ Error cancelling order:', error)
+      alert('Errore nella cancellazione dell\'ordine. Riprova.')
+    } finally {
+      // Remove from processing set
+      setProcessingOrders(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(orderId)
+        return newSet
+      })
     }
   }
 
@@ -237,6 +307,19 @@ export default function Orders() {
     }
   }
 
+  const getStatusDisplay = (status) => {
+    switch (status) {
+      case 'pending':
+        return 'In Attesa'
+      case 'confirmed':
+        return 'Confermato'
+      case 'cancelled':
+        return 'Cancellato'
+      default:
+        return status || 'N/A'
+    }
+  }
+
   const formatLocationInfo = (order) => {
     if (order.orderType === 'tavolo') {
       return `Tavolo ${order.tableNumber || 'N/A'}`
@@ -264,72 +347,111 @@ export default function Orders() {
     return 'N/A'
   }
 
-  const OrderRow = ({ order, isPending }) => (
-    <tr
-      className={`order-row ${isPending ? 'pending-order' : 'confirmed-order'}`}
-      onClick={() => isPending && confirmOrder(order.id)}
-      style={{ cursor: isPending ? 'pointer' : 'default' }}
-      data-order-id={order.id}
-    >
-      <td className="timestamp-cell">
-        <FontAwesomeIcon icon={faCalendarAlt} />
-        {formatTimestamp(order.timestamp)}
-      </td>
-      <td className="order-number-cell">
-        <FontAwesomeIcon icon={faHashtag} />
-        {order.orderNumber}
-      </td>
-      <td className="user-cell">
-        <FontAwesomeIcon icon={faUser} />
-        <div>
-          <div className="user-name">{order.userName || 'N/A'}</div>
-          <div className="user-email">{order.userEmail || 'N/A'}</div>
-        </div>
-      </td>
-      <td className="order-count-cell">
-        {userOrderCounts[order.userId] || 1}
-      </td>
-      <td className="location-cell">
-        <FontAwesomeIcon icon={faMapMarkerAlt} />
-        {formatLocationInfo(order)}
-      </td>
-      <td className="items-cell">
-        <FontAwesomeIcon icon={faUtensils} />
-        <div className="order-items">
-          {formatOrderItems(order.items)}
-        </div>
-      </td>
-      <td className="notes-cell">
-        {order.notes && order.notes.trim() && (
+  const OrderRow = ({ order, isPending }) => {
+    const isProcessing = processingOrders.has(order.id)
+
+    return (
+      <tr
+        className={`order-row ${isPending ? 'pending-order' : order.status === 'cancelled' ? 'cancelled-order' : 'confirmed-order'}`}
+        data-order-id={order.id}
+      >
+        <td className="timestamp-cell">
+          <FontAwesomeIcon icon={faCalendarAlt} />
+          {formatTimestamp(order.timestamp)}
+        </td>
+        <td className="order-number-cell">
+          <FontAwesomeIcon icon={faHashtag} />
+          {order.orderNumber}
+        </td>
+        <td className="user-cell">
+          <FontAwesomeIcon icon={faUser} />
           <div>
-            <FontAwesomeIcon icon={faExclamationTriangle} />
-            <div className="order-notes">{order.notes}</div>
+            <div className="user-name">{order.userName || 'N/A'}</div>
+            <div className="user-email">{order.userEmail || 'N/A'}</div>
           </div>
-        )}
-      </td>
-      <td className="price-cell">
-        <FontAwesomeIcon icon={faEuroSign} />
-        €{order.totalPrice?.toFixed(2) || '0.00'}
-      </td>
-      <td className="payment-cell">
-        <FontAwesomeIcon icon={faCreditCard} />
-        {getPaymentMethodDisplay(order.paymentMethod)}
-      </td>
-      <td className="status-cell">
-        {isPending ? (
-          <div className="status-pending">
-            <FontAwesomeIcon icon={faClock} className="pulse" />
-            Pending
+        </td>
+        <td className="order-count-cell">
+          {userOrderCounts[order.userId] || 1}
+        </td>
+        <td className="location-cell">
+          <FontAwesomeIcon icon={faMapMarkerAlt} />
+          {formatLocationInfo(order)}
+        </td>
+        <td className="items-cell">
+          <FontAwesomeIcon icon={faUtensils} />
+          <div className="order-items">
+            {formatOrderItems(order.items)}
           </div>
-        ) : (
-          <div className="status-confirmed">
-            <FontAwesomeIcon icon={faCheck} />
-            Confermato
-          </div>
-        )}
-      </td>
-    </tr>
-  )
+        </td>
+        <td className="notes-cell">
+          {order.notes && order.notes.trim() && (
+            <div>
+              <FontAwesomeIcon icon={faExclamationTriangle} />
+              <div className="order-notes">{order.notes}</div>
+            </div>
+          )}
+        </td>
+        <td className="price-cell">
+          <FontAwesomeIcon icon={faEuroSign} />
+          €{order.totalPrice?.toFixed(2) || '0.00'}
+        </td>
+        <td className="payment-cell">
+          <FontAwesomeIcon icon={faCreditCard} />
+          {getPaymentMethodDisplay(order.paymentMethod)}
+        </td>
+        <td className="status-cell">
+          {isPending ? (
+            <div className="status-pending">
+              <FontAwesomeIcon icon={faClock} className="pulse" />
+              {getStatusDisplay(order.status)}
+            </div>
+          ) : order.status === 'cancelled' ? (
+            <div className="status-cancelled">
+              <FontAwesomeIcon icon={faTimes} />
+              {getStatusDisplay(order.status)}
+            </div>
+          ) : (
+            <div className="status-confirmed">
+              <FontAwesomeIcon icon={faCheck} />
+              {getStatusDisplay(order.status)}
+            </div>
+          )}
+        </td>
+        <td className="actions-cell">
+          {isPending && (
+            <div className="order-actions">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  confirmOrder(order.id)
+                }}
+                disabled={isProcessing}
+                className="action-btn confirm-btn"
+                title="Conferma ordine"
+              >
+                {isProcessing ? (
+                  <FontAwesomeIcon icon={faSpinner} spin />
+                ) : (
+                  <FontAwesomeIcon icon={faCheck} />
+                )}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  cancelOrder(order.id)
+                }}
+                disabled={isProcessing}
+                className="action-btn cancel-btn"
+                title="Cancella ordine"
+              >
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+          )}
+        </td>
+      </tr>
+    )
+  }
 
   if (loading) {
     return (
@@ -410,12 +532,13 @@ export default function Orders() {
                   <th>Totale</th>
                   <th>Pagamento</th>
                   <th>Stato</th>
+                  <th>Azioni</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTodayOrders.length === 0 ? (
                   <tr>
-                    <td colSpan="10" className="no-orders">
+                    <td colSpan="11" className="no-orders">
                       {searchTerm ? 'Nessun ordine trovato' : 'Nessun ordine oggi'}
                     </td>
                   </tr>
@@ -456,12 +579,13 @@ export default function Orders() {
                   <th>Totale</th>
                   <th>Pagamento</th>
                   <th>Stato</th>
+                  <th>Azioni</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredOlderOrders.length === 0 ? (
                   <tr>
-                    <td colSpan="10" className="no-orders">
+                    <td colSpan="11" className="no-orders">
                       {searchTerm ? 'Nessun ordine trovato' : 'Nessun ordine precedente'}
                     </td>
                   </tr>
@@ -484,11 +608,15 @@ export default function Orders() {
         <div className="legend">
           <div className="legend-item">
             <FontAwesomeIcon icon={faClock} className="pulse" />
-            <span>Clicca su un ordine "Pending" per confermarlo</span>
+            <span>Clicca su "Conferma" per approvare un ordine in attesa</span>
           </div>
           <div className="legend-item">
             <FontAwesomeIcon icon={faCheck} />
             <span>Ordine confermato</span>
+          </div>
+          <div className="legend-item">
+            <FontAwesomeIcon icon={faTimes} />
+            <span>Ordine cancellato</span>
           </div>
         </div>
       </div>
@@ -508,6 +636,8 @@ export default function Orders() {
         }}>
           <div>Today's Orders: {todayOrders.length}</div>
           <div>Pending Orders: {todayOrders.filter(o => o.status === 'pending').length}</div>
+          <div>Confirmed Orders: {todayOrders.filter(o => o.status === 'confirmed').length}</div>
+          <div>Cancelled Orders: {todayOrders.filter(o => o.status === 'cancelled').length}</div>
           <div>Sound Enabled: {soundEnabled ? 'Yes' : 'No'}</div>
         </div>
       )}
