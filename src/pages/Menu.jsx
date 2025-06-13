@@ -26,7 +26,6 @@ export default function Menu() {
     fetchMenuData()
   }, [])
 
-  // Auto-refresh menu data every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       if (!document.hidden && (!lastFetch || Date.now() - lastFetch > 10000)) {
@@ -36,7 +35,6 @@ export default function Menu() {
     return () => clearInterval(interval)
   }, [lastFetch])
 
-  // Refresh menu on page focus
   useEffect(() => {
     const handleFocus = () => {
       if (!lastFetch || Date.now() - lastFetch > 5000) {
@@ -47,12 +45,10 @@ export default function Menu() {
     return () => window.removeEventListener('focus', handleFocus)
   }, [lastFetch])
 
-  // Handle burger visibility on scroll
   useEffect(() => {
     const handleScroll = () => {
       setShowBurger(false)
       if (scrollTimeout) clearTimeout(scrollTimeout)
-
       const newTimeout = setTimeout(() => setShowBurger(true), 1500)
       setScrollTimeout(newTimeout)
     }
@@ -115,32 +111,25 @@ export default function Menu() {
 
   const handleItemClick = (item, category) => {
     const now = Date.now()
-
-    // Simple debounce to prevent rapid clicks
     if (now - lastClickTime < 300) return
     setLastClickTime(now)
 
-    // Check if item already exists in cart
     const existingCartItem = cart.items.find(cartItem =>
       cartItem.name === item.name && cartItem.category === category
     )
 
     if (existingCartItem) {
-      // Increment existing item quantity
       updateQuantity(existingCartItem.id, existingCartItem.quantity + 1)
     } else {
-      // Add new item to cart
       addItem(item, category)
     }
   }
 
   const handleRemoveFromCart = (e, item, category) => {
     e.stopPropagation()
-
     const cartItem = cart.items.find(cartItem =>
       cartItem.name === item.name && cartItem.category === category
     )
-
     if (cartItem) {
       updateQuantity(cartItem.id, cartItem.quantity - 1)
     }
@@ -152,42 +141,15 @@ export default function Menu() {
   const totalItems = getTotalItems()
   const totalPrice = getTotalPrice()
 
-  if (loading) {
-    return (
-      <div
-        className="menu-wrapper"
-        style={{
-          backgroundImage: `url(${Legno})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          minHeight: '100vh',
-          padding: '2rem'
-        }}
-      >
-        <Nav showBurger={showBurger} />
-        <div className="menu-content">
-          <div className="menu-loading">
-            <p>Caricamento menu...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div
       className="menu-wrapper"
       style={{
         backgroundImage: `url(${Legno})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        minHeight: '100vh',
-        padding: '2rem'
       }}
     >
       <Nav showBurger={showBurger} />
 
-      {/* Fixed Basket Icon */}
       {totalItems > 0 && (
         <button className="basket-icon-button" onClick={handleBasketClick}>
           <FontAwesomeIcon icon={faShoppingBasket} />
@@ -199,74 +161,74 @@ export default function Menu() {
       )}
 
       <div className="menu-content">
-        {error && (
-          <div className="menu-error-banner">
-            <p>{error}</p>
-            <button onClick={handleRefresh} className="refresh-button">
-              Aggiorna
-            </button>
+        {loading ? (
+          <div className="menu-loading">
+            <p>Caricamento menu...</p>
           </div>
-        )}
+        ) : (
+          <>
+            {error && (
+              <div className="menu-error-banner">
+                <p>{error}</p>
+                <button onClick={handleRefresh} className="refresh-button">Aggiorna</button>
+              </div>
+            )}
 
-        {categoryOrder.map((category) => (
-          items[category] && items[category].length > 0 && (
-            <div key={category} className="menu-section">
-              <h2 className="menu-category">{category}</h2>
-              <ul className="menu-list">
-                {items[category].map((item, idx) => {
-                  const itemCount = getItemCount(item.name, category)
-                  return (
-                    <li
-                      key={idx}
-                      className="menu-item"
-                      onClick={() => handleItemClick(item, category)}
-                    >
-                      <div className="menu-item-left">
-                        {itemCount > 0 && (
-                          <span className="item-count">{itemCount}</span>
-                        )}
-                        <span className="menu-item-name">{item.name}</span>
-                      </div>
-                      <div className="menu-item-right">
-                        <span className="menu-item-price">{item.price}</span>
-                        <div className="menu-item-actions">
-                          {itemCount > 0 && (
-                            <button
-                              className="minus-btn"
-                              onClick={(e) => handleRemoveFromCart(e, item, category)}
-                              aria-label={`Remove ${item.name} from cart`}
-                            >
-                              <FontAwesomeIcon icon={faMinus} />
-                            </button>
-                          )}
-                          <button
-                            className="plus-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleItemClick(item, category);
-                            }}
-                            aria-label={`Add ${item.name} to cart`}
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          )
-        ))}
+            {categoryOrder.map((category) =>
+              items[category] && items[category].length > 0 ? (
+                <div key={category} className="menu-section">
+                  <h2 className="menu-category">{category}</h2>
+                  <ul className="menu-list">
+                    {items[category].map((item, idx) => {
+                      const itemCount = getItemCount(item.name, category)
+                      return (
+                        <li key={idx} className="menu-item" onClick={() => handleItemClick(item, category)}>
+                          <div className="menu-item-left">
+                            {itemCount > 0 && <span className="item-count">{itemCount}</span>}
+                            <span className="menu-item-name">{item.name}</span>
+                          </div>
+                          <div className="menu-item-right">
+                            <span className="menu-item-price">{item.price}</span>
+                            <div className="menu-item-actions">
+                              {itemCount > 0 && (
+                                <button
+                                  className="minus-btn"
+                                  onClick={(e) => handleRemoveFromCart(e, item, category)}
+                                  aria-label={`Remove ${item.name} from cart`}
+                                >
+                                  <FontAwesomeIcon icon={faMinus} />
+                                </button>
+                              )}
+                              <button
+                                className="plus-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleItemClick(item, category)
+                                }}
+                                aria-label={`Add ${item.name} to cart`}
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              ) : null
+            )}
 
-        {Object.keys(items).length === 0 && !loading && (
-          <div className="menu-empty">
-            <p>Menu non ancora configurato.</p>
-            <p>Vai alla sezione "Gestione Menu" per aggiungere categorie e elementi.</p>
-            <button onClick={handleRefresh} className="retry-button">
-              Ricarica Menu
-            </button>
-          </div>
+            {Object.keys(items).length === 0 && !loading && (
+              <div className="menu-empty">
+                <p>Menu non ancora configurato.</p>
+                <p>Vai alla sezione "Gestione Menu" per aggiungere categorie e elementi.</p>
+                <button onClick={handleRefresh} className="retry-button">
+                  Ricarica Menu
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
