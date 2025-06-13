@@ -41,15 +41,11 @@ export default function Orders() {
   const [filteredOlderOrders, setFilteredOlderOrders] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
-  const [soundEnabled, setSoundEnabled] = useState(true)
   const [userOrderCounts, setUserOrderCounts] = useState({})
+  const [soundEnabled, setSoundEnabled] = useState(true)
   const audioRef = useRef(null)
-  const lastOrderCountRef = useRef(0)
 
   useEffect(() => {
-    // Initialize audio for notifications
-    audioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IAAAAAAQAAABAAAA') // Simple beep sound
-
     const unsubscribeToday = setupTodayOrdersListener()
     const unsubscribeOlder = setupOlderOrdersListener()
 
@@ -67,15 +63,6 @@ export default function Orders() {
     // Filter orders based on search term
     filterOrders(searchTerm)
   }, [searchTerm, todayOrders, olderOrders])
-
-  useEffect(() => {
-    // Check for new orders and play sound
-    const currentOrderCount = todayOrders.filter(order => order.status === 'pending').length
-    if (currentOrderCount > lastOrderCountRef.current && soundEnabled && !loading) {
-      playNotificationSound()
-    }
-    lastOrderCountRef.current = currentOrderCount
-  }, [todayOrders, soundEnabled, loading])
 
   const setupTodayOrdersListener = () => {
     const today = new Date()
@@ -202,12 +189,14 @@ export default function Orders() {
 
       console.log('✅ Order confirmed successfully')
 
-      // Optional: Show success message
+      // Visual feedback
       const orderElement = document.querySelector(`[data-order-id="${orderId}"]`)
       if (orderElement) {
         orderElement.style.backgroundColor = '#d4edda'
+        orderElement.style.transform = 'scale(1.02)'
         setTimeout(() => {
           orderElement.style.backgroundColor = ''
+          orderElement.style.transform = ''
         }, 2000)
       }
 

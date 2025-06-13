@@ -1,0 +1,211 @@
+/* src/components/GlobalBeepIndicator.css */
+
+.global-beep-indicator {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+  border-radius: 15px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 8px 32px rgba(255, 107, 107, 0.4);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  min-width: 280px;
+  max-width: 350px;
+  transform: translateX(0);
+  transition: all 0.3s ease;
+}
+
+.global-beep-indicator.beeping {
+  animation: urgentPulse 2s infinite;
+  box-shadow: 0 8px 32px rgba(255, 107, 107, 0.8);
+}
+
+@keyframes urgentPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 8px 32px rgba(255, 107, 107, 0.4);
+  }
+  25% {
+    transform: scale(1.02);
+    box-shadow: 0 12px 40px rgba(255, 107, 107, 0.6);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 16px 48px rgba(255, 107, 107, 0.8);
+  }
+  75% {
+    transform: scale(1.02);
+    box-shadow: 0 12px 40px rgba(255, 107, 107, 0.6);
+  }
+}
+
+.beep-indicator-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.beep-indicator-icon {
+  flex-shrink: 0;
+}
+
+.warning-icon {
+  font-size: 1.5rem;
+  color: #ffd700;
+}
+
+.warning-icon.pulsing {
+  animation: iconPulse 1s infinite;
+}
+
+@keyframes iconPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
+  }
+}
+
+.beep-indicator-text {
+  flex-grow: 1;
+}
+
+.beep-indicator-title {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+  color: white;
+}
+
+.beep-indicator-subtitle {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  color: #ffe4e1;
+}
+
+.beep-indicator-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.beep-action-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+}
+
+.beep-action-btn.primary {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.beep-action-btn.primary:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.beep-action-btn.secondary {
+  background: rgba(255, 215, 0, 0.2);
+  color: #ffd700;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.beep-action-btn.secondary:hover {
+  background: rgba(255, 215, 0, 0.3);
+  transform: scale(1.1);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .global-beep-indicator {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+    min-width: auto;
+    padding: 0.8rem 1rem;
+  }
+
+  .beep-indicator-content {
+    gap: 0.75rem;
+  }
+
+  .beep-indicator-title {
+    font-size: 1rem;
+  }
+
+  .beep-indicator-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .beep-action-btn {
+    width: 35px;
+    height: 35px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .global-beep-indicator {
+    padding: 0.6rem 0.8rem;
+  }
+
+  .beep-indicator-content {
+    gap: 0.5rem;
+  }
+
+  .warning-icon {
+    font-size: 1.25rem;
+  }
+
+  .beep-indicator-title {
+    font-size: 0.95rem;
+  }
+
+  .beep-indicator-subtitle {
+    font-size: 0.75rem;
+  }
+
+  .beep-action-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Hide when printing */
+@media print {
+  .global-beep-indicator {
+    display: none;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .global-beep-indicator.beeping {
+    animation: none;
+  }
+
+  .warning-icon.pulsing {
+    animation: none;
+  }
+
+  .beep-action-btn {
+    transition: none;
+  }
+}
