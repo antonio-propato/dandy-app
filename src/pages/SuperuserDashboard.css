@@ -29,7 +29,7 @@ body {
 }
 
 /* Safe area for burger menu - prevents overlap */
-.dashboard-container {
+.superuser-dashboard-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 120px 55px 80px 55px; /* Increased top padding for burger menu */
@@ -39,7 +39,7 @@ body {
 }
 
 /* Header with improved spacing and hierarchy */
-.dashboard-header {
+.superuser-dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -49,7 +49,7 @@ body {
   position: relative;
 }
 
-.dashboard-header::before {
+.superuser-dashboard-header::before {
   content: '';
   position: absolute;
   bottom: -3px;
@@ -59,7 +59,7 @@ body {
   background: linear-gradient(90deg, #FFD700, transparent);
 }
 
-.dashboard-header h1 {
+.superuser-dashboard-header h1 {
   color: #fff;
   font-size: 32px; /* Increased from 28px */
   margin: 0;
@@ -68,11 +68,11 @@ body {
   letter-spacing: 1px;
 }
 
-.staff-info {
+.superuser-staff-info {
   text-align: right;
 }
 
-.staff-info p {
+.superuser-staff-info p {
   color: #FFD700;
   font-size: 20px; /* Increased from 18px */
   margin: 0;
@@ -84,7 +84,7 @@ body {
 }
 
 /* Enhanced action buttons section */
-.dashboard-actions {
+.superuser-dashboard-actions {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 20px; /* Increased from 15px */
@@ -92,7 +92,7 @@ body {
   padding: 4px 0;
 }
 
-.action-button {
+.superuser-action-button {
   background: linear-gradient(135deg, #43221B 0%, #5a2f26 50%, #6b3930 100%);
   color: white;
   border: none;
@@ -116,7 +116,7 @@ body {
   margin-top: 10px;
 }
 
-.action-button::before {
+.superuser-action-button::before {
   content: '';
   position: absolute;
   top: 0;
@@ -127,50 +127,50 @@ body {
   transition: left 0.6s;
 }
 
-.action-button:hover::before {
+.superuser-action-button:hover::before {
   left: 100%;
 }
 
-.action-button:hover {
+.superuser-action-button:hover {
   transform: translateY(-4px) scale(1.02);
   box-shadow:
     0 12px 35px rgba(67, 34, 27, 0.6),
     0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
-.action-button:active {
+.superuser-action-button:active {
   transform: translateY(-2px) scale(0.98);
 }
 
-.action-button:disabled {
+.superuser-action-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
   filter: grayscale(50%);
 }
 
-.scan-button {
+.superuser-scan-button {
   background: linear-gradient(135deg, #28a745 0%, #20c997 50%, #17a2b8 100%);
   box-shadow:
     0 8px 25px rgba(40, 167, 69, 0.4),
     0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
-.scan-button:hover {
+.superuser-scan-button:hover {
   box-shadow:
     0 12px 35px rgba(40, 167, 69, 0.6),
     0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 /* Enhanced stats grid */
-.dashboard-stats {
+.superuser-dashboard-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 25px; /* Increased from 15px */
   margin-bottom: 50px; /* Increased from 40px */
 }
 
-.stat-card {
+.superuser-stat-card {
   background: rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(15px);
   border-radius: 20px; /* Increased from 16px */
@@ -186,12 +186,12 @@ body {
 }
 
 /* NEW: Clickable stat cards */
-.stat-card.clickable {
+.superuser-stat-card.clickable {
   cursor: pointer;
   user-select: none;
 }
 
-.stat-card.clickable:hover {
+.superuser-stat-card.clickable:hover {
   transform: translateY(-8px) scale(1.02);
   box-shadow:
     0 15px 50px rgba(0, 0, 0, 0.4),
@@ -200,11 +200,11 @@ body {
   background: rgba(255, 255, 255, 0.18);
 }
 
-.stat-card.clickable:active {
+.superuser-stat-card.clickable:active {
   transform: translateY(-4px) scale(1.01);
 }
 
-.stat-card::before {
+.superuser-stat-card::before {
   content: '';
   position: absolute;
   top: 0;
@@ -216,11 +216,11 @@ body {
   transition: opacity 0.3s;
 }
 
-.stat-card:hover::before {
+.superuser-stat-card:hover::before {
   opacity: 1;
 }
 
-.stat-card h3 {
+.superuser-stat-card h3 {
   color: #FFD700;
   margin: 0 0 20px 0; /* Increased from 15px */
   font-size: 16px;
@@ -231,7 +231,7 @@ body {
   position: relative;
 }
 
-.stat-card h3::after {
+.superuser-stat-card h3::after {
   content: '';
   position: absolute;
   bottom: -8px;
@@ -242,7 +242,7 @@ body {
   background: linear-gradient(90deg, transparent, #FFD700, transparent);
 }
 
-.stat-value {
+.superuser-stat-value {
   color: white;
   font-size: 42px; /* Increased from 36px */
   font-weight: 900; /* Increased from 800 */
@@ -251,7 +251,7 @@ body {
 }
 
 /* NEW: Click hint for interactive elements */
-.click-hint {
+.superuser-click-hint {
   color: rgba(255, 215, 0, 0.8);
   font-size: 12px;
   margin-top: 8px;
@@ -262,16 +262,16 @@ body {
   letter-spacing: 0.5px;
 }
 
-.stat-card.clickable:hover .click-hint {
+.superuser-stat-card.clickable:hover .superuser-click-hint {
   opacity: 1;
 }
 
 /* NEW: Rewards split display */
-.stat-card.rewards-split .stat-value {
+.superuser-stat-card.superuser-rewards-split .superuser-stat-value {
   display: none; /* Hide default stat value */
 }
 
-.rewards-container {
+.superuser-rewards-container {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -279,7 +279,7 @@ body {
   margin-bottom: 15px;
 }
 
-.reward-item {
+.superuser-reward-item {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -290,12 +290,12 @@ body {
   flex: 1;
 }
 
-.reward-item:hover {
+.superuser-reward-item:hover {
   background: rgba(255, 255, 255, 0.1);
   transform: scale(1.05);
 }
 
-.reward-label {
+.superuser-reward-label {
   color: #FFD700;
   font-size: 12px;
   font-weight: 600;
@@ -304,21 +304,72 @@ body {
   letter-spacing: 1px;
 }
 
-.reward-value {
+.superuser-reward-value {
   color: white;
   font-size: 28px;
   font-weight: 900;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
 }
 
-.reward-divider {
+.superuser-reward-divider {
   color: rgba(255, 215, 0, 0.6);
   font-size: 24px;
   font-weight: 300;
 }
 
+/* NEW: Orders split display */
+.superuser-stat-card.superuser-orders-split .superuser-stat-value {
+  display: none; /* Hide default stat value */
+}
+
+.superuser-orders-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.superuser-order-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+  border-radius: 10px;
+  transition: all 0.3s;
+  cursor: pointer;
+  flex: 1;
+}
+
+.superuser-order-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.05);
+}
+
+.superuser-order-label {
+  color: #17a2b8; /* Teal color for orders */
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.superuser-order-value {
+  color: white;
+  font-size: 28px;
+  font-weight: 900;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.superuser-order-divider {
+  color: rgba(23, 162, 184, 0.6); /* Teal divider */
+  font-size: 24px;
+  font-weight: 300;
+}
+
 /* ENHANCED TODAY'S STAMPS LOG - Updated for two-line design */
-.todays-stamps-log {
+.superuser-todays-stamps-log {
   background: rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(15px);
   border-radius: 20px;
@@ -343,7 +394,7 @@ body {
   }
 }
 
-.todays-stamps-log::before {
+.superuser-todays-stamps-log::before {
   content: '';
   position: absolute;
   top: 0;
@@ -353,7 +404,7 @@ body {
   background: linear-gradient(90deg, #28a745, #20c997, #17a2b8);
 }
 
-.log-header {
+.superuser-log-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -362,7 +413,7 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.log-header h2 {
+.superuser-log-header h2 {
   color: #FFD700;
   margin: 0;
   font-size: 22px;
@@ -370,7 +421,7 @@ body {
   font-weight: 700;
 }
 
-.close-log-button {
+.superuser-close-log-button {
   background: rgba(211, 47, 47, 0.8);
   color: white;
   border: none;
@@ -386,13 +437,13 @@ body {
   justify-content: center;
 }
 
-.close-log-button:hover {
+.superuser-close-log-button:hover {
   background: rgba(211, 47, 47, 1);
   transform: scale(1.1);
 }
 
 /* ENHANCED LOG LIST - TWO LINE DESIGN */
-.enhanced-log-list {
+.superuser-enhanced-log-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -401,22 +452,22 @@ body {
   padding-right: 10px;
 }
 
-.enhanced-log-list::-webkit-scrollbar {
+.superuser-enhanced-log-list::-webkit-scrollbar {
   width: 6px;
 }
 
-.enhanced-log-list::-webkit-scrollbar-track {
+.superuser-enhanced-log-list::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
 }
 
-.enhanced-log-list::-webkit-scrollbar-thumb {
+.superuser-enhanced-log-list::-webkit-scrollbar-thumb {
   background: rgba(255, 215, 0, 0.6);
   border-radius: 3px;
 }
 
 /* ENHANCED LOG ITEM - TWO LINES */
-.enhanced-log-item {
+.superuser-enhanced-log-item {
   background: rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 15px;
@@ -425,21 +476,21 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.enhanced-log-item:hover {
+.superuser-enhanced-log-item:hover {
   background: rgba(255, 255, 255, 0.15);
   transform: translateX(5px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* FIRST LINE: Time, Name, Added By */
-.log-main-line {
+.superuser-log-main-line {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
 }
 
-.log-time {
+.superuser-log-time {
   color: #FFD700;
   font-weight: 700;
   font-size: 14px;
@@ -452,7 +503,7 @@ body {
   flex-shrink: 0;
 }
 
-.log-customer {
+.superuser-log-customer {
   color: white;
   font-weight: 600;
   font-size: 15px;
@@ -465,7 +516,7 @@ body {
   text-overflow: ellipsis;
 }
 
-.log-addedby {
+.superuser-log-addedby {
   color: #28a745;
   font-weight: 500;
   font-size: 13px;
@@ -476,7 +527,7 @@ body {
 }
 
 /* SECOND LINE: Client Stats */
-.log-stats-line {
+.superuser-log-stats-line {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -489,7 +540,7 @@ body {
   gap: 20px;
 }
 
-.log-stats-line .stat-attuali {
+.superuser-log-stats-line .superuser-stat-attuali {
   color: #00E676; /* Bright Green for current stamps */
   font-weight: 700;
   text-shadow: 0 0 4px rgba(0, 230, 118, 0.3);
@@ -497,7 +548,7 @@ body {
   text-align: center;
 }
 
-.log-stats-line .stat-totali {
+.superuser-log-stats-line .superuser-stat-totali {
   color: #FFD700; /* Gold for total stamps */
   font-weight: 700;
   text-shadow: 0 0 4px rgba(255, 215, 0, 0.3);
@@ -505,7 +556,7 @@ body {
   text-align: center;
 }
 
-.log-stats-line .stat-riscat {
+.superuser-log-stats-line .superuser-stat-riscat {
   color: #FF6B35; /* Bright Orange for rewards */
   font-weight: 700;
   text-shadow: 0 0 4px rgba(255, 107, 53, 0.3);
@@ -513,20 +564,20 @@ body {
   text-align: center;
 }
 
-.no-stamps-today {
+.superuser-no-stamps-today {
   text-align: center;
   padding: 40px 20px;
   color: rgba(255, 255, 255, 0.6);
 }
 
-.no-stamps-today p {
+.superuser-no-stamps-today p {
   font-size: 18px;
   margin: 0;
   font-style: italic;
 }
 
 /* Enhanced recent activity section */
-.recent-activity {
+.superuser-recent-activity {
   background: rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(15px);
   border-radius: 20px; /* Increased from 16px */
@@ -539,7 +590,7 @@ body {
   position: relative;
 }
 
-.recent-activity::before {
+.superuser-recent-activity::before {
   content: '';
   position: absolute;
   top: 0;
@@ -549,7 +600,7 @@ body {
   background: linear-gradient(90deg, #FFD700, #FFA500, #FFD700);
 }
 
-.recent-activity h2 {
+.superuser-recent-activity h2 {
   color: #FFD700;
   margin: 0 0 35px 0; /* Increased from 25px */
   font-size: 28px; /* Increased from 24px */
@@ -560,7 +611,7 @@ body {
   position: relative;
 }
 
-.recent-activity h2::after {
+.superuser-recent-activity h2::after {
   content: '';
   position: absolute;
   bottom: -12px;
@@ -571,13 +622,13 @@ body {
   background: linear-gradient(90deg, transparent, #FFD700, transparent);
 }
 
-.activity-list {
+.superuser-activity-list {
   display: flex;
   flex-direction: column;
   gap: 20px; /* Increased from 15px */
 }
 
-.activity-item {
+.superuser-activity-item {
   background: rgba(255, 255, 255, 0.08);
   border-radius: 15px; /* Increased from 12px */
   padding: 25px; /* Increased from 20px */
@@ -587,7 +638,7 @@ body {
   overflow: hidden;
 }
 
-.activity-item::before {
+.superuser-activity-item::before {
   content: '';
   position: absolute;
   left: 0;
@@ -599,24 +650,24 @@ body {
   transition: transform 0.3s;
 }
 
-.activity-item:hover::before {
+.superuser-activity-item:hover::before {
   transform: scaleY(1);
 }
 
-.activity-item:hover {
+.superuser-activity-item:hover {
   transform: translateX(8px) scale(1.01);
   background: rgba(255, 255, 255, 0.15);
   border-color: rgba(255, 215, 0, 0.3);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
 }
 
-.activity-content {
+.superuser-activity-content {
   display: flex;
   flex-direction: column;
   gap: 12px; /* Increased from 8px */
 }
 
-.activity-user {
+.superuser-activity-user {
   color: white;
   font-size: 20px; /* Increased from 18px */
   font-weight: 800; /* Increased from 700 */
@@ -627,7 +678,7 @@ body {
   gap: 10px;
 }
 
-.activity-title {
+.superuser-activity-title {
   color: rgba(255, 255, 255, 0.9);
   font-size: 15px; /* Increased from 14px */
   margin: 0;
@@ -635,7 +686,7 @@ body {
   font-weight: 500;
 }
 
-.activity-stamps {
+.superuser-activity-stamps {
   color: #28a745;
   font-size: 15px; /* Increased from 14px */
   font-weight: 700; /* Increased from 600 */
@@ -645,7 +696,7 @@ body {
   gap: 6px;
 }
 
-.activity-lifetime {
+.superuser-activity-lifetime {
   color: #ffc107;
   font-size: 15px; /* Increased from 14px */
   font-weight: 700; /* Increased from 600 */
@@ -655,11 +706,11 @@ body {
   gap: 6px;
 }
 
-.premi-riscattati {
+.superuser-premi-riscattati {
   color: #fd7e14 !important;
 }
 
-.no-activity {
+.superuser-no-activity {
   text-align: center;
   color: rgba(255, 255, 255, 0.6);
   font-style: italic;
@@ -672,7 +723,7 @@ body {
 }
 
 /* Enhanced loading screen */
-.dashboard-loading {
+.superuser-dashboard-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -685,7 +736,7 @@ body {
   position: relative;
 }
 
-.dashboard-loading::before {
+.superuser-dashboard-loading::before {
   content: '';
   position: absolute;
   top: 0;
@@ -695,7 +746,7 @@ body {
   background: rgba(0, 0, 0, 0.3);
 }
 
-.loading-spinner {
+.superuser-loading-spinner {
   border: 6px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   border-top: 6px solid #FFD700;
@@ -713,7 +764,7 @@ body {
   100% { transform: rotate(360deg); }
 }
 
-.loading-spinner + p {
+.superuser-loading-spinner + p {
   position: relative;
   z-index: 1;
   font-size: 18px;
@@ -723,11 +774,11 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .dashboard-container {
+  .superuser-dashboard-container {
     padding: 80px 25px 60px 25px; /* Reduced for mobile burger menu alignment */
   }
 
-  .dashboard-header {
+  .superuser-dashboard-header {
     flex-direction: column;
     align-items: center;
     gap: 20px; /* Increased from 15px */
@@ -737,163 +788,176 @@ body {
     margin-top: 10px; /* Added to align with burger menu */
   }
 
-  .dashboard-header h1 {
+  .superuser-dashboard-header h1 {
     font-size: 26px; /* Increased from 24px */
   }
 
-  .staff-info {
+  .superuser-staff-info {
     text-align: center;
   }
 
-  .staff-info p {
+  .superuser-staff-info p {
     font-size: 18px;
     justify-content: center;
   }
 
-  .dashboard-actions {
+  .superuser-dashboard-actions {
     grid-template-columns: 1fr;
     gap: 15px;
     max-width: 100%;
   }
 
-  .action-button {
+  .superuser-action-button {
     padding: 18px 25px; /* Increased from 12px 20px */
     font-size: 16px; /* Increased from 14px */
     min-height: 56px;
   }
 
-  .dashboard-stats {
+  .superuser-dashboard-stats {
     grid-template-columns: 1fr;
     gap: 20px;
   }
 
-  .stat-card {
+  .superuser-stat-card {
     padding: 10px 15px;
   }
 
-  .stat-value {
+  .superuser-stat-value {
     font-size: 32px; /* Increased from 28px */
   }
 
-  .recent-activity {
+  .superuser-recent-activity {
     padding: 20px; /* Increased from 10px */
     margin-bottom: 40px; /* Increased from 10px */
   }
 
-  .recent-activity h2 {
+  .superuser-recent-activity h2 {
     font-size: 24px;
     margin-bottom: 25px;
   }
 
-  .activity-item {
+  .superuser-activity-item {
     padding: 20px; /* Increased from 10px */
   }
 
-  .activity-user {
+  .superuser-activity-user {
     font-size: 18px; /* Increased from 16px */
   }
 
-  .no-activity {
+  .superuser-no-activity {
     padding: 40px 20px;
     font-size: 16px;
   }
 
   /* Mobile adjustments for new elements */
-  .rewards-container {
+  .superuser-rewards-container {
     flex-direction: column;
     gap: 10px;
   }
 
-  .reward-item {
+  .superuser-reward-item {
+    width: 100%;
+  }
+
+  .superuser-orders-container {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .superuser-order-item {
     width: 100%;
   }
 
   /* Mobile adjustments for enhanced log */
-  .enhanced-log-item {
+  .superuser-enhanced-log-item {
     padding: 12px;
   }
 
-  .log-main-line {
+  .superuser-log-main-line {
     margin-bottom: 6px;
   }
 
-  .log-time {
+  .superuser-log-time {
     font-size: 12px;
     padding: 3px 6px;
     min-width: 50px;
   }
 
-  .log-customer {
+  .superuser-log-customer {
     font-size: 14px;
     margin: 0 10px;
   }
 
-  .log-addedby {
+  .superuser-log-addedby {
     font-size: 11px;
     min-width: 60px;
   }
 
-  .log-stats-line {
+  .superuser-log-stats-line {
     font-size: 13px;
     padding: 6px 10px;
   }
 
-  .todays-stamps-log {
+  .superuser-todays-stamps-log {
     padding: 20px 15px;
   }
 }
 
 /* Extra small screens */
 @media (max-width: 480px) {
-  .dashboard-container {
+  .superuser-dashboard-container {
     padding: 60px 15px 60px 15px;
   }
 
-  .dashboard-actions {
+  .superuser-dashboard-actions {
     grid-template-columns: 1fr;
     gap: 0.1px;
   }
 
-  .dashboard-header h1 {
+  .superuser-dashboard-header h1 {
     font-size: 26px;
   }
 
-  .stat-value {
+  .superuser-stat-value {
     font-size: 30px;
   }
 
-  .action-button {
+  .superuser-action-button {
     padding: 26px 20px;
     font-size: 15px;
     min-height: 52px;
   }
 
-  .reward-value {
+  .superuser-reward-value {
+    font-size: 24px;
+  }
+
+  .superuser-order-value {
     font-size: 24px;
   }
 
   /* Mobile adjustments for enhanced log - extra small */
-  .enhanced-log-item {
+  .superuser-enhanced-log-item {
     padding: 10px;
   }
 
-  .log-time {
+  .superuser-log-time {
     font-size: 11px;
     min-width: 45px;
     padding: 2px 5px;
   }
 
-  .log-customer {
+  .superuser-log-customer {
     font-size: 13px;
     margin: 0 8px;
   }
 
-  .log-addedby {
+  .superuser-log-addedby {
     font-size: 10px;
     min-width: 50px;
   }
 
-  .log-stats-line {
+  .superuser-log-stats-line {
     font-size: 12px;
     padding: 5px 8px;
   }

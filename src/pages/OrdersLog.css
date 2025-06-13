@@ -287,7 +287,6 @@
   border-radius: 12px;
   border: 1px solid rgba(255, 215, 0, 0.2);
   justify-content: flex-start;
-  margin-bottom: 0.5rem;
 }
 
 /* Gold icon for table/delivery */
@@ -304,47 +303,6 @@
 .card-section .detail-item strong {
   color: #000000;
   font-weight: 600;
-}
-
-/* --- PHONE NUMBER STYLING --- */
-/* Phone number gets special teal styling */
-.card-section .detail-item:has(.fa-phone) {
-  background: rgba(32, 201, 151, 0.15);
-  border: 1px solid rgba(32, 201, 151, 0.3);
-}
-
-.card-section .detail-item:has(.fa-phone) svg {
-  color: #20c997;
-}
-
-.card-section .detail-item:has(.fa-phone) span {
-  color: #20c997;
-  font-weight: 600;
-}
-
-.card-section .detail-item:has(.fa-phone) strong {
-  color: #20c997;
-  font-weight: 700;
-}
-
-/* Fallback for older browsers that don't support :has() */
-.delivery-phone-item {
-  background: rgba(32, 201, 151, 0.15) !important;
-  border: 1px solid rgba(32, 201, 151, 0.3) !important;
-}
-
-.delivery-phone-item svg {
-  color: #20c997 !important;
-}
-
-.delivery-phone-item span {
-  color: #20c997 !important;
-  font-weight: 600;
-}
-
-.delivery-phone-item strong {
-  color: #20c997 !important;
-  font-weight: 700;
 }
 
 /* --- ITEMS SECTION --- */
