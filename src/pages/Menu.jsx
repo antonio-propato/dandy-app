@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { doc, getDoc } from 'firebase/firestore'
+import { useNavigate } from 'react-router-dom'
 import { firestore } from '../lib/firebase'
+import { useCart } from '../contexts/CartContext'
 import Nav from '../components/Nav'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faShoppingBasket, faMinus } from '@fortawesome/free-solid-svg-icons'
 import './Menu.css'
 import Legno from '/images/Couch.jpg'
 
@@ -13,61 +17,50 @@ export default function Menu() {
   const [showBurger, setShowBurger] = useState(true)
   const [scrollTimeout, setScrollTimeout] = useState(null)
   const [lastFetch, setLastFetch] = useState(null)
+  const [lastClickTime, setLastClickTime] = useState(0)
+
+  const navigate = useNavigate()
+  const { cart, getTotalItems, getTotalPrice, getItemCount, addItem, updateQuantity } = useCart()
 
   useEffect(() => {
     fetchMenuData()
   }, [])
 
-  // Auto-refresh menu data every 30 seconds to catch updates
+  // Auto-refresh menu data every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      // Only fetch if the page is visible and it's been more than 10 seconds since last fetch
       if (!document.hidden && (!lastFetch || Date.now() - lastFetch > 10000)) {
-        fetchMenuData(true) // Silent refresh
+        fetchMenuData(true)
       }
     }, 30000)
-
     return () => clearInterval(interval)
   }, [lastFetch])
 
-  // Listen for page focus to refresh menu
+  // Refresh menu on page focus
   useEffect(() => {
     const handleFocus = () => {
-      // Refresh when user returns to the page
       if (!lastFetch || Date.now() - lastFetch > 5000) {
         fetchMenuData(true)
       }
     }
-
     window.addEventListener('focus', handleFocus)
     return () => window.removeEventListener('focus', handleFocus)
   }, [lastFetch])
 
+  // Handle burger visibility on scroll
   useEffect(() => {
     const handleScroll = () => {
-      // Hide burger on scroll
       setShowBurger(false)
+      if (scrollTimeout) clearTimeout(scrollTimeout)
 
-      // Clear existing timeout
-      if (scrollTimeout) {
-        clearTimeout(scrollTimeout)
-      }
-
-      // Set new timeout to show burger after scroll stops
-      const newTimeout = setTimeout(() => {
-        setShowBurger(true)
-      }, 1500) // Show burger 1.5 seconds after scrolling stops
-
+      const newTimeout = setTimeout(() => setShowBurger(true), 1500)
       setScrollTimeout(newTimeout)
     }
 
     window.addEventListener('scroll', handleScroll)
-
     return () => {
       window.removeEventListener('scroll', handleScroll)
-      if (scrollTimeout) {
-        clearTimeout(scrollTimeout)
-      }
+      if (scrollTimeout) clearTimeout(scrollTimeout)
     }
   }, [scrollTimeout])
 
@@ -78,12 +71,10 @@ export default function Menu() {
         setError(null)
       }
 
-      console.log('Fetching menu data from Firestore...')
       const menuDoc = await getDoc(doc(firestore, 'settings', 'menu'))
       setLastFetch(Date.now())
 
       if (menuDoc.exists()) {
-        console.log('Menu document exists, data:', menuDoc.data())
         const data = menuDoc.data()
         const menuData = data.items
         const order = data.categoryOrder || Object.keys(menuData || {})
@@ -91,10 +82,8 @@ export default function Menu() {
         if (menuData && Object.keys(menuData).length > 0) {
           setItems(menuData)
           setCategoryOrder(order)
-          console.log('Menu items set successfully:', Object.keys(menuData))
           setError(null)
         } else {
-          console.log('No items found in document')
           setItems({})
           setCategoryOrder([])
           if (!silent) {
@@ -102,7 +91,6 @@ export default function Menu() {
           }
         }
       } else {
-        console.log('Menu document does not exist')
         setItems({})
         setCategoryOrder([])
         if (!silent) {
@@ -111,19 +99,13 @@ export default function Menu() {
       }
     } catch (error) {
       console.error('Error fetching menu data:', error)
-
-      // Keep existing data if we have it, otherwise show empty
       if (Object.keys(items).length === 0) {
-        console.log('No existing data and fetch failed')
         setItems({})
         setCategoryOrder([])
       }
-
-      // Show error only if not silent
       if (!silent) {
         setError('Errore nel caricamento del menu. Verifica la connessione.')
       }
-      console.log('Keeping existing menu data due to fetch error')
     } finally {
       if (!silent) {
         setLoading(false)
@@ -131,12 +113,44 @@ export default function Menu() {
     }
   }
 
+  const handleItemClick = (item, category) => {
+    const now = Date.now()
 
+    // Simple debounce to prevent rapid clicks
+    if (now - lastClickTime < 300) return
+    setLastClickTime(now)
 
-  // Manual refresh function
-  const handleRefresh = () => {
-    fetchMenuData()
+    // Check if item already exists in cart
+    const existingCartItem = cart.items.find(cartItem =>
+      cartItem.name === item.name && cartItem.category === category
+    )
+
+    if (existingCartItem) {
+      // Increment existing item quantity
+      updateQuantity(existingCartItem.id, existingCartItem.quantity + 1)
+    } else {
+      // Add new item to cart
+      addItem(item, category)
+    }
   }
+
+  const handleRemoveFromCart = (e, item, category) => {
+    e.stopPropagation()
+
+    const cartItem = cart.items.find(cartItem =>
+      cartItem.name === item.name && cartItem.category === category
+    )
+
+    if (cartItem) {
+      updateQuantity(cartItem.id, cartItem.quantity - 1)
+    }
+  }
+
+  const handleBasketClick = () => navigate('/basket')
+  const handleRefresh = () => fetchMenuData()
+
+  const totalItems = getTotalItems()
+  const totalPrice = getTotalPrice()
 
   if (loading) {
     return (
@@ -173,6 +187,17 @@ export default function Menu() {
     >
       <Nav showBurger={showBurger} />
 
+      {/* Fixed Basket Icon */}
+      {totalItems > 0 && (
+        <button className="basket-icon-button" onClick={handleBasketClick}>
+          <FontAwesomeIcon icon={faShoppingBasket} />
+          <div className="basket-info">
+            <span className="basket-count">{totalItems}</span>
+            <span className="basket-total">€{totalPrice.toFixed(2)}</span>
+          </div>
+        </button>
+      )}
+
       <div className="menu-content">
         {error && (
           <div className="menu-error-banner">
@@ -188,12 +213,47 @@ export default function Menu() {
             <div key={category} className="menu-section">
               <h2 className="menu-category">{category}</h2>
               <ul className="menu-list">
-                {items[category].map((item, idx) => (
-                  <li key={idx} className="menu-item">
-                    <span>{item.name}</span>
-                    <span>{item.price}</span>
-                  </li>
-                ))}
+                {items[category].map((item, idx) => {
+                  const itemCount = getItemCount(item.name, category)
+                  return (
+                    <li
+                      key={idx}
+                      className="menu-item"
+                      onClick={() => handleItemClick(item, category)}
+                    >
+                      <div className="menu-item-left">
+                        {itemCount > 0 && (
+                          <span className="item-count">{itemCount}</span>
+                        )}
+                        <span className="menu-item-name">{item.name}</span>
+                      </div>
+                      <div className="menu-item-right">
+                        <span className="menu-item-price">{item.price}</span>
+                        <div className="menu-item-actions">
+                          {itemCount > 0 && (
+                            <button
+                              className="minus-btn"
+                              onClick={(e) => handleRemoveFromCart(e, item, category)}
+                              aria-label={`Remove ${item.name} from cart`}
+                            >
+                              <FontAwesomeIcon icon={faMinus} />
+                            </button>
+                          )}
+                          <button
+                            className="plus-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleItemClick(item, category);
+                            }}
+                            aria-label={`Add ${item.name} to cart`}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  )
+                })}
               </ul>
             </div>
           )

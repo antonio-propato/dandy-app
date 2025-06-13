@@ -17,7 +17,9 @@ import {
   faBell,
   faUser,
   faStamp,
-  faPhone
+  faPhone,
+  faTable,
+  faClipboardList
 } from '@fortawesome/free-solid-svg-icons'
 
 export default function Nav({ showBurger = true, userRole }) {
@@ -141,6 +143,14 @@ export default function Nav({ showBurger = true, userRole }) {
               Scan QR
             </Link>
             <Link
+              to="/orders"
+              onClick={() => setOpen(false)}
+              className={isActive('/orders')}
+            >
+              <FontAwesomeIcon icon={faClipboardList} className="nav-icon" />
+              Gestisci Ordini
+            </Link>
+            <Link
               to="/client-management"
               onClick={() => setOpen(false)}
               className={isActive('/client-management')}
@@ -155,6 +165,14 @@ export default function Nav({ showBurger = true, userRole }) {
             >
               <FontAwesomeIcon icon={faUtensils} className="nav-icon" />
               Gestisci Menu
+            </Link>
+            <Link
+              to="/tables"
+              onClick={() => setOpen(false)}
+              className={isActive('/tables')}
+            >
+              <FontAwesomeIcon icon={faTable} className="nav-icon" />
+              Gestisci Tavoli
             </Link>
             {/* Superuser Notifications Panel */}
             <Link
