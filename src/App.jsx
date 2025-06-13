@@ -8,6 +8,10 @@ import { auth, firestore } from './lib/firebase'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { fcmManager } from './lib/fcm' // Import FCM manager
 
+// 🔊 NEW: Import global beeping system
+import { useGlobalOrderMonitor } from './hooks/useGlobalOrderMonitor'
+import GlobalBeepIndicator from './components/GlobalBeepIndicator'
+
 // 🛒 NEW: Import CartProvider
 import { CartProvider } from './contexts/CartContext'
 
@@ -541,6 +545,14 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [keyboardVisible, setKeyboardVisible] = useState(false) // Track keyboard state
 
+  // 🔊 NEW: Initialize global order monitoring for superusers
+  const {
+    pendingOrderCount,
+    isBeeping,
+    stopBeeping,
+    startBeeping
+  } = useGlobalOrderMonitor(userRole)
+
   // 📱 UNIVERSAL KEYBOARD & SCROLL HANDLING
   useEffect(() => {
     console.log('🔧 Setting up universal keyboard and scroll handling')
@@ -799,6 +811,17 @@ function App() {
     }
   }, [])
 
+  // 🔊 Debug logging for beeping system
+  useEffect(() => {
+    if (userRole === 'superuser') {
+      console.log('🔊 Global beeping status:', {
+        pendingOrderCount,
+        isBeeping,
+        userRole
+      })
+    }
+  }, [pendingOrderCount, isBeeping, userRole])
+
   // Log current state for debugging
   console.log("App rendering - User:", user ? "Authenticated" : "Not authenticated");
   console.log("App rendering - User role:", userRole);
@@ -836,6 +859,14 @@ function App() {
         >
           <AnimatedRoutes user={user} userRole={userRole} />
           <Nav userRole={userRole} />
+
+          {/* 🔊 NEW: Global beep indicator for superusers */}
+          <GlobalBeepIndicator
+            pendingOrderCount={pendingOrderCount}
+            isBeeping={isBeeping}
+            stopBeeping={stopBeeping}
+            userRole={userRole}
+          />
         </motion.div>
       </Router>
     </CartProvider>
