@@ -1,4 +1,4 @@
-const { onCall, onRequest, onDocumentCreated } = require('firebase-functions/v2/https')
+const { onCall, onRequest } = require('firebase-functions/v2/https')
 const { onSchedule } = require('firebase-functions/v2/scheduler')
 const { logger } = require('firebase-functions')
 const admin = require('firebase-admin')
@@ -946,5 +946,66 @@ exports.claimAndResetReward = onCall({
       throw error;
     }
     throw new HttpsError("internal", "Error claiming reward", { detail: error.message });
+  }
+});
+
+// 📦 FIXED FUNCTION: sendOrderConfirmationNotification
+// Replace the old function at the end of your functions/index.js with this one.
+
+exports.sendOrderConfirmationNotification = onCall({
+  region: "europe-west2"
+}, async (request) => {
+  if (!request.auth) {
+    throw new Error("Authentication required");
+  }
+
+  const { orderId, userId } = request.data;
+  if (!orderId || !userId) {
+    throw new Error("Order ID and User ID are required");
+  }
+
+  try {
+    logger.info(`📦 Creating notification for order: ${orderId}`);
+
+    // Get order and user data
+    const [orderDoc, userDoc] = await Promise.all([
+      db.doc(`orders/${orderId}`).get(),
+      db.doc(`users/${userId}`).get()
+    ]);
+
+    if (!orderDoc.exists || !userDoc.exists) {
+      throw new Error("Order or user not found");
+    }
+
+    const orderData = orderDoc.data();
+    // Ensure orderNumber is present
+    const orderNumber = orderData.orderNumber || orderId.slice(-6);
+
+    // Create the notification with the COMPLETE order data
+    const notification = {
+      userId: userId,
+      title: `Ordine #${orderNumber} Confermato! ✅`,
+      body: `${orderData.items?.[0]?.name || 'Ordine'} • €${(orderData.totalPrice || 0).toFixed(2)}`,
+      createdAt: new Date().toISOString(),
+      read: false,
+      data: {
+        // --- THIS IS THE FIX ---
+        // Spread the entire orderData object into the data payload
+        ...orderData,
+        // Ensure our essential fields are present/overwritten if needed
+        type: 'order_confirmation',
+        orderId: orderId,
+      }
+    };
+
+    // Save to Firestore
+    await db.collection('notifications').add(notification);
+
+    logger.info(`✅ Notification created successfully for order ${orderId}`);
+    return { success: true, message: 'Notification created' };
+
+  } catch (error) {
+    logger.error('Error creating order notification:', error);
+    throw new Error(`Failed to create notification: ${error.message}`);
   }
 });
