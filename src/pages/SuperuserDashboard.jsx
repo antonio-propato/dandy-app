@@ -16,7 +16,9 @@ export default function SuperuserDashboard() {
     totalStamps: 0,
     stampsToday: 0,
     totalRewardsLifetime: 0,
-    totalRewardsToday: 0
+    totalRewardsToday: 0,
+    totalOrdersLifetime: 0,
+    ordersToday: 0
   });
   const scrollRef = useRef(null);
   const todayLogRef = useRef(null);
@@ -66,11 +68,16 @@ export default function SuperuserDashboard() {
       // Get all stamps documents
       const stampsSnapshot = await getDocs(collection(firestore, 'stamps'));
 
+      // Get all orders documents
+      const ordersSnapshot = await getDocs(collection(firestore, 'orders'));
+
       // Initialize counters
       let totalLifetimeStamps = 0;
       let stampsToday = 0;
       let totalRewardsLifetime = 0;
       let totalRewardsToday = 0;
+      let totalOrdersLifetime = 0;
+      let ordersToday = 0;
       const todayStampsActivity = [];
 
       // Process each stamps document
@@ -140,6 +147,33 @@ export default function SuperuserDashboard() {
         }
       }
 
+      // Process orders data
+      for (const orderDoc of ordersSnapshot.docs) {
+        const orderData = orderDoc.data();
+        totalOrdersLifetime++;
+
+        // Count today's orders
+        if (orderData.createdAt) {
+          let orderDate;
+
+          // Handle different date formats
+          if (orderData.createdAt.toDate) {
+            // Firestore Timestamp
+            orderDate = orderData.createdAt.toDate();
+          } else if (typeof orderData.createdAt === 'string') {
+            // String date
+            orderDate = new Date(orderData.createdAt);
+          } else {
+            // Regular Date object
+            orderDate = new Date(orderData.createdAt);
+          }
+
+          if (orderDate >= today && orderDate < tomorrow) {
+            ordersToday++;
+          }
+        }
+      }
+
       // Sort today's activities by timestamp (newest first)
       todayStampsActivity.sort((a, b) => b.timestamp - a.timestamp);
 
@@ -200,7 +234,9 @@ export default function SuperuserDashboard() {
         totalStamps: totalLifetimeStamps,
         stampsToday,
         totalRewardsLifetime,
-        totalRewardsToday
+        totalRewardsToday,
+        totalOrdersLifetime,
+        ordersToday
       });
 
     } catch (error) {
@@ -240,6 +276,14 @@ export default function SuperuserDashboard() {
     navigate('/rewards-log?filter=today');
   };
 
+  const handleLifetimeOrdersClick = () => {
+    navigate('/orders-log');
+  };
+
+  const handleTodayOrdersClick = () => {
+    navigate('/orders-log?filter=today');
+  };
+
   // Format time only for compact display
   const formatTime = (dateString) => {
     const date = new Date(dateString);
@@ -259,22 +303,22 @@ export default function SuperuserDashboard() {
   }
 
   return (
-    <div className="dashboard-container" ref={scrollRef}>
-      <div className="dashboard-header">
+    <div className="superuser-dashboard-container" ref={scrollRef}>
+      <div className="superuser-dashboard-header">
         <h1>Pannello di Controllo</h1>
-        <div className="staff-info">
+        <div className="superuser-staff-info">
           <p>Ciao {userData?.firstName} </p>
         </div>
       </div>
 
       {/* Action buttons */}
-      <div className="dashboard-actions">
-        <button className="action-button scan-button" onClick={() => navigate('/scan')}>
+      <div className="superuser-dashboard-actions">
+        <button className="superuser-action-button superuser-scan-button" onClick={() => navigate('/scan')}>
           Scan QR
         </button>
 
         <button
-          className="action-button refresh-button"
+          className="superuser-action-button superuser-refresh-button"
           onClick={handleRefresh}
           disabled={refreshing}
         >
@@ -289,71 +333,87 @@ export default function SuperuserDashboard() {
         </button>
       </div>
 
-      {/* Clickable stats grid */}
-      <div className="dashboard-stats">
-        <div className="stat-card clickable" onClick={handleTotalUsersClick}>
+      {/* Enhanced stats grid with orders */}
+      <div className="superuser-dashboard-stats">
+        <div className="superuser-stat-card clickable" onClick={handleTotalUsersClick}>
           <h3>Clienti Totali</h3>
-          <div className="stat-value">{stats.totalUsers}</div>
-          <div className="click-hint">👆 Clicca per gestire</div>
+          <div className="superuser-stat-value">{stats.totalUsers}</div>
+          <div className="superuser-click-hint">👆 Clicca per gestire</div>
         </div>
 
-        <div className="stat-card clickable" onClick={handleTotalStampsClick}>
+        <div className="superuser-stat-card clickable" onClick={handleTotalStampsClick}>
           <h3>Timbri Totali</h3>
-          <div className="stat-value">{stats.totalStamps}</div>
-          <div className="click-hint">👆 Clicca per log</div>
+          <div className="superuser-stat-value">{stats.totalStamps}</div>
+          <div className="superuser-click-hint">👆 Clicca per log</div>
         </div>
 
-        <div className="stat-card clickable" onClick={handleTodayStampsClick}>
+        <div className="superuser-stat-card clickable" onClick={handleTodayStampsClick}>
           <h3>Timbri Oggi</h3>
-          <div className="stat-value">{stats.stampsToday}</div>
-          <div className="click-hint">👆 Clicca per log</div>
+          <div className="superuser-stat-value">{stats.stampsToday}</div>
+          <div className="superuser-click-hint">👆 Clicca per log</div>
         </div>
 
-        <div className="stat-card rewards-split">
+        <div className="superuser-stat-card superuser-rewards-split">
           <h3>Caffè Riscattati</h3>
-          <div className="rewards-container">
-            <div className="reward-item clickable" onClick={handleLifetimeRewardsClick}>
-              <div className="reward-label">Lifetime</div>
-              <div className="reward-value">{stats.totalRewardsLifetime}</div>
+          <div className="superuser-rewards-container">
+            <div className="superuser-reward-item clickable" onClick={handleLifetimeRewardsClick}>
+              <div className="superuser-reward-label">Lifetime</div>
+              <div className="superuser-reward-value">{stats.totalRewardsLifetime}</div>
             </div>
-            <div className="reward-divider">|</div>
-            <div className="reward-item clickable" onClick={handleTodayRewardsClick}>
-              <div className="reward-label">Oggi</div>
-              <div className="reward-value">{stats.totalRewardsToday}</div>
+            <div className="superuser-reward-divider">|</div>
+            <div className="superuser-reward-item clickable" onClick={handleTodayRewardsClick}>
+              <div className="superuser-reward-label">Oggi</div>
+              <div className="superuser-reward-value">{stats.totalRewardsToday}</div>
             </div>
           </div>
-          <div className="click-hint">👆 Clicca per logs</div>
+          <div className="superuser-click-hint">👆 Clicca per logs</div>
+        </div>
+
+        <div className="superuser-stat-card superuser-orders-split">
+          <h3>Ordini Totali</h3>
+          <div className="superuser-orders-container">
+            <div className="superuser-order-item clickable" onClick={handleLifetimeOrdersClick}>
+              <div className="superuser-order-label">Lifetime</div>
+              <div className="superuser-order-value">{stats.totalOrdersLifetime}</div>
+            </div>
+            <div className="superuser-order-divider">|</div>
+            <div className="superuser-order-item clickable" onClick={handleTodayOrdersClick}>
+              <div className="superuser-order-label">Oggi</div>
+              <div className="superuser-order-value">{stats.ordersToday}</div>
+            </div>
+          </div>
+          <div className="superuser-click-hint">👆 Clicca per logs</div>
         </div>
       </div>
 
       {/* Enhanced Today's Stamps Log with client info */}
       {showTodayLog && (
-        <div className="todays-stamps-log" ref={todayLogRef}>
-          <div className="log-header">
+        <div className="superuser-todays-stamps-log" ref={todayLogRef}>
+          <div className="superuser-log-header">
             <h2>Timbri di Oggi ({stats.stampsToday})</h2>
           </div>
 
-          <div className="enhanced-log-list">
+          <div className="superuser-enhanced-log-list">
             {todayStamps.length > 0 ? (
               todayStamps.map((stamp, index) => (
-                <div className="enhanced-log-item" key={index}>
+                <div className="superuser-enhanced-log-item" key={index}>
                   {/* First line: Time, Name, Added By */}
-                  <div className="log-main-line">
-                    <div className="log-time">{formatTime(stamp.date)}</div>
-                    <div className="log-customer">{stamp.userName}</div>
-                    <div className="log-addedby">{stamp.addedByText}</div>
+                  <div className="superuser-log-main-line">
+                    <div className="superuser-log-time">{formatTime(stamp.date)}</div>
+                    <div className="superuser-log-customer">{stamp.userName}</div>
+                    <div className="superuser-log-addedby">{stamp.addedByText}</div>
                   </div>
 
                   {/* Second line: Client stats */}
-                  <div className="log-stats-line">
-                    <span className="stat-attuali">Attuali: {stamp.currentStamps}</span>
-                    <span className="stat-totali">Totali: {stamp.lifetimeStamps}</span>
-                    <span className="stat-riscat">Riscat: {stamp.rewardsEarned}</span>
+                  <div className="superuser-log-stats-line">
+                    <span className="superuser-stat-attuali">Attuali: {stamp.currentStamps}</span>
+                    <span className="superuser-stat-totali">Totali: {stamp.lifetimeStamps}</span>
+                    <span className="superuser-stat-riscat">Riscat: {stamp.rewardsEarned}</span>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="no-stamps-today">
+              <div className="superuser-no-stamps-today">
                 <p>📭 Nessun timbro aggiunto oggi</p>
               </div>
             )}

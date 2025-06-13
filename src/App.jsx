@@ -34,10 +34,11 @@ import NotificationPanel from './components/NotificationPanel'
 import CustomerNotifications from './pages/CustomerNotifications'
 import RewardsLog from './pages/RewardsLog' // NEW: Rewards log page
 import StampsLog from './pages/StampsLog' // NEW: Stamps log page
+import OrdersLog from './pages/OrdersLog' // NEW: Orders log page
 
 // 🛒 NEW: Import cart-related pages
 import Basket from './pages/Basket'
-import Tables from './pages/Tables'
+// import Tables from './pages/Tables'
 import Orders from './pages/Orders'
 import OrderSuccess from './pages/OrderSuccess'
 
@@ -433,7 +434,7 @@ function AnimatedRoutes({ user, userRole }) {
           }
         />
 
-        {/* 🛒 NEW: Superuser Cart Management Routes */}
+        {/* 🛒 NEW: Superuser Cart Management Routes
         <Route
           path="/tables"
           element={
@@ -451,7 +452,7 @@ function AnimatedRoutes({ user, userRole }) {
               )}
             </ProtectedRoute>
           }
-        />
+        /> */}
 
         <Route
           path="/orders"
@@ -505,6 +506,26 @@ function AnimatedRoutes({ user, userRole }) {
               ) : (
                 <>
                   {console.log("Stamps Log route - User is customer, redirecting to Profile")}
+                  <Navigate to="/profile" />
+                </>
+              )}
+            </ProtectedRoute>
+          }
+        />
+
+        {/* NEW: Superuser Orders Log Route */}
+        <Route
+          path="/orders-log"
+          element={
+            <ProtectedRoute user={user}>
+              {userRole === 'superuser' ? (
+                <>
+                  {console.log("Orders Log route - User is superuser, showing OrdersLog")}
+                  <OrdersLog />
+                </>
+              ) : (
+                <>
+                  {console.log("Orders Log route - User is customer, redirecting to Profile")}
                   <Navigate to="/profile" />
                 </>
               )}
