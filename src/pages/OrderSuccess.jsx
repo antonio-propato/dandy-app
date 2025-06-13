@@ -105,14 +105,13 @@ export default function OrderSuccess() {
 
   if (loading) {
     return (
-      <div className="order-success-container">
+      <div className="order-success-wrapper" style={{ backgroundImage: `url('/images/Legno.png')` }}>
+        <div className="success-overlay" />
         <Nav />
-        <div className="success-content">
-          <div className="success-card">
-            <div className="success-icon">
-              <FontAwesomeIcon icon={faCheckCircle} />
-            </div>
-            <h1 className="success-title">Caricamento...</h1>
+        <div className="success-card">
+          <div className="shine-effect" />
+          <div className="success-content">
+            <div className="loading">Caricamento...</div>
           </div>
         </div>
       </div>
@@ -120,11 +119,14 @@ export default function OrderSuccess() {
   }
 
   return (
-    <div className="order-success-container">
+    <div className="order-success-wrapper" style={{ backgroundImage: `url('/images/Legno.png')` }}>
+      <div className="success-overlay" />
       <Nav />
 
-      <div className="success-content">
-        <div className="success-card">
+      <div className="success-card">
+        <div className="shine-effect" />
+
+        <div className="success-content">
           <div className="success-icon">
             <FontAwesomeIcon icon={faCheckCircle} />
           </div>
@@ -205,14 +207,6 @@ export default function OrderSuccess() {
             <p>Grazie per aver scelto il nostro servizio!</p>
             <p className="subtitle">Ti aspettiamo presto di nuovo</p>
           </div>
-        </div>
-
-        <div className="celebration-animation">
-          <div className="confetti"></div>
-          <div className="confetti"></div>
-          <div className="confetti"></div>
-          <div className="confetti"></div>
-          <div className="confetti"></div>
         </div>
       </div>
     </div>

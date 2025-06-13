@@ -35,6 +35,8 @@ export default function Basket() {
   const [pendingOrder, setPendingOrder] = useState(null);
   const [cancelCountdown, setCancelCountdown] = useState(10);
   const [canCancel, setCanCancel] = useState(true);
+  const [orderStatus, setOrderStatus] = useState('pending'); // Track order status explicitly
+  const [showCancelledNotification, setShowCancelledNotification] = useState(false);
 
   // Fetch user profile data
   useEffect(() => {
@@ -118,29 +120,37 @@ export default function Basket() {
     if (pendingOrder && pendingOrder.id) {
       console.log('👀 Setting up listener for order:', pendingOrder.id);
 
-      unsubscribe = onSnapshot(doc(firestore, 'orders', pendingOrder.id), (doc) => {
-        if (doc.exists()) {
-          const orderData = doc.data();
-          console.log('📦 Order status update:', orderData.status);
+      unsubscribe = onSnapshot(
+        doc(firestore, 'orders', pendingOrder.id),
+        (doc) => {
+          if (doc.exists()) {
+            const orderData = doc.data();
+            const newStatus = orderData.status;
+            console.log('📦 Order status update:', newStatus);
 
-          if (orderData.status === 'confirmed') {
-            console.log('✅ Order confirmed by superuser!');
-            setCanCancel(false);
-            // Small delay to show the confirmation, then redirect
-            setTimeout(() => {
-              handleOrderConfirmed();
-            }, 1500);
-          } else if (orderData.status === 'cancelled') {
-            console.log('❌ Order cancelled');
-            setShowPendingModal(false);
-            setPendingOrder(null);
-            setCancelCountdown(10);
-            setCanCancel(true);
-            setSelectedPayment(null);
-            alert('Ordine cancellato dal locale.');
+            setOrderStatus(newStatus);
+
+            if (newStatus === 'confirmed') {
+              console.log('✅ Order confirmed by superuser!');
+              setCanCancel(false);
+              setCancelCountdown(0);
+              // Small delay to show the confirmation, then redirect
+              setTimeout(() => {
+                handleOrderConfirmed();
+              }, 2000);
+            } else if (newStatus === 'cancelled') {
+              console.log('❌ Order was cancelled');
+              handleOrderCancelled();
+            }
+          } else {
+            console.log('❌ Order document no longer exists');
+            handleOrderCancelled();
           }
+        },
+        (error) => {
+          console.error('❌ Error listening to order updates:', error);
         }
-      });
+      );
     }
 
     return () => {
@@ -154,16 +164,26 @@ export default function Basket() {
   // Countdown timer for order cancellation
   useEffect(() => {
     let timer;
-    if (showPendingModal && canCancel && cancelCountdown > 0) {
+
+    if (showPendingModal && canCancel && cancelCountdown > 0 && orderStatus === 'pending') {
       timer = setTimeout(() => {
-        setCancelCountdown(prev => prev - 1);
+        setCancelCountdown(prev => {
+          const newCount = prev - 1;
+          console.log('⏰ Countdown:', newCount);
+          return newCount;
+        });
       }, 1000);
-    } else if (cancelCountdown === 0) {
+    } else if (cancelCountdown <= 0 && orderStatus === 'pending') {
+      console.log('⏰ Countdown expired, disabling cancel');
       setCanCancel(false);
-      // Note: Order confirmation now happens via real-time listener when superuser confirms
     }
-    return () => clearTimeout(timer);
-  }, [showPendingModal, canCancel, cancelCountdown]);
+
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [showPendingModal, canCancel, cancelCountdown, orderStatus]);
 
   // Generate unique order number
   const generateOrderNumber = () => {
@@ -207,6 +227,7 @@ export default function Basket() {
   const submitOrder = async (paymentMethod) => {
     try {
       setOrderProcessing(true);
+      console.log('🚀 Submitting order...');
 
       const orderNumber = generateOrderNumber();
       const orderData = {
@@ -222,10 +243,12 @@ export default function Basket() {
         promoCode: cart.promoCode || '',
         totalPrice: total,
         paymentMethod,
-        status: 'pending',
+        status: 'pending', // IMPORTANT: Start as pending
         timestamp: serverTimestamp(),
         createdAt: new Date().toISOString()
       };
+
+      console.log('📦 Order data:', orderData);
 
       // Add order to Firebase
       const orderRef = await addDoc(collection(firestore, 'orders'), orderData);
@@ -236,10 +259,11 @@ export default function Basket() {
 
       // Store order for pending modal
       setPendingOrder({ ...orderData, id: orderRef.id });
+      setOrderStatus('pending');
 
       return orderRef.id;
     } catch (error) {
-      console.error('Error submitting order:', error);
+      console.error('❌ Error submitting order:', error);
       throw error;
     } finally {
       setOrderProcessing(false);
@@ -249,24 +273,44 @@ export default function Basket() {
   // Cancel order
   const cancelOrder = async () => {
     try {
-      if (pendingOrder && canCancel) {
+      if (pendingOrder && pendingOrder.id && canCancel && orderStatus === 'pending') {
+        console.log('❌ Cancelling order:', pendingOrder.id);
+
+        // Update order status to cancelled
         await updateDoc(doc(firestore, 'orders', pendingOrder.id), {
           status: 'cancelled',
-          cancelledAt: serverTimestamp()
+          cancelledAt: serverTimestamp(),
+          cancelledBy: 'customer'
         });
 
-        setShowPendingModal(false);
-        setPendingOrder(null);
-        setCancelCountdown(10);
-        setCanCancel(true);
-        setSelectedPayment(null);
+        console.log('✅ Order cancelled successfully');
 
-        alert('Ordine cancellato con successo!');
+        // The real-time listener will handle the UI updates
+      } else {
+        console.log('❌ Cannot cancel order - conditions not met');
+        console.log('Pending order:', !!pendingOrder);
+        console.log('Can cancel:', canCancel);
+        console.log('Order status:', orderStatus);
       }
     } catch (error) {
-      console.error('Error cancelling order:', error);
-      alert('Errore nella cancellazione dell\'ordine');
+      console.error('❌ Error cancelling order:', error);
+      setShowCancelledNotification(true);
+      setTimeout(() => setShowCancelledNotification(false), 3000);
     }
+  };
+
+  // Handle order cancellation (from real-time listener)
+  const handleOrderCancelled = () => {
+    console.log('🔄 Handling order cancellation');
+    setShowPendingModal(false);
+    setPendingOrder(null);
+    setCancelCountdown(10);
+    setCanCancel(true);
+    setSelectedPayment(null);
+    setOrderStatus('pending');
+    setShowCancelledNotification(true);
+    // Auto-hide notification after 3 seconds
+    setTimeout(() => setShowCancelledNotification(false), 3000);
   };
 
   const cartItems = cart.items;
@@ -319,6 +363,7 @@ export default function Basket() {
       setShowPendingModal(true);
       setCancelCountdown(10);
       setCanCancel(true);
+      setOrderStatus('pending');
     } catch (error) {
       alert('Errore nell\'invio dell\'ordine. Riprova.');
       setSelectedPayment(null);
@@ -327,6 +372,7 @@ export default function Basket() {
 
   // Handle order confirmation (when superuser confirms)
   const handleOrderConfirmed = () => {
+    console.log('🎉 Navigating to success page');
     setShowPendingModal(false);
     // Clear cart
     cartItems.forEach(item => {
@@ -572,6 +618,7 @@ export default function Basket() {
         <div className="modal-overlay">
           <div className="payment-modal">
             <div className="modal-header">
+              <img src="/images/Dandy.jpeg" alt="Dandy Logo" className="modal-logo" />
               <h2>Scegli Metodo di Pagamento</h2>
               <button
                 onClick={() => setShowPaymentModal(false)}
@@ -635,10 +682,17 @@ export default function Basket() {
         <div className="modal-overlay">
           <div className="pending-modal">
             <div className="pending-header">
+              <img src="/images/Dandy.jpeg" alt="Dandy Logo" className="modal-logo" />
               <div className="pending-icon">
-                <Clock size={40} />
+                {orderStatus === 'confirmed' ? (
+                  <CheckCircle size={40} color="#28a745" />
+                ) : (
+                  <Clock size={40} />
+                )}
               </div>
-              <h2>Ordine in Attesa</h2>
+              <h2>
+                {orderStatus === 'confirmed' ? 'Ordine Confermato!' : 'Ordine in Attesa'}
+              </h2>
               <div className="order-number">
                 Ordine #{pendingOrder.orderNumber}
               </div>
@@ -646,8 +700,14 @@ export default function Basket() {
 
             <div className="pending-content">
               <div className="status-message">
-                <p>Il tuo ordine è stato inviato con successo!</p>
-                <p>È in attesa di conferma dal locale.</p>
+                {orderStatus === 'confirmed' ? (
+                  <p>Il tuo ordine è stato confermato dal locale!</p>
+                ) : (
+                  <>
+                    <p>Il tuo ordine è stato inviato con successo!</p>
+                    <p>È in attesa di conferma dal locale.</p>
+                  </>
+                )}
               </div>
 
               <div className="order-summary">
@@ -660,9 +720,12 @@ export default function Basket() {
                 <div className="summary-item">
                   <strong>Pagamento:</strong> {selectedPayment === 'pay-at-till' ? 'Paga alla Cassa' : 'Pagamento Online'}
                 </div>
+                <div className="summary-item">
+                  <strong>Stato:</strong> {orderStatus === 'confirmed' ? 'Confermato' : 'In Attesa'}
+                </div>
               </div>
 
-              {canCancel && (
+              {canCancel && orderStatus === 'pending' && (
                 <div className="cancel-section">
                   <p>Puoi cancellare l'ordine entro:</p>
                   <div className="countdown">
@@ -672,13 +735,14 @@ export default function Basket() {
                   <button
                     onClick={cancelOrder}
                     className="cancel-btn"
+                    disabled={!canCancel}
                   >
                     Cancella Ordine
                   </button>
                 </div>
               )}
 
-              {!canCancel && (
+              {orderStatus === 'confirmed' && (
                 <div className="confirmed-section">
                   <CheckCircle size={32} color="#28a745" />
                   <p>Ordine confermato dal locale!</p>
@@ -690,6 +754,27 @@ export default function Basket() {
                   </button>
                 </div>
               )}
+
+              {orderStatus === 'pending' && !canCancel && (
+                <div className="waiting-section">
+                  <Clock size={32} color="#ffc107" />
+                  <p>In attesa di conferma dal locale...</p>
+                  <p className="small-text">Non è più possibile cancellare l'ordine</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Cancellation Notification */}
+      {showCancelledNotification && (
+        <div className="custom-notification">
+          <div className="notification-content">
+            <img src="/images/Dandy.jpeg" alt="Dandy Logo" className="notification-logo" />
+            <div className="notification-text">
+              <h3>Ordine Cancellato</h3>
+              <p>Il tuo ordine è stato cancellato con successo.</p>
             </div>
           </div>
         </div>

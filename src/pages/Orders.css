@@ -528,3 +528,353 @@
     background: white;
   }
 }
+
+/* Updated Orders.css - Add these styles to your existing Orders.css */
+
+/* Action buttons column */
+.actions-cell {
+  padding: 0.5rem;
+  text-align: center;
+  width: 100px;
+}
+
+.order-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.action-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.action-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.confirm-btn {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.confirm-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #218838, #1aa085);
+}
+
+.cancel-btn {
+  background: linear-gradient(135deg, #dc3545, #e74c3c);
+  color: white;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #c82333, #dc2c2c);
+}
+
+/* Order row styling based on status */
+.order-row.pending-order {
+  background-color: #fff3cd;
+  border-left: 4px solid #ffc107;
+}
+
+.order-row.confirmed-order {
+  background-color: #d4edda;
+  border-left: 4px solid #28a745;
+}
+
+.order-row.cancelled-order {
+  background-color: #f8d7da;
+  border-left: 4px solid #dc3545;
+  opacity: 0.8;
+}
+
+/* Status indicators */
+.status-pending {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #856404;
+  font-weight: 600;
+}
+
+.status-confirmed {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #155724;
+  font-weight: 600;
+}
+
+.status-cancelled {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #721c24;
+  font-weight: 600;
+}
+
+/* Pulse animation for pending orders */
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Pending indicator in header */
+.pending-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 1rem;
+  padding: 0.25rem 0.75rem;
+  background: linear-gradient(135deg, #ffc107, #fd7e14);
+  color: #212529;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  animation: urgentBlink 2s infinite;
+}
+
+@keyframes urgentBlink {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(255, 193, 7, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 193, 7, 0.8);
+  }
+}
+
+/* Mobile responsiveness for action buttons */
+@media (max-width: 768px) {
+  .actions-cell {
+    width: 80px;
+  }
+
+  .order-actions {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .action-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .actions-cell {
+    width: 60px;
+  }
+
+  .action-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 0.7rem;
+  }
+}
+
+/* Table header adjustment for new Actions column */
+.orders-table th:last-child {
+  width: 100px;
+  text-align: center;
+}
+
+/* Ensure the table scrolls horizontally on mobile */
+.table-container {
+  overflow-x: auto;
+  min-width: 100%;
+}
+
+.orders-table {
+  min-width: 1200px; /* Increased to accommodate new column */
+}
+
+/* Legend updates */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #495057;
+}
+
+.legend-item .fa-clock {
+  color: #ffc107;
+}
+
+.legend-item .fa-check {
+  color: #28a745;
+}
+
+.legend-item .fa-times {
+  color: #dc3545;
+}
+
+/* Enhanced loading state */
+.orders-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  gap: 1rem;
+}
+
+.orders-loading .fa-spinner {
+  font-size: 2rem;
+  color: #007bff;
+}
+
+/* Order details styling improvements */
+.delivery-info {
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.delivery-name {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.delivery-address {
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+
+.delivery-phone {
+  color: #007bff;
+  font-weight: 500;
+}
+
+.delivery-company {
+  color: #28a745;
+  font-style: italic;
+  margin-top: 0.25rem;
+}
+
+.order-notes {
+  font-size: 0.85rem;
+  color: #dc3545;
+  font-style: italic;
+  margin-top: 0.25rem;
+  padding: 0.25rem;
+  background: rgba(220, 53, 69, 0.1);
+  border-radius: 4px;
+}
+
+/* Sound toggle and scan button styling */
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.sound-toggle, .scan-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sound-toggle.enabled {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.sound-toggle.disabled {
+  background: linear-gradient(135deg, #6c757d, #5a6268);
+  color: white;
+}
+
+.scan-btn {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+}
+
+.sound-toggle:hover, .scan-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Search bar styling */
+.search-bar {
+  position: relative;
+  margin-top: 1rem;
+  max-width: 500px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 3rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 25px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* Order count styling */
+.order-count {
+  font-size: 0.9rem;
+  color: #6c757d;
+  font-weight: normal;
+  margin-left: 0.5rem;
+}
