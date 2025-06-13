@@ -8,6 +8,9 @@ import { auth, firestore } from './lib/firebase'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { fcmManager } from './lib/fcm' // Import FCM manager
 
+// 🛒 NEW: Import CartProvider
+import { CartProvider } from './contexts/CartContext'
+
 // Components
 import Nav from './components/Nav'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -27,6 +30,12 @@ import NotificationPanel from './components/NotificationPanel'
 import CustomerNotifications from './pages/CustomerNotifications'
 import RewardsLog from './pages/RewardsLog' // NEW: Rewards log page
 import StampsLog from './pages/StampsLog' // NEW: Stamps log page
+
+// 🛒 NEW: Import cart-related pages
+import Basket from './pages/Basket'
+import Tables from './pages/Tables'
+import Orders from './pages/Orders'
+import OrderSuccess from './pages/OrderSuccess'
 
 // 🔗 NEW: Email Verification Handler Component
 function EmailVerificationHandler() {
@@ -284,6 +293,45 @@ function AnimatedRoutes({ user, userRole }) {
           }
         />
 
+        {/* 🛒 NEW: Customer Cart Routes */}
+        <Route
+          path="/basket"
+          element={
+            <ProtectedRoute user={user}>
+              {userRole === 'superuser' ? (
+                <>
+                  {console.log("Basket route - User is superuser, redirecting to dashboard")}
+                  <Navigate to="/superuser-dashboard" />
+                </>
+              ) : (
+                <>
+                  {console.log("Basket route - User is customer, showing Basket")}
+                  <Basket />
+                </>
+              )}
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/order-success"
+          element={
+            <ProtectedRoute user={user}>
+              {userRole === 'superuser' ? (
+                <>
+                  {console.log("Order Success route - User is superuser, redirecting to dashboard")}
+                  <Navigate to="/superuser-dashboard" />
+                </>
+              ) : (
+                <>
+                  {console.log("Order Success route - User is customer, showing OrderSuccess")}
+                  <OrderSuccess />
+                </>
+              )}
+            </ProtectedRoute>
+          }
+        />
+
         {/* Customer Notifications Route */}
         <Route
           path="/notifications"
@@ -374,6 +422,45 @@ function AnimatedRoutes({ user, userRole }) {
               ) : (
                 <>
                   {console.log("Menu Management route - User is customer, redirecting to Profile")}
+                  <Navigate to="/profile" />
+                </>
+              )}
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 🛒 NEW: Superuser Cart Management Routes */}
+        <Route
+          path="/tables"
+          element={
+            <ProtectedRoute user={user}>
+              {userRole === 'superuser' ? (
+                <>
+                  {console.log("Tables route - User is superuser, showing Tables")}
+                  <Tables />
+                </>
+              ) : (
+                <>
+                  {console.log("Tables route - User is customer, redirecting to Profile")}
+                  <Navigate to="/profile" />
+                </>
+              )}
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/orders"
+          element={
+            <ProtectedRoute user={user}>
+              {userRole === 'superuser' ? (
+                <>
+                  {console.log("Orders route - User is superuser, showing Orders")}
+                  <Orders />
+                </>
+              ) : (
+                <>
+                  {console.log("Orders route - User is customer, redirecting to Profile")}
                   <Navigate to="/profile" />
                 </>
               )}
@@ -733,22 +820,25 @@ function App() {
   }
 
   return (
-    <Router>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className={`min-h-screen bg-gray-50 ${keyboardVisible ? 'keyboard-visible' : ''}`}
-        style={{
-          // Dynamic styles for keyboard handling
-          minHeight: keyboardVisible ? 'auto' : '100vh',
-          paddingBottom: keyboardVisible ? '20px' : '0'
-        }}
-      >
-        <AnimatedRoutes user={user} userRole={userRole} />
-        <Nav userRole={userRole} />
-      </motion.div>
-    </Router>
+    // 🛒 NEW: Wrap entire app with CartProvider
+    <CartProvider>
+      <Router>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className={`min-h-screen bg-gray-50 ${keyboardVisible ? 'keyboard-visible' : ''}`}
+          style={{
+            // Dynamic styles for keyboard handling
+            minHeight: keyboardVisible ? 'auto' : '100vh',
+            paddingBottom: keyboardVisible ? '20px' : '0'
+          }}
+        >
+          <AnimatedRoutes user={user} userRole={userRole} />
+          <Nav userRole={userRole} />
+        </motion.div>
+      </Router>
+    </CartProvider>
   )
 }
 
