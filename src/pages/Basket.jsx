@@ -186,13 +186,18 @@ export default function Basket() {
   }, [showPendingModal, canCancel, cancelCountdown, orderStatus]);
 
   // Generate unique order number
-  const generateOrderNumber = () => {
-    const now = new Date();
-    const date = now.toISOString().slice(0, 10).replace(/-/g, '');
-    const time = now.toTimeString().slice(0, 8).replace(/:/g, '');
-    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
-    return `${date}${time}${random}`;
-  };
+const generateOrderNumber = () => {
+  const now = new Date();
+  const year = now.getFullYear().toString().slice(-2); // Last 2 digits of year
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const day = now.getDate().toString().padStart(2, '0');
+  const hour = now.getHours().toString().padStart(2, '0');
+  const minute = now.getMinutes().toString().padStart(2, '0');
+  const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+
+  return `${year}${month}${day}${hour}${minute}${random}`;
+  // Example: 250613162499
+};
 
   // Save user preferences for marketing
   const saveUserPreferences = async (orderData) => {
@@ -618,13 +623,13 @@ export default function Basket() {
         <div className="modal-overlay">
           <div className="payment-modal">
             <div className="modal-header">
+               <h3>Pagamento</h3>
               <img src="/images/Dandy.jpeg" alt="Dandy Logo" className="modal-logo" />
-              <h2>Scegli Metodo di Pagamento</h2>
               <button
                 onClick={() => setShowPaymentModal(false)}
                 className="modal-close"
               >
-                <X size={24} />
+                <X size={15} />
               </button>
             </div>
 
@@ -712,7 +717,7 @@ export default function Basket() {
 
               <div className="order-summary">
                 <div className="summary-item">
-                  <strong>Tipo:</strong> {cart.orderType === 'tavolo' ? `Tavolo ${cart.tableNumber}` : 'Consegna'}
+                  <strong>Consegna:</strong> {cart.orderType === 'tavolo' ? `Tavolo ${cart.tableNumber}` : 'Consegna'}
                 </div>
                 <div className="summary-item">
                   <strong>Totale:</strong> €{total.toFixed(2)}

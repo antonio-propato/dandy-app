@@ -1,3 +1,8 @@
+/* ADDED - Ensures the main page is always scrollable vertically if needed */
+html, body {
+  overflow-x: hidden;
+}
+
 /* CSS Custom Properties */
 :root {
   --cart-primary-color: #ECF0BA;
@@ -22,7 +27,8 @@
 /* General Container & Background */
 .cart-container {
   color: var(--cart-primary-color);
-  min-height: 100vh;
+  /* REMOVED 'min-height: 100vh;' - This was causing the unwanted scrolling. */
+  /* The page will now only scroll if content is taller than the screen. */
   position: relative;
   overflow-x: hidden;
   padding: 0 1rem;
@@ -328,7 +334,7 @@
 .cart-save-notes-btn {
   border: none;
   border-radius: var(--cart-border-radius-sm);
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 2rem;
   color: white;
   font-weight: 500;
   font-size: 0.875rem;
@@ -443,9 +449,9 @@
   background: linear-gradient(97deg, #43221B, #43221bd3);
   border: 1px groove var(--cart-primary-color);
   border-radius: var(--cart-border-radius);
-  padding: 0.75rem 1.5rem;
+  padding: 1.1rem 1.5rem;
   color: var(--cart-primary-color);
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: bold;
   cursor: pointer;
   transition: var(--cart-transition);
@@ -666,6 +672,8 @@
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   animation: modalSlideIn 0.3s ease-out;
   color: #2c3e50;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .pending-header {
@@ -681,7 +689,7 @@
 }
 
 .pending-header h2 {
-  color: #2c3e50;
+  color: #FFD700;
   margin: 0 0 1rem 0;
   font-size: 1.5rem;
   font-weight: bold;
@@ -1014,6 +1022,7 @@
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease;
   position: relative;
@@ -1487,7 +1496,8 @@
   max-width: 450px;
   width: 90%;
   max-height: 90vh;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   box-shadow:
     0 8px 30px rgba(236, 240, 186, 0.7),
     0 0 50px rgba(236, 240, 186, 0.3),
@@ -1611,8 +1621,8 @@
   background: rgba(236, 240, 186, 0.2);
   border: 1px solid rgba(236, 240, 186, 0.3);
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1855,7 +1865,7 @@
 }
 
 .cancel-btn {
-  background: linear-gradient(135deg, #dc3545, #c82333);
+  background: linear-gradient(135deg, #dc3545, #c82333) !important;
   color: white;
   border: none;
   border-radius: 25px;
@@ -1867,6 +1877,7 @@
   transition: all 0.3s ease;
   margin-top: 1rem;
   box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+  width: 100% !important;
 }
 
 .cancel-btn:hover:not(:disabled) {
@@ -2012,8 +2023,8 @@
   }
 
   .modal-logo {
-    width: 50px;
-    height: 50px;
+    width: 60px;
+    height: 60px;
   }
 
   .modal-header h2 {
@@ -2059,8 +2070,8 @@
   }
 
   .modal-logo {
-    width: 40px;
-    height: 40px;
+    width: 50px;
+    height: 50px;
   }
 
   .modal-header h2 {

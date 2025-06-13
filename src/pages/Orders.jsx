@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   collection,
   query,
@@ -9,12 +9,11 @@ import {
   onSnapshot,
   doc,
   updateDoc,
-  getDocs,
   serverTimestamp
-} from 'firebase/firestore'
-import { firestore } from '../lib/firebase'
-import Nav from '../components/Nav'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+} from 'firebase/firestore';
+import { firestore } from '../lib/firebase';
+import Nav from '../components/Nav';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faSearch,
   faQrcode,
@@ -31,445 +30,339 @@ import {
   faCalendarAlt,
   faVolumeUp,
   faVolumeMute,
-  faTimes
-} from '@fortawesome/free-solid-svg-icons'
-import './Orders.css'
+  faTimes,
+  faStickyNote,
+  faPhone,
+  faBuilding,
+  faListOl,
+  faHome,
+  faTruck
+} from '@fortawesome/free-solid-svg-icons';
+import './Orders.css';
 
-export default function Orders() {
-  const navigate = useNavigate()
-  const [todayOrders, setTodayOrders] = useState([])
-  const [olderOrders, setOlderOrders] = useState([])
-  const [filteredTodayOrders, setFilteredTodayOrders] = useState([])
-  const [filteredOlderOrders, setFilteredOlderOrders] = useState([])
-  const [searchTerm, setSearchTerm] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [userOrderCounts, setUserOrderCounts] = useState({})
-  const [soundEnabled, setSoundEnabled] = useState(true)
-  const [processingOrders, setProcessingOrders] = useState(new Set()) // Track which orders are being processed
-  const audioRef = useRef(null)
-
-  useEffect(() => {
-    const unsubscribeToday = setupTodayOrdersListener()
-    const unsubscribeOlder = setupOlderOrdersListener()
-
-    return () => {
-      unsubscribeToday()
-      unsubscribeOlder()
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchUserOrderCounts()
-  }, [])
-
-  useEffect(() => {
-    // Filter orders based on search term
-    filterOrders(searchTerm)
-  }, [searchTerm, todayOrders, olderOrders])
-
-  const setupTodayOrdersListener = () => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    const todayQuery = query(
-      collection(firestore, 'orders'),
-      where('timestamp', '>=', today),
-      orderBy('timestamp', 'desc'),
-      limit(50) // Increased limit to see more orders
-    )
-
-    return onSnapshot(todayQuery, (snapshot) => {
-      const orders = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate()
-      }))
-
-      // Sort by timestamp descending, with pending orders first
-      orders.sort((a, b) => {
-        if (a.status === 'pending' && b.status !== 'pending') return -1
-        if (b.status === 'pending' && a.status !== 'pending') return 1
-        return (b.timestamp || new Date(0)).getTime() - (a.timestamp || new Date(0)).getTime()
-      })
-
-      setTodayOrders(orders)
-      if (loading) setLoading(false)
-
-      // Log orders for debugging
-      console.log('📦 Today\'s orders updated:', orders.length, 'Pending:', orders.filter(o => o.status === 'pending').length)
-    }, (error) => {
-      console.error('❌ Error setting up today orders listener:', error)
-      if (loading) setLoading(false)
-    })
-  }
-
-  const setupOlderOrdersListener = () => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    const olderQuery = query(
-      collection(firestore, 'orders'),
-      where('timestamp', '<', today),
-      orderBy('timestamp', 'desc'),
-      limit(100) // Increased limit
-    )
-
-    return onSnapshot(olderQuery, (snapshot) => {
-      const orders = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate()
-      }))
-      setOlderOrders(orders)
-
-      // Log orders for debugging
-      console.log('📦 Older orders updated:', orders.length)
-    }, (error) => {
-      console.error('❌ Error setting up older orders listener:', error)
-    })
-  }
-
-  const fetchUserOrderCounts = async () => {
-    try {
-      const ordersQuery = query(collection(firestore, 'orders'))
-      const snapshot = await getDocs(ordersQuery)
-      const counts = {}
-
-      snapshot.docs.forEach(doc => {
-        const order = doc.data()
-        const userId = order.userId
-        if (userId) {
-          counts[userId] = (counts[userId] || 0) + 1
-        }
-      })
-
-      setUserOrderCounts(counts)
-      console.log('📊 User order counts:', counts)
-    } catch (error) {
-      console.error('Error fetching user order counts:', error)
-    }
-  }
-
-  const filterOrders = (term) => {
-    const searchLower = term.toLowerCase()
-
-    const filterFn = (order) => {
-      return (
-        order.userName?.toLowerCase().includes(searchLower) ||
-        order.userEmail?.toLowerCase().includes(searchLower) ||
-        order.deliveryInfo?.telefono?.includes(searchLower) ||
-        order.deliveryInfo?.phone?.includes(searchLower) ||
-        order.orderNumber?.toLowerCase().includes(searchLower)
-      )
-    }
-
-    setFilteredTodayOrders(term ? todayOrders.filter(filterFn) : todayOrders)
-    setFilteredOlderOrders(term ? olderOrders.filter(filterFn) : olderOrders)
-  }
-
-  const playNotificationSound = () => {
-    if (audioRef.current && soundEnabled) {
-      // Create a simple beep sound
-      try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)()
-        const oscillator = audioContext.createOscillator()
-        const gainNode = audioContext.createGain()
-
-        oscillator.connect(gainNode)
-        gainNode.connect(audioContext.destination)
-
-        oscillator.frequency.value = 800
-        oscillator.type = 'square'
-
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
-
-        oscillator.start(audioContext.currentTime)
-        oscillator.stop(audioContext.currentTime + 0.5)
-
-        console.log('🔊 New order notification sound played')
-      } catch (error) {
-        console.log('🔇 Audio context not available:', error)
-      }
-    }
-  }
-
-  const confirmOrder = async (orderId) => {
-    try {
-      console.log('✅ Confirming order:', orderId)
-
-      // Add to processing set to prevent double-clicks
-      setProcessingOrders(prev => new Set([...prev, orderId]))
-
-      await updateDoc(doc(firestore, 'orders', orderId), {
-        status: 'confirmed',
-        confirmedAt: serverTimestamp(),
-        confirmedBy: 'superuser'
-      })
-
-      console.log('✅ Order confirmed successfully')
-
-      // Visual feedback
-      const orderElement = document.querySelector(`[data-order-id="${orderId}"]`)
-      if (orderElement) {
-        orderElement.style.backgroundColor = '#d4edda'
-        orderElement.style.transform = 'scale(1.02)'
-        setTimeout(() => {
-          orderElement.style.backgroundColor = ''
-          orderElement.style.transform = ''
-        }, 2000)
-      }
-
-    } catch (error) {
-      console.error('❌ Error confirming order:', error)
-      alert('Errore nella conferma dell\'ordine. Riprova.')
-    } finally {
-      // Remove from processing set
-      setProcessingOrders(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(orderId)
-        return newSet
-      })
-    }
-  }
-
-  const cancelOrder = async (orderId) => {
-    if (!window.confirm('Sei sicuro di voler cancellare questo ordine?')) {
-      return
-    }
-
-    try {
-      console.log('❌ Cancelling order:', orderId)
-
-      // Add to processing set to prevent double-clicks
-      setProcessingOrders(prev => new Set([...prev, orderId]))
-
-      await updateDoc(doc(firestore, 'orders', orderId), {
-        status: 'cancelled',
-        cancelledAt: serverTimestamp(),
-        cancelledBy: 'superuser'
-      })
-
-      console.log('❌ Order cancelled successfully')
-
-      // Visual feedback
-      const orderElement = document.querySelector(`[data-order-id="${orderId}"]`)
-      if (orderElement) {
-        orderElement.style.backgroundColor = '#f8d7da'
-        orderElement.style.transform = 'scale(1.02)'
-        setTimeout(() => {
-          orderElement.style.backgroundColor = ''
-          orderElement.style.transform = ''
-        }, 2000)
-      }
-
-    } catch (error) {
-      console.error('❌ Error cancelling order:', error)
-      alert('Errore nella cancellazione dell\'ordine. Riprova.')
-    } finally {
-      // Remove from processing set
-      setProcessingOrders(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(orderId)
-        return newSet
-      })
-    }
-  }
+// --- Enhanced OrderCard Component ---
+const OrderCard = ({ order, onConfirm, onCancel, processingOrders, isModal = false }) => {
+  const isPending = order.status === 'pending';
+  const isProcessing = processingOrders.has(order.id);
 
   const formatTimestamp = (timestamp) => {
-    if (!timestamp) return 'N/A'
+    if (!timestamp) return 'N/A';
+    return timestamp.toLocaleString('it-IT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getPaymentMethodDisplay = (method) => ({
+    'pay-at-till': 'Paga alla Cassa',
+    'pay-now': 'Pagamento Online',
+    'card': 'Carta',
+    'cash': 'Contanti'
+  }[method] || method || 'N/A');
+
+  return (
+    <div className={`order-card status-${order.status}`} data-order-id={order.id}>
+      {/* Card Header with Order Number and Price */}
+      <div className="card-header">
+        <div className="card-header-left">
+          <span className="order-number-label">#</span>
+          <span className="order-number">{order.orderNumber || 'N/A'}</span>
+        </div>
+        <div className="card-header-right">
+          <span className="total-price">€{order.totalPrice?.toFixed(2) || '0.00'}</span>
+        </div>
+      </div>
+
+      <div className="card-body">
+        {/* Date and Name on same line */}
+        <div className="card-row">
+          <div className="detail-item">
+            <FontAwesomeIcon icon={faCalendarAlt} />
+            <span>{formatTimestamp(order.timestamp)}</span>
+          </div>
+          <div className="detail-item">
+            <FontAwesomeIcon icon={faUser} />
+            <span>{order.userName || 'Cliente Sconosciuto'}</span>
+          </div>
+        </div>
+
+        {/* Location Details */}
+        <div className="card-section">
+          {order.orderType === 'tavolo' ? (
+            <div className="detail-item">
+              <FontAwesomeIcon icon={faHome} />
+              <span>Tavolo: <strong>{order.tableNumber || 'N/A'}</strong></span>
+            </div>
+          ) : (
+            <div className="detail-item">
+              <FontAwesomeIcon icon={faTruck} />
+              <span>{order.deliveryInfo?.indirizzo}, {order.deliveryInfo?.civico} - {order.deliveryInfo?.citta}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Items section with notes included */}
+        <div className="items-section">
+          <div className="items-header">
+            <FontAwesomeIcon icon={faUtensils} />
+            <span>({order.items?.length || 0})</span>
+          </div>
+          <ul className="items-list">
+            {order.items?.map((item, index) => (
+              <li key={index}>
+                <span className="item-info">
+                  <span className="item-quantity">{item.quantity}x</span>
+                  <span className="item-name">{item.name}</span>
+                </span>
+                {item.price && !isNaN(Number(item.price)) && (
+                  <span className="item-price">{Number(item.price).toFixed(2)}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+
+          {/* Notes included in items section */}
+          {order.notes && (
+            <div className="notes-in-items">
+              <div className="notes-item">
+                <span className="notes-label"><FontAwesomeIcon icon={faExclamationTriangle} /> Note Speciali:</span>
+                <span className="notes-text">{order.notes}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Card Footer */}
+      <div className="card-footer">
+        <div className="payment-method">
+          <FontAwesomeIcon icon={faCreditCard} />
+          <span>{getPaymentMethodDisplay(order.paymentMethod)}</span>
+        </div>
+
+        {!isModal && (
+          isPending ? (
+            <div className="card-actions">
+              <button
+                onClick={() => onCancel(order.id)}
+                disabled={isProcessing}
+                className="action-btn cancel-btn"
+                title="Cancella Ordine"
+              >
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+              <button
+                onClick={() => onConfirm(order.id)}
+                disabled={isProcessing}
+                className="action-btn confirm-btn"
+                title="Conferma Ordine"
+              >
+                {isProcessing ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faCheck} />}
+              </button>
+            </div>
+          ) : (
+            <div className={`status-badge status-${order.status}`}>
+              <FontAwesomeIcon icon={order.status === 'confirmed' ? faCheck : faTimes} />
+              <span>{order.status === 'confirmed' ? 'Confermato' : 'Cancellato'}</span>
+            </div>
+          )
+        )}
+      </div>
+    </div>
+  );
+};
+
+// --- Main Orders Component ---
+export default function Orders() {
+  const navigate = useNavigate();
+  const [allOrders, setAllOrders] = useState([]);
+  const [cardOrders, setCardOrders] = useState([]);
+  const [tableOrders, setTableOrders] = useState([]);
+  const [filteredCardOrders, setFilteredCardOrders] = useState([]);
+  const [filteredTableOrders, setFilteredTableOrders] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [processingOrders, setProcessingOrders] = useState(new Set());
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
+  // Fetch orders with real-time updates
+  useEffect(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const ordersQuery = query(
+      collection(firestore, 'orders'),
+      orderBy('timestamp', 'desc'),
+      limit(200)
+    );
+
+    const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
+      const orders = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp?.toDate()
+      }));
+
+      console.log('📦 Orders updated:', orders.length);
+      setAllOrders(orders);
+
+      if (loading) setLoading(false);
+    }, (error) => {
+      console.error('❌ Error setting up orders listener:', error);
+      if (loading) setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [loading]);
+
+  // Process and sort orders
+  useEffect(() => {
+    // Sort all orders: pending first, then by timestamp
+    const sortedOrders = [...allOrders].sort((a, b) => {
+      if (a.status === 'pending' && b.status !== 'pending') return -1;
+      if (b.status === 'pending' && a.status !== 'pending') return 1;
+      return (b.timestamp || new Date(0)).getTime() - (a.timestamp || new Date(0)).getTime();
+    });
+
+    // Split orders into cards (max 12) and table
+    const cards = sortedOrders.slice(0, 12);
+    const table = sortedOrders.slice(12);
+
+    setCardOrders(cards);
+    setTableOrders(table);
+  }, [allOrders]);
+
+  // Filter orders based on search term
+  useEffect(() => {
+    const searchLower = searchTerm.toLowerCase();
+    const filterFn = (order) => (
+      order.userName?.toLowerCase().includes(searchLower) ||
+      order.userEmail?.toLowerCase().includes(searchLower) ||
+      order.deliveryInfo?.telefono?.includes(searchLower) ||
+      order.deliveryInfo?.phone?.includes(searchLower) ||
+      order.orderNumber?.toLowerCase().includes(searchLower) ||
+      order.tableNumber?.toLowerCase().includes(searchLower)
+    );
+
+    setFilteredCardOrders(searchTerm ? cardOrders.filter(filterFn) : cardOrders);
+    setFilteredTableOrders(searchTerm ? tableOrders.filter(filterFn) : tableOrders);
+  }, [searchTerm, cardOrders, tableOrders]);
+
+  // Update order status
+  const updateOrderStatus = async (orderId, status) => {
+    const data = {
+      status,
+      [`${status}At`]: serverTimestamp(),
+      [`${status}By`]: 'superuser'
+    };
+
+    try {
+      console.log(`🔄 Updating order ${orderId} to ${status}`);
+      setProcessingOrders(prev => new Set([...prev, orderId]));
+      await updateDoc(doc(firestore, 'orders', orderId), data);
+      console.log(`✅ Order ${orderId} successfully updated to ${status}`);
+
+      // Play sound notification if enabled
+      if (soundEnabled) {
+        // You can add sound notification here
+        console.log('🔊 Playing notification sound');
+      }
+    } catch (error) {
+      console.error(`❌ Error updating order ${orderId} to ${status}:`, error);
+      alert(`Errore nell'aggiornamento dell'ordine. Riprova.`);
+    } finally {
+      setProcessingOrders(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(orderId);
+        return newSet;
+      });
+    }
+  };
+
+  const confirmOrder = (orderId) => updateOrderStatus(orderId, 'confirmed');
+
+  const cancelOrder = (orderId) => {
+    if (window.confirm('Sei sicuro di voler cancellare questo ordine?')) {
+      updateOrderStatus(orderId, 'cancelled');
+    }
+  };
+
+  // Format timestamp for table display
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return 'N/A';
     return timestamp.toLocaleString('it-IT', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
-    })
-  }
+    });
+  };
 
-  const formatOrderItems = (items) => {
-    if (!items || items.length === 0) return 'Nessun articolo'
-    return items.map(item => `${item.quantity}x ${item.name}`).join(', ')
-  }
+  // Table row component
+  const OrderTableRow = ({ order }) => (
+    <tr className="order-table-row" onClick={() => setSelectedOrder(order)}>
+      <td>{formatTimestamp(order.timestamp)}</td>
+      <td>{order.orderNumber}</td>
+      <td>{order.userName || 'N/A'}</td>
+      <td>
+        {order.orderType === 'tavolo' ? (
+          <span><FontAwesomeIcon icon={faHome} /> Tavolo {order.tableNumber}</span>
+        ) : (
+          <span><FontAwesomeIcon icon={faTruck} /> Consegna</span>
+        )}
+      </td>
+      <td>€{order.totalPrice?.toFixed(2)}</td>
+      <td className={`status-cell status-${order.status}`}>
+        {order.status === 'confirmed' && <FontAwesomeIcon icon={faCheck} />}
+        {order.status === 'cancelled' && <FontAwesomeIcon icon={faTimes} />}
+        {order.status === 'pending' && <FontAwesomeIcon icon={faClock} />}
+        <span style={{marginLeft: '0.5rem'}}>{order.status}</span>
+      </td>
+    </tr>
+  );
 
-  const getPaymentMethodDisplay = (method) => {
-    switch (method) {
-      case 'pay-at-till':
-        return 'Paga alla Cassa'
-      case 'pay-now':
-        return 'Pagamento Online'
-      case 'card':
-        return 'Carta'
-      case 'cash':
-        return 'Contanti'
-      default:
-        return method || 'N/A'
-    }
-  }
-
-  const getStatusDisplay = (status) => {
-    switch (status) {
-      case 'pending':
-        return 'In Attesa'
-      case 'confirmed':
-        return 'Confermato'
-      case 'cancelled':
-        return 'Cancellato'
-      default:
-        return status || 'N/A'
-    }
-  }
-
-  const formatLocationInfo = (order) => {
-    if (order.orderType === 'tavolo') {
-      return `Tavolo ${order.tableNumber || 'N/A'}`
-    } else if (order.orderType === 'consegna' && order.deliveryInfo) {
-      const delivery = order.deliveryInfo
-      return (
-        <div className="delivery-info">
-          <div className="delivery-name">
-            {delivery.nome} {delivery.cognome}
-          </div>
-          <div className="delivery-address">
-            {delivery.indirizzo} {delivery.civico}, {delivery.citta} {delivery.provincia} {delivery.cap}
-          </div>
-          <div className="delivery-phone">
-            {delivery.telefono}
-          </div>
-          {delivery.compagnia && (
-            <div className="delivery-company">
-              {delivery.compagnia}
-            </div>
-          )}
-        </div>
-      )
-    }
-    return 'N/A'
-  }
-
-  const OrderRow = ({ order, isPending }) => {
-    const isProcessing = processingOrders.has(order.id)
-
-    return (
-      <tr
-        className={`order-row ${isPending ? 'pending-order' : order.status === 'cancelled' ? 'cancelled-order' : 'confirmed-order'}`}
-        data-order-id={order.id}
-      >
-        <td className="timestamp-cell">
-          <FontAwesomeIcon icon={faCalendarAlt} />
-          {formatTimestamp(order.timestamp)}
-        </td>
-        <td className="order-number-cell">
-          <FontAwesomeIcon icon={faHashtag} />
-          {order.orderNumber}
-        </td>
-        <td className="user-cell">
-          <FontAwesomeIcon icon={faUser} />
-          <div>
-            <div className="user-name">{order.userName || 'N/A'}</div>
-            <div className="user-email">{order.userEmail || 'N/A'}</div>
-          </div>
-        </td>
-        <td className="order-count-cell">
-          {userOrderCounts[order.userId] || 1}
-        </td>
-        <td className="location-cell">
-          <FontAwesomeIcon icon={faMapMarkerAlt} />
-          {formatLocationInfo(order)}
-        </td>
-        <td className="items-cell">
-          <FontAwesomeIcon icon={faUtensils} />
-          <div className="order-items">
-            {formatOrderItems(order.items)}
-          </div>
-        </td>
-        <td className="notes-cell">
-          {order.notes && order.notes.trim() && (
-            <div>
-              <FontAwesomeIcon icon={faExclamationTriangle} />
-              <div className="order-notes">{order.notes}</div>
-            </div>
-          )}
-        </td>
-        <td className="price-cell">
-          <FontAwesomeIcon icon={faEuroSign} />
-          €{order.totalPrice?.toFixed(2) || '0.00'}
-        </td>
-        <td className="payment-cell">
-          <FontAwesomeIcon icon={faCreditCard} />
-          {getPaymentMethodDisplay(order.paymentMethod)}
-        </td>
-        <td className="status-cell">
-          {isPending ? (
-            <div className="status-pending">
-              <FontAwesomeIcon icon={faClock} className="pulse" />
-              {getStatusDisplay(order.status)}
-            </div>
-          ) : order.status === 'cancelled' ? (
-            <div className="status-cancelled">
-              <FontAwesomeIcon icon={faTimes} />
-              {getStatusDisplay(order.status)}
-            </div>
-          ) : (
-            <div className="status-confirmed">
-              <FontAwesomeIcon icon={faCheck} />
-              {getStatusDisplay(order.status)}
-            </div>
-          )}
-        </td>
-        <td className="actions-cell">
-          {isPending && (
-            <div className="order-actions">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  confirmOrder(order.id)
-                }}
-                disabled={isProcessing}
-                className="action-btn confirm-btn"
-                title="Conferma ordine"
-              >
-                {isProcessing ? (
-                  <FontAwesomeIcon icon={faSpinner} spin />
-                ) : (
-                  <FontAwesomeIcon icon={faCheck} />
-                )}
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  cancelOrder(order.id)
-                }}
-                disabled={isProcessing}
-                className="action-btn cancel-btn"
-                title="Cancella ordine"
-              >
-                <FontAwesomeIcon icon={faTimes} />
-              </button>
-            </div>
-          )}
-        </td>
-      </tr>
-    )
-  }
-
+  // Loading state
   if (loading) {
     return (
       <div className="orders-container">
         <Nav />
         <div className="orders-loading">
-          <FontAwesomeIcon icon={faSpinner} spin />
-          <p>Caricamento ordini...</p>
+          <FontAwesomeIcon icon={faSpinner} spin size="3x" />
+          <p>Caricamento ordini in corso...</p>
         </div>
       </div>
-    )
+    );
   }
+
+  const pendingCount = cardOrders.filter(o => o.status === 'pending').length;
 
   return (
     <div className="orders-container">
       <Nav />
 
-      <div className="orders-header">
+      {/* Modal for order details */}
+      {selectedOrder && (
+        <div className="modal-overlay" onClick={() => setSelectedOrder(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={() => setSelectedOrder(null)}>
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <OrderCard
+              order={selectedOrder}
+              processingOrders={processingOrders}
+              isModal={true}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Header Section */}
+      <header className="orders-header">
         <div className="header-top">
           <h1>Gestione Ordini</h1>
           <div className="header-actions">
@@ -479,13 +372,11 @@ export default function Orders() {
               title={soundEnabled ? 'Disabilita suoni' : 'Abilita suoni'}
             >
               <FontAwesomeIcon icon={soundEnabled ? faVolumeUp : faVolumeMute} />
+              <span>{soundEnabled ? 'Audio On' : 'Audio Off'}</span>
             </button>
-            <button
-              onClick={() => navigate('/scan')}
-              className="scan-btn"
-            >
+            <button onClick={() => navigate('/scan')} className="scan-btn">
               <FontAwesomeIcon icon={faQrcode} />
-              Scan
+              <span>Scan QR</span>
             </button>
           </div>
         </div>
@@ -494,153 +385,83 @@ export default function Orders() {
           <FontAwesomeIcon icon={faSearch} className="search-icon" />
           <input
             type="text"
-            placeholder="Cerca per nome, email, telefono, numero ordine..."
+            placeholder="Cerca per nome, email, telefono, numero ordine, tavolo..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
           />
         </div>
-      </div>
+      </header>
 
-      <div className="orders-content">
-        {/* Today's Orders Table */}
-        <div className="orders-section">
+      <main className="orders-content">
+        {/* Recent Orders Section */}
+        <section className="orders-section">
           <h2>
-            Ordini di Oggi
-            <span className="order-count">
-              ({filteredTodayOrders.length}/{todayOrders.length})
-            </span>
-            {filteredTodayOrders.filter(order => order.status === 'pending').length > 0 && (
+            <FontAwesomeIcon icon={faClock} />
+            Ordini Recenti
+            {pendingCount > 0 && (
               <span className="pending-indicator">
-                <FontAwesomeIcon icon={faClock} className="pulse" />
-                {filteredTodayOrders.filter(order => order.status === 'pending').length} in attesa
+                <FontAwesomeIcon icon={faExclamationTriangle} />
+                {pendingCount} in attesa
               </span>
             )}
           </h2>
 
-          <div className="table-container">
-            <table className="orders-table">
-              <thead>
-                <tr>
-                  <th>Data/Ora</th>
-                  <th>N. Ordine</th>
-                  <th>Cliente</th>
-                  <th>Ordini Totali</th>
-                  <th>Posizione</th>
-                  <th>Articoli</th>
-                  <th>Note</th>
-                  <th>Totale</th>
-                  <th>Pagamento</th>
-                  <th>Stato</th>
-                  <th>Azioni</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTodayOrders.length === 0 ? (
-                  <tr>
-                    <td colSpan="11" className="no-orders">
-                      {searchTerm ? 'Nessun ordine trovato' : 'Nessun ordine oggi'}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredTodayOrders.map(order => (
-                    <OrderRow
-                      key={order.id}
-                      order={order}
-                      isPending={order.status === 'pending'}
-                    />
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          {filteredCardOrders.length > 0 ? (
+            <div className="orders-card-grid">
+              {filteredCardOrders.map(order => (
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  onConfirm={confirmOrder}
+                  onCancel={cancelOrder}
+                  processingOrders={processingOrders}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="no-orders-message">
+              <FontAwesomeIcon icon={faListOl} size="2x" style={{marginBottom: '1rem'}} />
+              <p>Nessun ordine recente da mostrare.</p>
+            </div>
+          )}
+        </section>
 
-        {/* Older Orders Table */}
-        <div className="orders-section">
+        {/* Previous Orders Section */}
+        <section className="orders-section">
           <h2>
+            <FontAwesomeIcon icon={faListOl} />
             Ordini Precedenti
-            <span className="order-count">
-              ({filteredOlderOrders.length}/{olderOrders.length})
-            </span>
           </h2>
 
-          <div className="table-container">
-            <table className="orders-table">
-              <thead>
-                <tr>
-                  <th>Data/Ora</th>
-                  <th>N. Ordine</th>
-                  <th>Cliente</th>
-                  <th>Ordini Totali</th>
-                  <th>Posizione</th>
-                  <th>Articoli</th>
-                  <th>Note</th>
-                  <th>Totale</th>
-                  <th>Pagamento</th>
-                  <th>Stato</th>
-                  <th>Azioni</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredOlderOrders.length === 0 ? (
+          {filteredTableOrders.length > 0 ? (
+            <div className="table-container">
+              <table className="orders-table">
+                <thead>
                   <tr>
-                    <td colSpan="11" className="no-orders">
-                      {searchTerm ? 'Nessun ordine trovato' : 'Nessun ordine precedente'}
-                    </td>
+                    <th><FontAwesomeIcon icon={faCalendarAlt} /> Data/Ora</th>
+                    <th><FontAwesomeIcon icon={faHashtag} /> N. Ordine</th>
+                    <th><FontAwesomeIcon icon={faUser} /> Cliente</th>
+                    <th><FontAwesomeIcon icon={faMapMarkerAlt} /> Tipo</th>
+                    <th><FontAwesomeIcon icon={faEuroSign} /> Totale</th>
+                    <th><FontAwesomeIcon icon={faCheck} /> Stato</th>
                   </tr>
-                ) : (
-                  filteredOlderOrders.map(order => (
-                    <OrderRow
-                      key={order.id}
-                      order={order}
-                      isPending={false}
-                    />
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div className="orders-footer">
-        <div className="legend">
-          <div className="legend-item">
-            <FontAwesomeIcon icon={faClock} className="pulse" />
-            <span>Clicca su "Conferma" per approvare un ordine in attesa</span>
-          </div>
-          <div className="legend-item">
-            <FontAwesomeIcon icon={faCheck} />
-            <span>Ordine confermato</span>
-          </div>
-          <div className="legend-item">
-            <FontAwesomeIcon icon={faTimes} />
-            <span>Ordine cancellato</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Debug info for development */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{
-          position: 'fixed',
-          bottom: '10px',
-          right: '10px',
-          background: 'rgba(0,0,0,0.8)',
-          color: 'white',
-          padding: '10px',
-          borderRadius: '5px',
-          fontSize: '12px',
-          maxWidth: '300px'
-        }}>
-          <div>Today's Orders: {todayOrders.length}</div>
-          <div>Pending Orders: {todayOrders.filter(o => o.status === 'pending').length}</div>
-          <div>Confirmed Orders: {todayOrders.filter(o => o.status === 'confirmed').length}</div>
-          <div>Cancelled Orders: {todayOrders.filter(o => o.status === 'cancelled').length}</div>
-          <div>Sound Enabled: {soundEnabled ? 'Yes' : 'No'}</div>
-        </div>
-      )}
+                </thead>
+                <tbody>
+                  {filteredTableOrders.map(order => (
+                    <OrderTableRow key={order.id} order={order} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="no-orders-message">
+              <FontAwesomeIcon icon={faListOl} size="2x" style={{marginBottom: '1rem'}} />
+              <p>Nessun ordine precedente trovato.</p>
+            </div>
+          )}
+        </section>
+      </main>
     </div>
-  )
+  );
 }

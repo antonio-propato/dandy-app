@@ -1,11 +1,12 @@
-/* Menu Page Styles */
-
-
 .menu-wrapper {
-  font-family: 'Raleway', sans-serif;
+  background-size: cover;
+  background-position: center;
+  min-height: 100vh;
+  padding: 1rem;
   color: #ECF0BA;
   position: relative;
 }
+
 
 /* 🛒 Fixed Basket Icon - Top Right with stacked info */
 .basket-icon-button {
@@ -13,7 +14,7 @@
   top: 2rem;
   right: 2rem;
   background: rgba(0, 0, 0, 0.85);
-  border: 2px solid #ECF0BA;
+  border: 2px solid #FFD700;
   border-radius: 12px;
   padding: 0.8rem 1rem;
   color: #ECF0BA;
@@ -26,7 +27,7 @@
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  font-family: 'Raleway', sans-serif;
+
   font-weight: 600;
 }
 
@@ -377,7 +378,7 @@
     margin: 0 auto;
     margin-top: 3rem;
     max-width: 100%;
-    padding: 1.5rem;
+    padding: 1rem;
   }
 
   .menu-category {
@@ -437,8 +438,8 @@
   }
 
   .menu-content {
-    margin-top: 2rem;
-    padding: 0.6rem;
+    margin-top: 4rem;
+    padding: 0.8rem;
   }
 
   .menu-category {
@@ -447,7 +448,7 @@
 
   .menu-item {
     font-size: 0.90rem;
-    padding: 0.2rem 0;
+    padding: 0.1rem 0;
   }
 
   .menu-item-left {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth, firestore } from '../lib/firebase'
@@ -28,6 +28,7 @@ export default function OrderSuccess() {
     const fetchLastOrder = async () => {
       if (auth.currentUser) {
         try {
+          // Now we can use the efficient query with the Firebase index
           const ordersQuery = query(
             collection(firestore, 'orders'),
             where('userId', '==', auth.currentUser.uid),
@@ -46,6 +47,9 @@ export default function OrderSuccess() {
             }
             setLastOrder(orderData)
             console.log('📦 Last confirmed order:', orderData)
+            console.log('📦 Order number:', orderData?.orderNumber)
+          } else {
+            console.log('📦 No confirmed orders found')
           }
         } catch (error) {
           console.error('Error fetching last order:', error)
@@ -106,12 +110,12 @@ export default function OrderSuccess() {
   if (loading) {
     return (
       <div className="order-success-wrapper" style={{ backgroundImage: `url('/images/Legno.png')` }}>
-        <div className="success-overlay" />
+        <div className="order-success-overlay" />
         <Nav />
-        <div className="success-card">
-          <div className="shine-effect" />
-          <div className="success-content">
-            <div className="loading">Caricamento...</div>
+        <div className="order-success-card">
+          <div className="order-success-shine" />
+          <div className="order-success-content">
+            <div className="order-success-loading">Caricamento...</div>
           </div>
         </div>
       </div>
@@ -120,75 +124,66 @@ export default function OrderSuccess() {
 
   return (
     <div className="order-success-wrapper" style={{ backgroundImage: `url('/images/Legno.png')` }}>
-      <div className="success-overlay" />
+      <div className="order-success-overlay" />
       <Nav />
 
-      <div className="success-card">
-        <div className="shine-effect" />
+      <div className="order-success-card">
+        <div className="order-success-shine" />
 
-        <div className="success-content">
-          <div className="success-icon">
+        <div className="order-success-content">
+          <div className="order-success-icon">
             <FontAwesomeIcon icon={faCheckCircle} />
           </div>
 
-          <h1 className="success-title">Ordine Confermato!</h1>
+          <h1 className="order-success-title">Ordine Confermato!</h1>
+
+          {/* Always show order number section, with fallback if no data */}
+          <div className="order-success-number">
+            <FontAwesomeIcon icon={faHashtag} />
+            <span>
+              {lastOrder?.orderNumber
+                ? `Ordine #${lastOrder.orderNumber}`
+                : 'Ordine #[Numero non disponibile]'
+              }
+            </span>
+          </div>
+
+          {/* Success Message */}
+          <div className="order-success-message">
+            <h3>Il tuo ordine è stato confermato!</h3>
+            <p>Riceverai una notifica quando sarà pronto.</p>
+          </div>
 
           {lastOrder && (
-            <div className="order-details">
-              <div className="order-number-display">
-                <FontAwesomeIcon icon={faHashtag} />
-                <span>Ordine #{lastOrder.orderNumber}</span>
-              </div>
-
-              <div className="order-summary-grid">
-                <div className="summary-detail">
-                  <FontAwesomeIcon icon={faMapMarkerAlt} />
-                  <span>{formatOrderType(lastOrder)}</span>
+            <div className="order-success-details-section">
+              <div className="order-success-summary">
+                <div className="order-success-summary-detail">
+                  <span className="detail-label">Consegna:</span>
+                  <span className="detail-value">{formatOrderType(lastOrder)}</span>
                 </div>
 
-                <div className="summary-detail">
-                  <FontAwesomeIcon icon={faCreditCard} />
-                  <span>{formatPaymentMethod(lastOrder.paymentMethod)}</span>
+                <div className="order-success-summary-detail">
+                  <span className="detail-label">Totale:</span>
+                  <span className="detail-value">€{lastOrder.totalPrice?.toFixed(2)}</span>
                 </div>
 
-                <div className="summary-detail total">
-                  <strong>Totale: €{lastOrder.totalPrice?.toFixed(2)}</strong>
+                <div className="order-success-summary-detail">
+                  <span className="detail-label">Pagamento:</span>
+                  <span className="detail-value">{formatPaymentMethod(lastOrder.paymentMethod)}</span>
+                </div>
+
+                <div className="order-success-summary-detail">
+                  <span className="detail-label">Stato:</span>
+                  <span className="detail-value" style={{color: '#28a745'}}>Confermato</span>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="success-details">
-            <div className="detail-item">
-              <FontAwesomeIcon icon={faEnvelope} />
-              <span>Email di conferma inviata</span>
-            </div>
-
-            <div className="detail-item">
-              <FontAwesomeIcon icon={faStar} />
-              <span>Le tue preferenze sono state salvate</span>
-            </div>
-          </div>
-
-          <div className="order-info">
-            <h3>Cosa Succede Ora?</h3>
-            <ul className="next-steps">
-              <li>Il tuo ordine è stato confermato dal locale</li>
-              <li>Riceverai una notifica quando sarà pronto</li>
-              {lastOrder?.paymentMethod === 'pay-at-till' && (
-                <li>Potrai pagare al momento del ritiro</li>
-              )}
-              {lastOrder?.orderType === 'consegna' && (
-                <li>Ti contatteremo per confermare la consegna</li>
-              )}
-              <li>Controlla i tuoi timbri per guadagnare ricompense!</li>
-            </ul>
-          </div>
-
-          <div className="success-actions">
+          <div className="order-success-actions">
             <button
               onClick={handleContinueToMenu}
-              className="primary-btn"
+              className="order-success-primary-btn"
             >
               <FontAwesomeIcon icon={faUtensils} />
               Continua a Ordinare
@@ -196,16 +191,16 @@ export default function OrderSuccess() {
 
             <button
               onClick={handleGoHome}
-              className="secondary-btn"
+              className="order-success-secondary-btn"
             >
               <FontAwesomeIcon icon={faHome} />
               Vai al Profilo
             </button>
           </div>
 
-          <div className="thank-you">
+          <div className="order-success-thanks">
             <p>Grazie per aver scelto il nostro servizio!</p>
-            <p className="subtitle">Ti aspettiamo presto di nuovo</p>
+            <p className="order-success-subtitle">Ti aspettiamo presto di nuovo</p>
           </div>
         </div>
       </div>
