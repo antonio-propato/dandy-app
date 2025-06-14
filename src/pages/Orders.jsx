@@ -33,7 +33,7 @@ import {
   faVolumeMute,
   faTimes,
   faStickyNote,
-  faPhone,
+  faPhone, // <-- IMPORT THE PHONE ICON
   faBuilding,
   faListOl,
   faHome,
@@ -98,10 +98,20 @@ const OrderCard = ({ order, onConfirm, onCancel, processingOrders, isModal = fal
               <span>Tavolo: <strong>{order.tableNumber || 'N/A'}</strong></span>
             </div>
           ) : (
-            <div className="detail-item">
-              <FontAwesomeIcon icon={faTruck} />
-              <span>{order.deliveryInfo?.indirizzo}, {order.deliveryInfo?.civico} - {order.deliveryInfo?.citta}</span>
-            </div>
+            <>
+              <div className="detail-item">
+                <FontAwesomeIcon icon={faTruck} />
+                <span>{order.deliveryInfo?.indirizzo}, {order.deliveryInfo?.civico} - {order.deliveryInfo?.citta}</span>
+              </div>
+              {/* --- THIS IS THE FIX --- */}
+              {/* Display phone number if it exists in deliveryInfo */}
+              {order.deliveryInfo?.telefono && (
+                <div className="detail-item telephone-number">
+                  <FontAwesomeIcon icon={faPhone} />
+                  <span>{order.deliveryInfo.telefono}</span>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -176,6 +186,8 @@ const OrderCard = ({ order, onConfirm, onCancel, processingOrders, isModal = fal
   );
 };
 
+
+// The rest of the Orders.jsx file remains unchanged.
 // --- Main Orders Component ---
 export default function Orders() {
   const navigate = useNavigate();
