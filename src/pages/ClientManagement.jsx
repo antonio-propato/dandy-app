@@ -87,30 +87,51 @@ export default function ClientManagement() {
       .join(' ');
   };
 
-  // Load all clients
+  // FIXED: Load all clients with proper orders counting from orders collection
   const loadClients = async () => {
     setLoading(true);
     try {
-      const usersSnapshot = await getDocs(collection(firestore, 'users'));
-      const stampsSnapshot = await getDocs(collection(firestore, 'stamps'));
+      const [usersSnapshot, stampsSnapshot, ordersSnapshot] = await Promise.all([
+        getDocs(collection(firestore, 'users')),
+        getDocs(collection(firestore, 'stamps')),
+        getDocs(collection(firestore, 'orders'))
+      ]);
 
-      // Create stamps map for quick lookup
+      // Create stamps map for quick lookup (only for stamp-related data)
       const stampsMap = {};
       stampsSnapshot.docs.forEach(doc => {
         stampsMap[doc.id] = doc.data();
       });
+
+      // Create orders count map (completely independent from stamps)
+      const ordersCountMap = {};
+      ordersSnapshot.docs.forEach(doc => {
+        const orderData = doc.data();
+        const userId = orderData.userId;
+
+        if (userId) {
+          ordersCountMap[userId] = (ordersCountMap[userId] || 0) + 1;
+        }
+      });
+
+      console.log('📊 Orders count map:', ordersCountMap); // Debug log
 
       const clientsData = usersSnapshot.docs
         .filter(doc => doc.data().role !== 'superuser')
         .map(doc => {
           const userData = doc.data();
           const userStamps = stampsMap[doc.id] || {};
+
           return {
             id: doc.id,
             ...userData,
+            // Stamp-related data from stamps collection
             stamps: userStamps.stamps || [],
             lifetimeStamps: userStamps.lifetimeStamps || 0,
-            rewardsEarned: userStamps.rewardsEarned || 0
+            rewardsEarned: userStamps.rewardsEarned || 0,
+            availableRewards: userStamps.availableRewards || 0,
+            // Order data from orders collection (independent)
+            lifetimeOrders: ordersCountMap[doc.id] || 0
           };
         });
 
@@ -229,13 +250,15 @@ export default function ClientManagement() {
     setShowEditModal(true);
   };
 
-  // Open stamps management modal
+  // Open stamps management modal with enhanced data
   const openStampsModal = (client) => {
     setSelectedClient(client);
     setStampsData({
       currentStamps: client.stamps.length,
       lifetimeStamps: client.lifetimeStamps,
-      rewardsEarned: client.rewardsEarned
+      rewardsEarned: client.rewardsEarned,
+      availableRewards: client.availableRewards,
+      lifetimeOrders: client.lifetimeOrders
     });
     setShowStampsModal(true);
   };
@@ -262,7 +285,7 @@ export default function ClientManagement() {
     }
   };
 
-  // Add manual stamp
+  // ENHANCED: Smart stamp addition with automatic reward handling
   const addStamp = async () => {
     if (!selectedClient) return;
 
@@ -273,25 +296,69 @@ export default function ClientManagement() {
       if (stampsDoc.exists()) {
         const currentData = stampsDoc.data();
         const currentStamps = currentData.stamps || [];
+        const availableRewards = currentData.availableRewards || 0;
 
+        // NEW LOGIC: Handle full stamp grid intelligently
         if (currentStamps.length >= 9) {
-          showNotificationMessage('warning', 'Il cliente ha già 9 timbri. Deve riscattare il premio prima di aggiungerne altri.');
-          return;
+          if (availableRewards > 0) {
+            // User has 9 stamps AND available rewards - clear grid and start new cycle
+            console.log('🔄 Smart stamp logic: Clearing full grid with available rewards, starting new cycle');
+
+            const newStamp = {
+              date: new Date().toISOString(),
+              addedBy: 'manual',
+              addedByUser: auth.currentUser.uid,
+              addedByName: userData ? `${userData.firstName} ${userData.lastName}` : 'Staff'
+            };
+
+            await updateDoc(stampsRef, {
+              stamps: [newStamp], // Start new cycle with just this stamp
+              lifetimeStamps: increment(1)
+              // Keep availableRewards as is - user can still claim them
+            });
+
+            showNotificationMessage('success', 'Timbro aggiunto! Nuovo ciclo iniziato (cliente aveva premio disponibile).');
+          } else {
+            // User has 9 stamps but NO available rewards - they need to complete the reward cycle first
+            showNotificationMessage('warning', 'Il cliente ha 9 timbri ma nessun premio disponibile. Qualcosa non è corretto - contatta il supporto.');
+            return;
+          }
+        } else if (currentStamps.length === 8) {
+          // Adding the 9th stamp - triggers reward
+          console.log('🎁 Adding 9th stamp - triggering reward logic');
+
+          const newStamp = {
+            date: new Date().toISOString(),
+            addedBy: 'manual',
+            addedByUser: auth.currentUser.uid,
+            addedByName: userData ? `${userData.firstName} ${userData.lastName}` : 'Staff'
+          };
+
+          await updateDoc(stampsRef, {
+            stamps: [...currentStamps, newStamp],
+            lifetimeStamps: increment(1),
+            availableRewards: increment(1) // NEW: Grant reward immediately
+          });
+
+          showNotificationMessage('success', '🎉 9° timbro aggiunto! Cliente ha completato la raccolta e guadagnato un premio!');
+        } else {
+          // Normal stamp addition (1-8)
+          const newStamp = {
+            date: new Date().toISOString(),
+            addedBy: 'manual',
+            addedByUser: auth.currentUser.uid,
+            addedByName: userData ? `${userData.firstName} ${userData.lastName}` : 'Staff'
+          };
+
+          await updateDoc(stampsRef, {
+            stamps: [...currentStamps, newStamp],
+            lifetimeStamps: increment(1)
+          });
+
+          showNotificationMessage('success', 'Timbro aggiunto con successo!');
         }
-
-        const newStamp = {
-          date: new Date().toISOString(),
-          addedBy: 'manual',
-          addedByUser: auth.currentUser.uid,
-          addedByName: userData ? `${userData.firstName} ${userData.lastName}` : 'Staff'
-        };
-
-        await updateDoc(stampsRef, {
-          stamps: [...currentStamps, newStamp],
-          lifetimeStamps: increment(1)
-        });
       } else {
-        // Create new stamps document
+        // FIXED: Create new stamps document (removed lifetimeOrders - orders are independent)
         await setDoc(stampsRef, {
           stamps: [{
             date: new Date().toISOString(),
@@ -301,16 +368,53 @@ export default function ClientManagement() {
           }],
           lifetimeStamps: 1,
           rewardsEarned: 0,
+          availableRewards: 0,
           rewardClaimed: false
         });
+
+        showNotificationMessage('success', 'Primo timbro aggiunto con successo!');
       }
 
       setShowStampsModal(false);
       loadClients();
-      showNotificationMessage('success', 'Timbro aggiunto con successo!');
     } catch (error) {
       console.error('Error adding stamp:', error);
       showNotificationMessage('error', 'Errore nell\'aggiunta del timbro');
+    }
+  };
+
+  // NEW: Redeem reward function
+  const redeemReward = async () => {
+    if (!selectedClient) return;
+
+    try {
+      const stampsRef = doc(firestore, 'stamps', selectedClient.id);
+      const stampsDoc = await getDoc(stampsRef);
+
+      if (stampsDoc.exists()) {
+        const currentData = stampsDoc.data();
+        const availableRewards = currentData.availableRewards || 0;
+
+        if (availableRewards <= 0) {
+          showNotificationMessage('warning', 'Il cliente non ha premi disponibili da riscattare.');
+          return;
+        }
+
+        // Redeem one reward: decrease availableRewards, increase rewardsEarned
+        await updateDoc(stampsRef, {
+          availableRewards: Math.max(0, availableRewards - 1),
+          rewardsEarned: increment(1)
+        });
+
+        setShowStampsModal(false);
+        loadClients();
+        showNotificationMessage('success', '🎉 Premio riscattato con successo!');
+      } else {
+        showNotificationMessage('error', 'Dati cliente non trovati.');
+      }
+    } catch (error) {
+      console.error('Error redeeming reward:', error);
+      showNotificationMessage('error', 'Errore nel riscatto del premio');
     }
   };
 
@@ -399,7 +503,7 @@ export default function ClientManagement() {
         />
       </div>
 
-      {/* New Filter Section */}
+      {/* Filter Section */}
       <div className="client-filters-section">
         <div className="client-filters-row">
           <div className="client-filter-group">
@@ -485,11 +589,28 @@ export default function ClientManagement() {
                 <p><strong>Telefono:</strong> {client.phone}</p>
                 <p><strong>Compleanno:</strong> {client.dob}</p>
                 <div className="client-stats">
-                  <span className={`client-stat ${client.stamps.length === 9 ? 'client-stat-ready' : ''}`}>
-                    Attuali: {client.stamps.length}
-                  </span>
-                  <span className="client-stat">Totali: {client.lifetimeStamps}</span>
-                  <span className="client-stat">Premi: {client.rewardsEarned}</span>
+                  {/* Line 1: Stamps */}
+                  <div className="stats-line">
+                    <span className={`client-stat ${client.stamps.length === 9 ? 'client-stat-ready' : ''}`}>
+                      Timbri Attuali: {client.stamps.length}
+                    </span>
+                    <span className="client-stat">Timbri Totali: {client.lifetimeStamps}</span>
+                  </div>
+
+                  {/* Line 2: Rewards */}
+                  <div className="stats-line">
+                    <span className="client-stat">Premi Riscattati: {client.rewardsEarned}</span>
+                    {client.availableRewards > 0 && (
+                      <span className="client-stat client-stat-available">
+                        Premi Disponibili: {client.availableRewards}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Line 3: Orders */}
+                  <div className="stats-line">
+                    <span className="client-stat client-stat-orders">Ordini Totali: {client.lifetimeOrders}</span>
+                  </div>
                 </div>
               </div>
               <div className="client-actions">
@@ -574,7 +695,7 @@ export default function ClientManagement() {
         </div>
       )}
 
-      {/* Stamps Management Modal */}
+      {/* Enhanced Stamps Management Modal */}
       {showStampsModal && (
         <div className="client-modal-overlay" onClick={() => setShowStampsModal(false)}>
           <div className="client-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -586,6 +707,12 @@ export default function ClientManagement() {
               <p><strong>Timbri Attuali:</strong> <span>{selectedClient?.stamps.length}</span></p>
               <p><strong>Timbri Totali:</strong> <span>{selectedClient?.lifetimeStamps}</span></p>
               <p><strong>Premi Riscattati:</strong> <span>{selectedClient?.rewardsEarned}</span></p>
+              {/* NEW: Show available rewards */}
+              {selectedClient?.availableRewards > 0 && (
+                <p><strong>Premi Disponibili:</strong> <span className="available-rewards">{selectedClient?.availableRewards}</span></p>
+              )}
+              {/* FIXED: Show lifetime orders - now counting from actual orders collection */}
+              <p><strong>Ordini Totali:</strong> <span>{selectedClient?.lifetimeOrders}</span></p>
             </div>
             <div className="client-modal-actions">
               <button onClick={addStamp} className="client-add-stamp-btn">
@@ -594,6 +721,12 @@ export default function ClientManagement() {
               <button onClick={removeStamp} className="client-remove-stamp-btn">
                 Rimuovi Timbro
               </button>
+              {/* NEW: Redeem Reward button - only show if client has available rewards */}
+              {selectedClient?.availableRewards > 0 && (
+                <button onClick={redeemReward} className="client-redeem-reward-btn">
+                  Riscatta Premio
+                </button>
+              )}
               <button onClick={() => setShowStampsModal(false)} className="client-cancel-btn">
                 Chiudi
               </button>
@@ -638,7 +771,7 @@ export default function ClientManagement() {
               <button onClick={deleteClient} className="client-confirm-delete-btn">
                 Elimina
               </button>
-              <button onClick={() => setShowConfirmDelete(false)} className="client-cancel-btn">
+              <button onClick={() => setShowConfirmDelete(false)} className="client-confirm-cancel-btn">
                 Annulla
               </button>
             </div>
