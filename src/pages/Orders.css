@@ -416,10 +416,6 @@
   font-size: 0.9rem;
 }
 
-.item-price::before {
-  content: '€';
-}
-
 /* --- NOTES SECTION --- */
 .notes-in-items {
   margin-top: 1rem;
@@ -823,4 +819,39 @@
   .items-list li {
     font-size: 0.85rem;
   }
+}
+
+/* Add to your Orders.css */
+.rewards-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: #43221B;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.pending-number {
+  color: #ff9800 !important;
+}
+
+.status-stats {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.status-badge-small {
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
 }

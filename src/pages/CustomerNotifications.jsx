@@ -103,10 +103,6 @@ const OrderDetailsModal = ({ notification }) => {
             ))}
           </div>
 
-          <div className="order-modal-total-line">
-            <span className="total-label">Totale Ordine:</span>
-            <span className="total-amount">€{orderDetails.totalPrice?.toFixed(2)}</span>
-          </div>
         </div>
       )}
 
@@ -127,9 +123,9 @@ const OrderDetailsModal = ({ notification }) => {
           <FontAwesomeIcon icon={faCheckCircle} size="lg" />
           <span>Ordine Confermato</span>
         </div>
-        <p className="status-description">
+        {/* <p className="status-description">
           Il tuo ordine è stato confermato e riceverai aggiornamenti sullo stato di preparazione.
-        </p>
+        </p> */}
       </div>
     </div>
   )

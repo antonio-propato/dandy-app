@@ -246,9 +246,6 @@ const fetchOrderAndUserData = async () => {
 
           <h1 className="order-success-title">Ordine Confermato!</h1>
 
-          {/* Notification Status Indicator */}
-          <NotificationStatusIndicator />
-
           {/* Always show order number section, with fallback if no data */}
           <div className="order-success-number">
             <FontAwesomeIcon icon={faHashtag} />
@@ -260,17 +257,6 @@ const fetchOrderAndUserData = async () => {
             </span>
           </div>
 
-          {/* Success Message */}
-          <div className="order-success-message">
-            <h3>Il tuo ordine è stato confermato!</h3>
-            <p>Riceverai aggiornamenti nelle tue notifiche.</p>
-            {notificationStatus === 'sent' && (
-              <p className="notification-confirmation-note">
-                <FontAwesomeIcon icon={faBell} style={{ color: '#28a745', marginRight: '8px' }} />
-                Una notifica con i dettagli dell'ordine è stata aggiunta al tuo feed notifiche.
-              </p>
-            )}
-          </div>
 
           {lastOrder && (
             <div className="order-success-details-section">
@@ -298,6 +284,15 @@ const fetchOrderAndUserData = async () => {
             </div>
           )}
 
+
+
+          {/* Notification Status Indicator */}
+          <NotificationStatusIndicator />
+
+          <div className="order-success-thanks">
+            <p>Grazie per aver scelto il nostro servizio!</p>
+          </div>
+
           <div className="order-success-actions">
             <button
               onClick={handleContinueToMenu}
@@ -305,19 +300,6 @@ const fetchOrderAndUserData = async () => {
             >
               <FontAwesomeIcon icon={faUtensils} />
               Continua a Ordinare
-            </button>
-
-            <button
-              onClick={handleViewNotifications}
-              className="order-success-secondary-btn"
-              style={{
-                background: 'rgba(40, 167, 69, 0.1)',
-                borderColor: 'rgba(40, 167, 69, 0.3)',
-                color: '#28a745'
-              }}
-            >
-              <FontAwesomeIcon icon={faBell} />
-              Vedi Notifiche
             </button>
 
             <button
@@ -329,10 +311,7 @@ const fetchOrderAndUserData = async () => {
             </button>
           </div>
 
-          <div className="order-success-thanks">
-            <p>Grazie per aver scelto il nostro servizio!</p>
-            <p className="order-success-subtitle">Ti aspettiamo presto di nuovo</p>
-          </div>
+
         </div>
       </div>
     </div>

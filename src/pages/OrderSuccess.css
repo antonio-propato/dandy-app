@@ -262,11 +262,11 @@ body:has(.order-success-wrapper) {
 
 .order-success-primary-btn {
   width: 100%;
-  background: linear-gradient(135deg, #28a745, #20c997);
+  background: linear-gradient(135deg, #050505, #3e3938);
   border: none;
   border-radius: 25px;
   padding: 1.2rem 1.5rem;
-  color: white;
+  color: #ECF0BA;
   font-size: 1.1rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -631,7 +631,7 @@ body:has(.order-success-wrapper) {
 }
 
 .notification-status.sent {
-  background: rgba(40, 167, 69, 0.15);
+  background: rgba(156, 169, 39, 0.15);
   border-color: rgba(40, 167, 69, 0.4);
   color: #28a745;
   box-shadow: 0 4px 20px rgba(40, 167, 69, 0.2);
