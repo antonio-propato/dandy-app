@@ -166,14 +166,7 @@ export default function Nav({ showBurger = true, userRole }) {
               <FontAwesomeIcon icon={faUtensils} className="nav-icon" />
               Gestisci Menu
             </Link>
-            <Link
-              to="/tables"
-              onClick={() => setOpen(false)}
-              className={isActive('/tables')}
-            >
-              <FontAwesomeIcon icon={faTable} className="nav-icon" />
-              Gestisci Tavoli
-            </Link>
+
             {/* Superuser Notifications Panel */}
             <Link
               to="/superuser-notifications"

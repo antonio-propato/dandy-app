@@ -177,7 +177,7 @@ const OrderCard = ({ order, onConfirm, onCancel, processingOrders, isModal = fal
           ) : (
             <div className={`status-badge status-${order.status}`}>
               <FontAwesomeIcon icon={order.status === 'confirmed' ? faCheck : faTimes} />
-              <span>{order.status === 'confirmed' ? 'Confermato' : 'Cancellato'}</span>
+              <span>{order.status === 'confirmed' ? '' : ''}</span>
             </div>
           )
         )}

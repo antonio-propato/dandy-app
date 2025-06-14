@@ -434,26 +434,6 @@ function AnimatedRoutes({ user, userRole }) {
           }
         />
 
-        {/* 🛒 NEW: Superuser Cart Management Routes
-        <Route
-          path="/tables"
-          element={
-            <ProtectedRoute user={user}>
-              {userRole === 'superuser' ? (
-                <>
-                  {console.log("Tables route - User is superuser, showing Tables")}
-                  <Tables />
-                </>
-              ) : (
-                <>
-                  {console.log("Tables route - User is customer, redirecting to Profile")}
-                  <Navigate to="/profile" />
-                </>
-              )}
-            </ProtectedRoute>
-          }
-        /> */}
-
         <Route
           path="/orders"
           element={

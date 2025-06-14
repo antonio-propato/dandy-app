@@ -304,6 +304,7 @@ h1 {
   display: flex;
   justify-content: center;
   margin-bottom: 1rem;
+  margin-top: 2rem;
 }
 
 .refresh-today-button {
@@ -609,7 +610,7 @@ h1 {
   .refresh-today-button {
     font-size: 11px;
     padding: 5px 50px;
-    margin-top: 40px;
+    margin-top: 10px;
   }
 }
 
