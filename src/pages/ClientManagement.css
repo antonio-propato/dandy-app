@@ -1,4 +1,4 @@
-/* ClientManagement.css */
+/* ClientManagement.css - Updated with 3-line stats layout */
 
 .client-management-container {
   max-width: 1200px;
@@ -236,10 +236,17 @@
 
 .client-stats {
   display: flex;
-  gap: 15px;
+  flex-direction: column;
+  gap: 10px;
   margin-top: 15px;
   padding-top: 15px;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stats-line {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
 }
 
 .client-stat {
@@ -259,6 +266,13 @@
   box-shadow: 0 0 15px rgba(0, 255, 135, 0.5);
 }
 
+.client-stat-available {
+  background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+  color: #1a1a1a;
+  animation: pulse-available 2s ease-in-out infinite;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
 @keyframes pulse-ready {
   0%, 100% {
     transform: scale(1);
@@ -267,6 +281,17 @@
   50% {
     transform: scale(1.05);
     box-shadow: 0 0 25px rgba(0, 255, 135, 0.8);
+  }
+}
+
+@keyframes pulse-available {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.8);
   }
 }
 
@@ -425,7 +450,7 @@
   align-items: center;
   padding: 28px 32px 24px 32px;
   border-bottom: none;
-  background: linear-gradient(135deg, #43221B 0%, #5a2f26 50%, #6d3530 100%);
+  background: #281410;
   color: white;
   position: relative;
   box-shadow: 0 4px 20px rgba(67, 34, 27, 0.3);
@@ -553,7 +578,7 @@
 }
 
 .client-stamps-info {
-  padding: 28px 32px;
+  padding: 20px 24px;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   margin: 0;
   border-top: 1px solid #dee2e6;
@@ -572,23 +597,23 @@
 }
 
 .client-stamps-info p {
-  margin: 16px 0;
+  margin: 8px 0;
   color: #43221B;
   font-weight: 700;
-  font-size: 17px;
+  font-size: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
+  padding: 10px 16px;
   background: rgba(255, 255, 255, 0.7);
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
 }
 
 .client-stamps-info p:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
 }
 
 .client-stamps-info p strong {
@@ -599,27 +624,34 @@
 .client-stamps-info p span {
   background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
   color: #43221B;
-  padding: 8px 16px;
-  border-radius: 25px;
+  padding: 6px 12px;
+  border-radius: 20px;
   font-weight: 800;
-  font-size: 15px;
-  min-width: 50px;
+  font-size: 14px;
+  min-width: 40px;
   text-align: center;
-  box-shadow: 0 3px 10px rgba(255, 215, 0, 0.4);
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
   border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.available-rewards {
+  background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%) !important;
+  color: #1a1a1a !important;
+  animation: pulse-available 2s ease-in-out infinite !important;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5) !important;
 }
 
 .client-modal-actions {
   display: flex;
-  gap: 3px;
-  padding: 28px 32px;
+  gap: 1px;
+  padding: 15px 22px;
   justify-content: flex-end;
   background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
   border-top: 1px solid #e9ecef;
 }
 
 .client-save-btn, .client-add-stamp-btn {
-  background: linear-gradient(135deg, #43221B 0%, #5a2f26 50%, #6d3530 100%);
+  background: linear-gradient(135deg, #0a5316 10%, #28a745 90%, #8dea92 100%);
   color: white;
   border: none;
   padding: 14px 28px;
@@ -658,6 +690,59 @@
   box-shadow:
     0 8px 25px rgba(67, 34, 27, 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.client-redeem-reward-btn {
+  background: linear-gradient(135deg, #ffd700 0%, #ffb347 50%, #ffa500 100%);
+  color: #2c1810;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  box-shadow:
+    0 6px 20px rgba(255, 215, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+  min-width: 120px;
+  animation: reward-pulse 2s ease-in-out infinite;
+}
+
+.client-redeem-reward-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: left 0.6s;
+}
+
+.client-redeem-reward-btn:hover::before {
+  left: 100%;
+}
+
+.client-redeem-reward-btn:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 8px 25px rgba(255, 215, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  animation: none;
+}
+
+@keyframes reward-pulse {
+  0%, 100% {
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
 }
 
 .client-remove-stamp-btn {
@@ -963,13 +1048,21 @@
     grid-template-columns: 1fr;
   }
 
+  .client-stats {
+    gap: 8px;
+  }
+
+  .stats-line {
+    gap: 8px;
+  }
+
   .client-actions {
-    flex-direction: column;
+    gap: 8px;
   }
 
   .client-edit-btn, .client-stamps-btn, .client-delete-btn {
-    flex: none;
-    width: 100%;
+    flex: 1;
+    min-width: 70px;
   }
 
   .client-modal-content {
@@ -981,7 +1074,7 @@
     flex-direction: column;
   }
 
-  .client-save-btn, .client-add-stamp-btn, .client-remove-stamp-btn, .client-cancel-btn {
+  .client-save-btn, .client-add-stamp-btn, .client-remove-stamp-btn, .client-redeem-reward-btn, .client-cancel-btn {
     width: 100%;
     margin-bottom: 10px;
   }
@@ -1045,8 +1138,11 @@
   }
 
   .client-stats {
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .stats-line {
+    gap: 6px;
   }
 
   .client-stat {
