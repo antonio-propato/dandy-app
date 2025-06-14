@@ -58,8 +58,8 @@ const OrderCard = ({ order, onConfirm, onCancel, processingOrders, isModal = fal
   };
 
   const getPaymentMethodDisplay = (method) => ({
-    'pay-at-till': 'Paga alla Cassa',
-    'pay-now': 'Pagamento Online',
+    'pay-at-till': 'Contanti',
+    'pay-now': 'Online',
     'card': 'Carta',
     'cash': 'Contanti'
   }[method] || method || 'N/A');
