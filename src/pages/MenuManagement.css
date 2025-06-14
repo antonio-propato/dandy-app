@@ -570,9 +570,6 @@
   background: linear-gradient(135deg, #6c757d, #545b62) !important;
   color: white !important;
   box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4) !important;
-  padding: 1rem !important;
-  padding-left: 35px !important; /* this adjusts the annulla button in the modal to make it equal to the conferma*/
-  padding-right: 35px !important;
 }
 
 .cancel-btn:hover {
@@ -600,7 +597,7 @@
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* Custom Alert/Confirm Modal */
+/* Custom Alert/Confirm Modal - FIXED ALIGNMENT */
 .custom-alert-overlay {
   position: fixed;
   top: 0;
@@ -658,24 +655,61 @@
   display: flex;
   justify-content: center;
   gap: 1rem;
+  align-items: center;
 }
 
-.confirm-btn {
+/* FIXED: Perfectly aligned modal buttons */
+.confirm-btn,
+.alert-buttons .cancel-btn {
+  /* Reset all conflicting styles */
   background: linear-gradient(135deg, #28a745, #20c997) !important;
   color: white !important;
   border: none !important;
   border-radius: 12px !important;
-  padding: 0.75rem 1.5rem !important;
   font-size: 1rem !important;
   font-weight: 600 !important;
   cursor: pointer !important;
   transition: all 0.3s ease !important;
   box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4) !important;
+  font-family: 'Raleway', sans-serif !important;
+  letter-spacing: 0.5px !important;
+
+  /* Exact same dimensions */
+  padding: 0.75rem 1.5rem !important;
+  min-width: 120px !important;
+  height: 48px !important;
+
+  /* Perfect alignment */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  /* Remove any margin/positioning */
+  margin: 0 !important;
+  position: relative !important;
+
+  /* Text styling */
+  text-align: center !important;
+  white-space: nowrap !important;
+  text-transform: uppercase !important;
 }
 
+/* Cancel button specific styling */
+.alert-buttons .cancel-btn {
+  background: linear-gradient(135deg, #dc3545, #c82333) !important;
+  box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4) !important;
+  width: 135px !important;
+}
+
+/* Hover effects */
 .confirm-btn:hover {
   transform: translateY(-2px) !important;
   box-shadow: 0 12px 35px rgba(40, 167, 69, 0.6) !important;
+}
+
+.alert-buttons .cancel-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 12px 35px rgba(220, 53, 69, 0.6) !important;
 }
 
 @keyframes slideInBounce {
@@ -943,5 +977,14 @@
   .add-category-card .mobile-friendly-input {
     width: 100% !important;
     margin-bottom: 0.5rem;
+  }
+
+  /* Mobile modal button adjustments */
+  .confirm-btn,
+  .alert-buttons .cancel-btn {
+    padding: 0.6rem 1rem !important;
+    min-width: 100px !important;
+    height: 44px !important;
+    font-size: 0.9rem !important;
   }
 }

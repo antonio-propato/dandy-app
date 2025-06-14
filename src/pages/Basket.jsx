@@ -652,7 +652,7 @@ const generateOrderNumber = () => {
               >
                 <CreditCard size={20} />
                 <div>
-                  <div className="payment-title">Paga alla Cassa</div>
+                  <div className="payment-title">Contanti</div>
                   <div className="payment-subtitle">Procedi subito, paga al ritiro</div>
                 </div>
               </button>
@@ -665,7 +665,7 @@ const generateOrderNumber = () => {
               >
                 <CreditCard size={20} />
                 <div>
-                  <div className="payment-title">Paga Ora</div>
+                  <div className="payment-title">Carta</div>
                   <div className="payment-subtitle">Apple Pay / Google Pay / PayPal</div>
                   <div className="payment-coming-soon">Presto disponibile</div>
                 </div>
