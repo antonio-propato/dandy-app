@@ -174,50 +174,57 @@ export default function Menu() {
               </div>
             )}
 
-            {categoryOrder.map((category) =>
-              items[category] && items[category].length > 0 ? (
-                <div key={category} className="menu-section">
-                  <h2 className="menu-category">{category}</h2>
-                  <ul className="menu-list">
-                    {items[category].map((item, idx) => {
-                      const itemCount = getItemCount(item.name, category)
-                      return (
-                        <li key={idx} className="menu-item" onClick={() => handleItemClick(item, category)}>
-                          <div className="menu-item-left">
-                            {itemCount > 0 && <span className="item-count">{itemCount}</span>}
-                            <span className="menu-item-name">{item.name}</span>
-                          </div>
-                          <div className="menu-item-right">
-                            <span className="menu-item-price">{item.price}</span>
-                            <div className="menu-item-actions">
-                              {itemCount > 0 && (
-                                <button
-                                  className="minus-btn"
-                                  onClick={(e) => handleRemoveFromCart(e, item, category)}
-                                  aria-label={`Remove ${item.name} from cart`}
-                                >
-                                  <FontAwesomeIcon icon={faMinus} />
-                                </button>
-                              )}
-                              <button
-                                className="plus-btn"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleItemClick(item, category)
-                                }}
-                                aria-label={`Add ${item.name} to cart`}
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-                        </li>
-                      )
-                    })}
-                  </ul>
+
+{categoryOrder.map((category) =>
+  items[category] ? (
+    <div key={category} className="menu-section">
+      <h2 className="menu-category">{category}</h2>
+      {items[category].length > 0 ? (
+        <ul className="menu-list">
+          {items[category].map((item, idx) => {
+            const itemCount = getItemCount(item.name, category)
+            return (
+              <li key={idx} className="menu-item" onClick={() => handleItemClick(item, category)}>
+                <div className="menu-item-left">
+                  {itemCount > 0 && <span className="item-count">{itemCount}</span>}
+                  <span className="menu-item-name">{item.name}</span>
                 </div>
-              ) : null
-            )}
+                <div className="menu-item-right">
+                  <span className="menu-item-price">{item.price}</span>
+                  <div className="menu-item-actions">
+                    {itemCount > 0 && (
+                      <button
+                        className="minus-btn"
+                        onClick={(e) => handleRemoveFromCart(e, item, category)}
+                        aria-label={`Remove ${item.name} from cart`}
+                      >
+                        <FontAwesomeIcon icon={faMinus} />
+                      </button>
+                    )}
+                    <button
+                      className="plus-btn"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleItemClick(item, category)
+                      }}
+                      aria-label={`Add ${item.name} to cart`}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      ) : (
+        <div className="empty-category">
+          <p>Categoria vuota - aggiungi elementi dalla gestione menu</p>
+        </div>
+      )}
+    </div>
+  ) : null
+)}
 
             {Object.keys(items).length === 0 && !loading && (
               <div className="menu-empty">
