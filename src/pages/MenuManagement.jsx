@@ -1,617 +1,300 @@
-// src/pages/MenuManagement.jsx - Streamlined and compact design
-import React, { useState, useEffect, useRef } from 'react'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
-import { firestore } from '../lib/firebase'
-import Nav from '../components/Nav'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-  faPlus,
-  faTrash,
-  faEdit,
-  faSave,
-  faTimes,
-  faChevronUp,
-  faChevronDown,
-  faGripVertical,
-  faEye,
-  faEyeSlash,
-  faCheck,
-  faXmark
-} from '@fortawesome/free-solid-svg-icons'
-import './MenuManagement.css'
+import React, { useState, useEffect, useRef } from 'react';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { firestore } from '../lib/firebase';
+import Nav from '../components/Nav';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPen, faTrash, faCheck, faTimes, faPlus, faTh } from '@fortawesome/free-solid-svg-icons';
+import './MenuManagement.css';
+
+const initialNewItemState = { name: '', price: '' };
+const initialNewCategoryState = '';
 
 export default function MenuManagement() {
-  const [menuData, setMenuData] = useState({})
-  const [categoryOrder, setCategoryOrder] = useState([])
-  const [collapsedCategories, setCollapsedCategories] = useState({})
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [editingItem, setEditingItem] = useState(null)
-  const [newItem, setNewItem] = useState({ name: '', price: '€' })
-  const [addingToCategory, setAddingToCategory] = useState(null)
-  const [newCategoryName, setNewCategoryName] = useState('')
-  const [showAddCategory, setShowAddCategory] = useState(false)
-  const [draggedCategory, setDraggedCategory] = useState(null)
-  const [draggedItem, setDraggedItem] = useState(null)
-  const [showCustomAlert, setShowCustomAlert] = useState(null)
+  const [menuData, setMenuData] = useState({});
+  const [categoryOrder, setCategoryOrder] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Custom alert/confirm function
-  const customConfirm = (message, title = 'Conferma') => {
-    return new Promise((resolve) => {
-      setShowCustomAlert({
-        title,
-        message,
-        onConfirm: () => {
-          setShowCustomAlert(null)
-          resolve(true)
-        },
-        onCancel: () => {
-          setShowCustomAlert(null)
-          resolve(false)
-        }
-      })
-    })
-  }
+  // State for UI controls
+  const [collapsedCategories, setCollapsedCategories] = useState({});
+  const [editingCategory, setEditingCategory] = useState({ oldName: null, newName: '' });
+  const [editingItem, setEditingItem] = useState({ category: null, index: null, data: { name: '', price: '' } });
 
-  const customAlert = (message, title = 'Attenzione') => {
-    return new Promise((resolve) => {
-      setShowCustomAlert({
-        title,
-        message,
-        onConfirm: () => {
-          setShowCustomAlert(null)
-          resolve(true)
-        },
-        isAlert: true
-      })
-    })
-  }
+  // State for Deletion Modals
+  const [showDeleteItemConfirm, setShowDeleteItemConfirm] = useState({ show: false, category: null, index: null });
+  const [showDeleteCategoryConfirm, setShowDeleteCategoryConfirm] = useState({ show: false, category: null });
+
+  // State for adding new content
+  const [addingToCategory, setAddingToCategory] = useState(null);
+  const [newItem, setNewItem] = useState(initialNewItemState);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState(initialNewCategoryState);
+
+  // State for Drag and Drop
+  const [draggedItem, setDraggedItem] = useState(null);
+  const [draggedCategory, setDraggedCategory] = useState(null);
+  const dragOverItem = useRef(null);
+  const dragOverCategory = useRef(null);
 
   useEffect(() => {
-    fetchMenuData()
-  }, [])
+    fetchMenuData();
+  }, []);
 
   const fetchMenuData = async () => {
+    setLoading(true);
     try {
-      const menuDoc = await getDoc(doc(firestore, 'settings', 'menu'))
+      const menuDoc = await getDoc(doc(firestore, 'settings', 'menu'));
       if (menuDoc.exists()) {
-        const data = menuDoc.data()
-        setMenuData(data.items || getDefaultMenuData())
-        setCategoryOrder(data.categoryOrder || Object.keys(data.items || getDefaultMenuData()))
-      } else {
-        const defaultMenu = getDefaultMenuData()
-        const defaultOrder = Object.keys(defaultMenu)
-        setMenuData(defaultMenu)
-        setCategoryOrder(defaultOrder)
-        await saveMenuData(defaultMenu, defaultOrder)
+        const data = menuDoc.data();
+        setMenuData(data.items || {});
+        setCategoryOrder(data.categoryOrder || Object.keys(data.items || {}));
       }
     } catch (error) {
-      console.error('Error fetching menu data:', error)
-      const defaultMenu = getDefaultMenuData()
-      setMenuData(defaultMenu)
-      setCategoryOrder(Object.keys(defaultMenu))
+      console.error("Error fetching menu data:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const getDefaultMenuData = () => {
-    return {
-      Caffetteria: [
-        { name: 'Espresso', price: '€0.90' },
-        { name: 'Doppio Espresso', price: '€1.00' },
-        { name: "Caffè Orzo", price: '€1.20' },
-        { name: 'Latte Macchiato', price: '€1.50' },
-        { name: 'Cioccolata Calda', price: '€2.00' },
-        { name: 'Tè Verde', price: '€1.50' },
-        { name: 'Tè Nero', price: '€1.50' },
-        { name: 'Tè alla Pesca', price: '€1.50' },
-        { name: 'Tè al Limone', price: '€1.50' },
-        { name: 'Cappuccino', price: '€1.50' }
-      ],
-      Cornetteria: [
-        { name: 'Vuoto', price: '€1.00' },
-        { name: 'Vegano', price: '€1.20' },
-        { name: 'Crema', price: '€1.50' },
-        { name: 'Marmellata', price: '€1.50' },
-        { name: 'Cioccolato', price: '€1.50' },
-        { name: 'Pistacchio', price: '€1.50' }
-      ],
-      Alcolici: [
-        { name: 'Birra', price: '€1.50' },
-        { name: 'Aperol Spritz', price: '€5.00' },
-        { name: 'Negroni', price: '€5.00' },
-        { name: 'Gin Tonic', price: '€5.00' },
-        { name: 'Rum Cola', price: '€5.00' },
-        { name: 'Mojito', price: '€5.00' },
-        { name: 'Bellini', price: '€5.00' },
-        { name: 'Bloody Mary', price: '€5.00' },
-        { name: 'Shot Rum', price: '€3.00/€5.00' },
-        { name: 'Shot Vodka', price: '€3.00/€5.00' },
-        { name: 'Shot Gin', price: '€3.00/€5.00' },
-        { name: 'Shot Tequila', price: '€3.00/€5.00' }
-      ]
-    }
-  }
-
-  const saveMenuData = async (data = menuData, order = categoryOrder) => {
-    setSaving(true)
+  const saveMenuData = async (newMenuData, newCategoryOrder) => {
+    setSaving(true);
     try {
       await setDoc(doc(firestore, 'settings', 'menu'), {
-        items: data,
-        categoryOrder: order,
-        lastUpdated: new Date()
-      })
-      console.log('Menu saved successfully')
+        items: newMenuData,
+        categoryOrder: newCategoryOrder,
+      });
     } catch (error) {
-      console.error('Error saving menu data:', error)
-      await customAlert('Errore nel salvare il menu. Riprova.', 'Errore di Salvataggio')
+      console.error("Error saving menu data:", error);
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
-  const formatPrice = (price) => {
-    if (!price || price === '€') return '€'
-    const cleanPrice = price.replace(/[^\d.,]/g, '')
-    if (!cleanPrice) return '€'
-    const formattedPrice = cleanPrice.replace(',', '.')
-    // Ensure always has decimals
-    const number = parseFloat(formattedPrice)
-    if (isNaN(number)) return '€'
-    return `€${number.toFixed(2)}`
-  }
-
-  const formatItemName = (name) => {
-    if (!name) return ''
-    // Capitalize first letter and keep the rest as entered
-    return name.charAt(0).toUpperCase() + name.slice(1)
-  }
+  const formatPrice = (priceStr) => {
+    if (!priceStr) return '€0.00';
+    const cleanPrice = priceStr.toString().replace(/[€\s]/g, '').replace(',', '.');
+    const number = parseFloat(cleanPrice);
+    if (isNaN(number)) return '€0.00';
+    return `€${number.toFixed(2)}`;
+  };
 
   const toggleCategoryCollapse = (category) => {
-    setCollapsedCategories(prev => ({
-      ...prev,
-      [category]: !prev[category]
-    }))
-  }
+    // Prevent collapsing when an action button is clicked
+    if (editingCategory.oldName === category) return;
+    setCollapsedCategories(prev => ({ ...prev, [category]: !prev[category] }));
+  };
 
-  const addCategory = async () => {
-    if (!newCategoryName.trim()) {
-      await customAlert('Inserisci il nome della categoria')
-      return
+  // --- Category Handlers ---
+  const handleEditCategory = (e, categoryName) => {
+    e.stopPropagation(); // Prevent collapse when clicking edit
+    setEditingCategory({ oldName: categoryName, newName: categoryName });
+  };
+  const handleSaveCategory = async () => {
+    const { oldName, newName } = editingCategory;
+    if (!newName.trim() || newName === oldName) {
+      setEditingCategory({ oldName: null, newName: '' });
+      return;
     }
-    if (menuData[newCategoryName]) {
-      await customAlert('Categoria già esistente')
-      return
-    }
-    const updatedMenu = { ...menuData, [newCategoryName]: [] }
-    const updatedOrder = [...categoryOrder, newCategoryName]
-    setMenuData(updatedMenu)
-    setCategoryOrder(updatedOrder)
-    setNewCategoryName('')
-    setShowAddCategory(false)
-    await saveMenuData(updatedMenu, updatedOrder)
-  }
+    const newMenuData = { ...menuData };
+    newMenuData[newName] = newMenuData[oldName];
+    delete newMenuData[oldName];
+    const newCategoryOrder = categoryOrder.map(cat => (cat === oldName ? newName : cat));
+    setMenuData(newMenuData);
+    setCategoryOrder(newCategoryOrder);
+    await saveMenuData(newMenuData, newCategoryOrder);
+    setEditingCategory({ oldName: null, newName: '' });
+  };
 
-  const removeCategory = async (category) => {
-    console.log('Attempting to remove category:', category)
-    try {
-      const confirmed = await customConfirm(
-        `Eliminare la categoria "${category}" e tutti i suoi elementi?`,
-        'Elimina Categoria'
-      )
-      console.log('User confirmation:', confirmed)
-      if (confirmed) {
-        const updatedMenu = { ...menuData }
-        delete updatedMenu[category]
-        const updatedOrder = categoryOrder.filter(c => c !== category)
-        console.log('Updated menu:', updatedMenu)
-        console.log('Updated order:', updatedOrder)
-        setMenuData(updatedMenu)
-        setCategoryOrder(updatedOrder)
-        await saveMenuData(updatedMenu, updatedOrder)
-      }
-    } catch (error) {
-      console.error('Error in removeCategory:', error)
-      await customAlert('Errore durante l\'eliminazione della categoria', 'Errore')
-    }
-  }
+  const handleAddCategory = async () => {
+    const trimmedName = newCategoryName.trim();
+    if (!trimmedName || menuData[trimmedName]) return;
+    const newMenuData = { ...menuData, [trimmedName]: [] };
+    const newCategoryOrder = [...categoryOrder, trimmedName];
+    setMenuData(newMenuData);
+    setCategoryOrder(newCategoryOrder);
+    await saveMenuData(newMenuData, newCategoryOrder);
+    setNewCategoryName(initialNewCategoryState);
+    setIsAddingCategory(false);
+  };
 
-  const addItem = async (category) => {
-    if (!newItem.name.trim() || !newItem.price.trim()) {
-      await customAlert('Inserisci nome e prezzo')
-      return
-    }
-    const formattedItem = {
-      name: formatItemName(newItem.name.trim()),
-      price: formatPrice(newItem.price)
-    }
-    const updatedMenu = {
-      ...menuData,
-      [category]: [formattedItem, ...(menuData[category] || [])]
-    }
-    setMenuData(updatedMenu)
-    setNewItem({ name: '', price: '€' })
-    setAddingToCategory(null)
-    await saveMenuData(updatedMenu, categoryOrder)
-  }
+  const handleDeleteCategory = async (e) => {
+    e.stopPropagation(); // Prevent collapse
+    const { category } = showDeleteCategoryConfirm;
+    const newMenuData = { ...menuData };
+    delete newMenuData[category];
+    const newCategoryOrder = categoryOrder.filter(c => c !== category);
+    setMenuData(newMenuData);
+    setCategoryOrder(newCategoryOrder);
+    await saveMenuData(newMenuData, newCategoryOrder);
+    setShowDeleteCategoryConfirm({ show: false, category: null });
+  };
 
-  const removeItem = async (category, index) => {
-    const confirmed = await customConfirm('Sei sicuro di voler eliminare questo elemento?', 'Elimina Elemento')
-    if (confirmed) {
-      const updatedMenu = {
-        ...menuData,
-        [category]: menuData[category].filter((_, i) => i !== index)
-      }
-      setMenuData(updatedMenu)
-      await saveMenuData(updatedMenu, categoryOrder)
-    }
-  }
+  // --- Item Handlers ---
+  const handleEditItem = (category, index) => setEditingItem({ category, index, data: { ...menuData[category][index] } });
+  const handleSaveItem = async () => {
+    const { category, index, data } = editingItem;
+    const updatedItems = [...menuData[category]];
+    updatedItems[index] = { name: data.name.trim(), price: formatPrice(data.price) };
+    const newMenuData = { ...menuData, [category]: updatedItems };
+    setMenuData(newMenuData);
+    await saveMenuData(newMenuData, categoryOrder);
+    setEditingItem({ category: null, index: null, data: { name: '', price: '' } });
+  };
+  const cancelEditItem = () => setEditingItem({ category: null, index: null, data: { name: '', price: '' } });
+  const handleDeleteItem = async () => {
+    const { category, index } = showDeleteItemConfirm;
+    const updatedItems = menuData[category].filter((_, i) => i !== index);
+    const newMenuData = { ...menuData, [category]: updatedItems };
+    setMenuData(newMenuData);
+    await saveMenuData(newMenuData, categoryOrder);
+    setShowDeleteItemConfirm({ show: false, category: null, index: null });
+  };
 
-  const moveItem = async (category, fromIndex, toIndex) => {
-    const items = [...menuData[category]]
-    const [movedItem] = items.splice(fromIndex, 1)
-    items.splice(toIndex, 0, movedItem)
+  const handleAddItem = async (category) => {
+    if (!newItem.name.trim() || !newItem.price.trim()) return;
+    const formattedItem = { name: newItem.name.trim(), price: formatPrice(newItem.price) };
+    const updatedItems = [...menuData[category], formattedItem];
+    const newMenuData = { ...menuData, [category]: updatedItems };
+    setMenuData(newMenuData);
+    await saveMenuData(newMenuData, categoryOrder);
+    setNewItem(initialNewItemState);
+    setAddingToCategory(null);
+  };
 
-    const updatedMenu = { ...menuData, [category]: items }
-    setMenuData(updatedMenu)
-    await saveMenuData(updatedMenu, categoryOrder)
-  }
+  // --- Drag and Drop Handlers ---
+  const handleCategoryDrop = async () => {
+    if (draggedCategory === null || dragOverCategory.current === null) return;
+    const newCategoryOrder = [...categoryOrder];
+    const draggedItemContent = newCategoryOrder.splice(draggedCategory, 1)[0];
+    newCategoryOrder.splice(dragOverCategory.current, 0, draggedItemContent);
+    setCategoryOrder(newCategoryOrder);
+    await saveMenuData(menuData, newCategoryOrder);
+    setDraggedCategory(null);
+    dragOverCategory.current = null;
+  };
 
-  const moveItemUp = async (category, index) => {
-    if (index > 0) {
-      await moveItem(category, index, index - 1)
-    }
-  }
-
-  const moveItemDown = async (category, index) => {
-    if (index < menuData[category].length - 1) {
-      await moveItem(category, index, index + 1)
-    }
-  }
-
-  const moveCategoryUp = async (category) => {
-    const currentIndex = categoryOrder.indexOf(category)
-    if (currentIndex > 0) {
-      const newOrder = [...categoryOrder]
-      newOrder.splice(currentIndex, 1)
-      newOrder.splice(currentIndex - 1, 0, category)
-      setCategoryOrder(newOrder)
-      await saveMenuData(menuData, newOrder)
-    }
-  }
-
-  const moveCategoryDown = async (category) => {
-    const currentIndex = categoryOrder.indexOf(category)
-    if (currentIndex < categoryOrder.length - 1) {
-      const newOrder = [...categoryOrder]
-      newOrder.splice(currentIndex, 1)
-      newOrder.splice(currentIndex + 1, 0, category)
-      setCategoryOrder(newOrder)
-      await saveMenuData(menuData, newOrder)
-    }
-  }
-
-  const startEdit = (category, index) => {
-    setEditingItem({
-      category,
-      index,
-      name: menuData[category][index].name,
-      price: menuData[category][index].price
-    })
-  }
-
-  const saveEdit = async () => {
-    if (!editingItem.name.trim() || !editingItem.price.trim()) {
-      await customAlert('Inserisci nome e prezzo')
-      return
-    }
-    const updatedMenu = {
-      ...menuData,
-      [editingItem.category]: menuData[editingItem.category].map((item, i) =>
-        i === editingItem.index
-          ? {
-              name: formatItemName(editingItem.name.trim()),
-              price: formatPrice(editingItem.price)
-            }
-          : item
-      )
-    }
-    setMenuData(updatedMenu)
-    setEditingItem(null)
-    await saveMenuData(updatedMenu, categoryOrder)
-  }
-
-  // Drag and Drop handlers
-  const handleCategoryDragStart = (e, category) => {
-    setDraggedCategory(category)
-    e.dataTransfer.effectAllowed = 'move'
-  }
-
-  const handleCategoryDragOver = (e) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-  }
-
-  const handleCategoryDrop = async (e, targetCategory) => {
-    e.preventDefault()
-    if (!draggedCategory || draggedCategory === targetCategory) return
-
-    const dragIndex = categoryOrder.indexOf(draggedCategory)
-    const dropIndex = categoryOrder.indexOf(targetCategory)
-
-    const newOrder = [...categoryOrder]
-    newOrder.splice(dragIndex, 1)
-    newOrder.splice(dropIndex, 0, draggedCategory)
-
-    setCategoryOrder(newOrder)
-    setDraggedCategory(null)
-    await saveMenuData(menuData, newOrder)
-  }
-
-  const handleItemDragStart = (e, category, index) => {
-    setDraggedItem({ category, index })
-    e.dataTransfer.effectAllowed = 'move'
-  }
-
-  const handleItemDrop = async (e, targetCategory, targetIndex) => {
-    e.preventDefault()
-    if (!draggedItem) return
-
-    const { category: sourceCategory, index: sourceIndex } = draggedItem
-
-    if (sourceCategory === targetCategory) {
-      await moveItem(sourceCategory, sourceIndex, targetIndex)
-    }
-
-    setDraggedItem(null)
-  }
-
-  if (loading) {
-    return (
-      <div className="global-loading-container">
-        <div className="global-loading-spinner"></div>
-        <p className="global-loading-text">Caricamento menu...</p>
-      </div>
-    )
-  }
+  const handleItemDrop = async (category) => {
+    if (draggedItem === null || dragOverItem.current === null) return;
+    const items = [...menuData[category]];
+    const draggedItemContent = items.splice(draggedItem, 1)[0];
+    items.splice(dragOverItem.current, 0, draggedItemContent);
+    const newMenuData = { ...menuData, [category]: items };
+    setMenuData(newMenuData);
+    await saveMenuData(newMenuData, categoryOrder);
+    setDraggedItem(null);
+    dragOverItem.current = null;
+  };
 
   return (
     <div className="menu-management-container">
       <Nav />
       <div className="menu-management-content">
-        <div className="menu-management-header">
-          <h1>Gestione Menu</h1>
-          <p>Trascina le categorie e gli elementi per riordinarli. Clicca l'occhio per comprimere.</p>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <button
-              onClick={() => setShowAddCategory(true)}
-              disabled={showAddCategory}
-              className="add-btn"
-            >
-              <FontAwesomeIcon icon={faPlus} /> Aggiungi Categoria
-            </button>
-          </div>
-        </div>
-
-        {showAddCategory && (
-          <div className="category-card add-category-card">
-            <input
-              type="text"
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              placeholder="Nome categoria"
-              onKeyPress={(e) => e.key === 'Enter' && addCategory()}
-              className="mobile-friendly-input"
-            />
-            <div className="mobile-button-group">
-              <button onClick={addCategory} className="circle-btn save-btn" title="Salva">
-                <FontAwesomeIcon icon={faCheck} />
-              </button>
-              <button onClick={() => { setShowAddCategory(false); setNewCategoryName('') }} className="circle-btn cancel-btn" title="Annulla">
-                <FontAwesomeIcon icon={faXmark} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {categoryOrder.map((category, categoryIndex) => (
-          menuData[category] && (
-            <div
-              key={category}
-              className="category-card"
-              draggable
-              onDragStart={(e) => handleCategoryDragStart(e, category)}
-              onDragOver={handleCategoryDragOver}
-              onDrop={(e) => handleCategoryDrop(e, category)}
-            >
-              <div className="category-header">
-                <div className="category-title-section">
-                  <FontAwesomeIcon icon={faGripVertical} className="drag-handle" />
-                  <h2>{category}</h2>
-                  <div className="category-arrow-controls">
-                    <button
-                      onClick={() => moveCategoryUp(category)}
-                      disabled={categoryIndex === 0}
-                      className="arrow-btn"
-                      title="Sposta categoria su"
-                    >
-                      <FontAwesomeIcon icon={faChevronUp} />
-                    </button>
-                    <button
-                      onClick={() => moveCategoryDown(category)}
-                      disabled={categoryIndex === categoryOrder.length - 1}
-                      className="arrow-btn"
-                      title="Sposta categoria giù"
-                    >
-                      <FontAwesomeIcon icon={faChevronDown} />
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => toggleCategoryCollapse(category)}
-                    className="collapse-btn"
-                    title={collapsedCategories[category] ? "Espandi" : "Comprimi"}
-                  >
-                    <FontAwesomeIcon icon={collapsedCategories[category] ? faEye : faEyeSlash} />
-                  </button>
-                </div>
-                <div className="category-buttons">
-                  <button
-                    onClick={() => setAddingToCategory(category)}
-                    className="add-btn"
-                    disabled={addingToCategory === category}
-                  >
-                    <FontAwesomeIcon icon={faPlus} /> <span className="btn-text">Aggiungi</span>
-                  </button>
-                  <button
-                    onClick={() => removeCategory(category)}
-                    className="delete-btn"
-                  >
-                    <FontAwesomeIcon icon={faTrash} /> <span className="btn-text">Elimina</span>
-                  </button>
-                </div>
-              </div>
-
-              {!collapsedCategories[category] && (
-                <div className="category-content">
-                  {addingToCategory === category && (
-                    <div className="add-item-form compact-form">
-                      <div className="compact-item-row">
-                        <input
-                          type="text"
-                          value={newItem.name}
-                          onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                          placeholder="Nome elemento"
-                          className="mobile-friendly-input item-name-input"
-                        />
-                        <input
-                          type="text"
-                          value={newItem.price}
-                          onChange={(e) => setNewItem({ ...newItem, price: e.target.value })}
-                          placeholder="Prezzo"
-                          className="mobile-friendly-input item-price-input"
-                        />
-                      </div>
-                      <div className="mobile-button-group">
-                        <button onClick={() => addItem(category)} className="circle-btn save-btn" title="Salva">
-                          <FontAwesomeIcon icon={faCheck} />
-                        </button>
-                        <button onClick={() => setAddingToCategory(null)} className="circle-btn cancel-btn" title="Annulla">
-                          <FontAwesomeIcon icon={faXmark} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="compact-list">
-                    {menuData[category].map((item, index) => (
-                      <div
-                        key={`${category}-${index}`}
-                        className={`menu-item-row compact-item ${editingItem && editingItem.category === category && editingItem.index === index ? 'editing' : ''}`}
-                        draggable
-                        onDragStart={(e) => handleItemDragStart(e, category, index)}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => handleItemDrop(e, category, index)}
-                      >
-                        {editingItem && editingItem.category === category && editingItem.index === index ? (
-                          <div className="compact-item-row editing">
-                            <input
-                              type="text"
-                              value={editingItem.name}
-                              onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
-                              className="mobile-friendly-input item-name-input"
-                            />
-                            <input
-                              type="text"
-                              value={editingItem.price}
-                              onChange={(e) => setEditingItem({ ...editingItem, price: e.target.value })}
-                              className="mobile-friendly-input item-price-input"
-                            />
-                            <div className="compact-actions">
-                              <button onClick={saveEdit} className="circle-btn save-btn" title="Salva">
-                                <FontAwesomeIcon icon={faCheck} />
-                              </button>
-                              <button onClick={() => setEditingItem(null)} className="circle-btn cancel-btn" title="Annulla">
-                                <FontAwesomeIcon icon={faXmark} />
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="compact-item-row">
-                            <FontAwesomeIcon icon={faGripVertical} className="drag-handle-small" />
-                            <div className="item-name">{item.name}</div>
-                            <div className="item-price">{item.price}</div>
-                            <div className="compact-arrows">
-                              <button
-                                onClick={() => moveItemUp(category, index)}
-                                disabled={index === 0}
-                                className="arrow-btn-small"
-                                title="Sposta su"
-                              >
-                                <FontAwesomeIcon icon={faChevronUp} />
-                              </button>
-                              <button
-                                onClick={() => moveItemDown(category, index)}
-                                disabled={index === menuData[category].length - 1}
-                                className="arrow-btn-small"
-                                title="Sposta giù"
-                              >
-                                <FontAwesomeIcon icon={faChevronDown} />
-                              </button>
-                            </div>
-                            <div className="compact-actions">
-                              <button
-                                onClick={() => startEdit(category, index)}
-                                className="edit-btn compact-btn"
-                                title="Modifica"
-                              >
-                                <FontAwesomeIcon icon={faEdit} />
-                              </button>
-                              <button
-                                onClick={() => removeItem(category, index)}
-                                className="delete-btn compact-btn"
-                                title="Elimina"
-                              >
-                                <FontAwesomeIcon icon={faTrash} />
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+        {loading ? ( <p>Caricamento...</p> ) : (
+          <>
+            <div className="add-category-section">
+              {isAddingCategory ? (
+                <div className="item-edit-form">
+                  <input type="text" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} className="item-edit-input name-input" placeholder="Nome nuova categoria" autoFocus />
+                  <div className="edit-form-actions">
+                    <button className="form-action-btn save" onClick={handleAddCategory}><FontAwesomeIcon icon={faCheck} /></button>
+                    <button className="form-action-btn cancel" onClick={() => setIsAddingCategory(false)}><FontAwesomeIcon icon={faTimes} /></button>
                   </div>
                 </div>
+              ) : (
+                <button className="add-category-btn" onClick={() => setIsAddingCategory(true)}><FontAwesomeIcon icon={faPlus} /> Aggiungi Categoria</button>
               )}
             </div>
-          )
-        ))}
 
-        {saving && (
-          <div className="saving-indicator">
-            <FontAwesomeIcon icon={faSave} spin />
-            Salvando...
-          </div>
-        )}
+            {categoryOrder.map((category, catIndex) => (
+              <div key={category} className="category-section">
+                <div
+                  className="category-header"
+                  onClick={() => toggleCategoryCollapse(category)}
+                  draggable
+                  onDragStart={(e) => { e.stopPropagation(); setDraggedCategory(catIndex); }}
+                  onDragEnter={(e) => { e.stopPropagation(); dragOverCategory.current = catIndex; }}
+                  onDragEnd={(e) => { e.stopPropagation(); handleCategoryDrop(); }}
+                  onDragOver={(e) => e.preventDefault()}
+                >
+                  <div className="category-title-group">
+                    <FontAwesomeIcon icon={faTh} className="drag-handle" />
+                    {editingCategory.oldName === category ? (
+                      <>
+                        <input type="text" className="category-edit-input" value={editingCategory.newName} onChange={(e) => setEditingCategory({ ...editingCategory, newName: e.target.value })} autoFocus onBlur={handleSaveCategory} onKeyDown={(e) => e.key === 'Enter' && handleSaveCategory()} onClick={(e) => e.stopPropagation()} />
+                        <button className="category-save-btn" onClick={handleSaveCategory}>Salva</button>
+                      </>
+                    ) : (
+                      <h2>{category}</h2>
+                    )}
+                  </div>
+                  <div className="category-header-actions">
+                    <FontAwesomeIcon icon={faPen} className="icon-btn" onClick={(e) => handleEditCategory(e, category)} />
+                    <FontAwesomeIcon icon={faPlus} className="icon-btn" onClick={(e) => { e.stopPropagation(); setAddingToCategory(category); }} title="Aggiungi Prodotto" />
+                    <FontAwesomeIcon icon={faTrash} className="icon-btn" onClick={(e) => { e.stopPropagation(); setShowDeleteCategoryConfirm({ show: true, category }); }} title="Elimina Categoria" />
+                  </div>
+                </div>
 
-        {showCustomAlert && (
-          <div className="custom-alert-overlay">
-            <div className="custom-alert">
-              <h3>{showCustomAlert.title}</h3>
-              <p>{showCustomAlert.message}</p>
-              <div className="alert-buttons">
-                <button onClick={showCustomAlert.onConfirm} className="confirm-btn">
-                  {showCustomAlert.isAlert ? 'OK' : 'Conferma'}
-                </button>
-                {!showCustomAlert.isAlert && (
-                  <button onClick={showCustomAlert.onCancel} className="cancel-btn">
-                    Annulla
-                  </button>
+                {!collapsedCategories[category] && (
+                  <div className="item-list-container">
+                    {addingToCategory === category && (
+                      <div className="add-item-form-wrapper">
+                        <div className="item-edit-form">
+                          <input type="text" value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} className="item-edit-input name-input" placeholder="Nome nuovo prodotto" autoFocus />
+                          <input type="text" value={newItem.price} onChange={(e) => setNewItem({ ...newItem, price: e.target.value })} className="item-edit-input price-input" placeholder="Prezzo" />
+                          <div className="edit-form-actions">
+                            <button className="form-action-btn save" onClick={() => handleAddItem(category)}><FontAwesomeIcon icon={faCheck} /></button>
+                            <button className="form-action-btn cancel" onClick={() => { setAddingToCategory(null); setNewItem(initialNewItemState); }}><FontAwesomeIcon icon={faTimes} /></button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {menuData[category].map((item, itemIndex) => {
+                      return (
+                        <div
+                          key={itemIndex}
+                          className="menu-item-wrapper"
+                          draggable
+                          onDragStart={() => setDraggedItem(itemIndex)}
+                          onDragEnter={() => dragOverItem.current = itemIndex}
+                          onDragEnd={() => handleItemDrop(category)}
+                          onDragOver={(e) => e.preventDefault()}
+                        >
+                          {editingItem.category === category && editingItem.index === itemIndex ? (
+                            <div className="item-edit-form">
+                              <input type="text" value={editingItem.data.name} onChange={(e) => setEditingItem({ ...editingItem, data: { ...editingItem.data, name: e.target.value } })} className="item-edit-input name-input" placeholder="Nome" />
+                              <input type="text" value={editingItem.data.price} onChange={(e) => setEditingItem({ ...editingItem, data: { ...editingItem.data, price: e.target.value } })} className="item-edit-input price-input" placeholder="Prezzo" />
+                              <div className="edit-form-actions">
+                                <button className="form-action-btn save" onClick={handleSaveItem}><FontAwesomeIcon icon={faCheck} /></button>
+                                <button className="form-action-btn cancel" onClick={cancelEditItem}><FontAwesomeIcon icon={faTimes} /></button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="menu-item-display">
+                              <FontAwesomeIcon icon={faTh} className="drag-handle item-drag-handle" />
+                              <span className="item-name">{item.name}</span>
+                              <div className="item-right-group">
+                                <span className="item-price">{item.price}</span>
+                                <div className="item-actions">
+                                  <FontAwesomeIcon icon={faPen} className="icon-btn" onClick={() => handleEditItem(category, itemIndex)} />
+                                  <FontAwesomeIcon icon={faTrash} className="icon-btn" onClick={() => setShowDeleteItemConfirm({ show: true, category, index: itemIndex })} />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
-            </div>
-          </div>
+            ))}
+          </>
         )}
       </div>
+
+      {showDeleteItemConfirm.show && ( <div className="custom-alert-overlay" onClick={() => setShowDeleteItemConfirm({ show: false, category: null, index: null })}><div className="custom-alert" onClick={(e) => e.stopPropagation()}><h3>Elimina Elemento</h3><p>Sei sicuro di voler eliminare questo elemento?</p><div className="alert-buttons"><button className="confirm-btn" onClick={handleDeleteItem}>Conferma</button><button className="cancel-btn-modal" onClick={() => setShowDeleteItemConfirm({ show: false, category: null, index: null })}>ANNULLA</button></div></div></div> )}
+      {showDeleteCategoryConfirm.show && ( <div className="custom-alert-overlay" onClick={() => setShowDeleteCategoryConfirm({ show: false, category: null })}><div className="custom-alert" onClick={(e) => e.stopPropagation()}><h3>Elimina Categoria</h3><p>Sei sicuro di voler eliminare la categoria "{showDeleteCategoryConfirm.category}" e tutti i suoi prodotti? L'azione è irreversibile.</p><div className="alert-buttons"><button className="confirm-btn" onClick={handleDeleteCategory}>Conferma</button><button className="cancel-btn-modal" onClick={() => setShowDeleteCategoryConfirm({ show: false, category: null })}>ANNULLA</button></div></div></div> )}
     </div>
-  )
+  );
 }
