@@ -23,6 +23,7 @@
   padding: 1.5rem 2rem;
   margin-bottom: 2rem;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  margin-top: 3rem;
 }
 
 .header-top {
@@ -33,7 +34,7 @@
 }
 
 .orders-header h1 {
-  color: #FFD700;
+  color: #ffffff;
   margin: 0;
   font-size: 2rem;
   font-weight: 700;
@@ -41,6 +42,9 @@
 
 .header-actions {
   display: flex;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center;
   gap: 1rem;
 }
 
@@ -64,13 +68,13 @@
 }
 
 .sound-toggle.enabled {
-  background: linear-gradient(135deg, #28a745, #20c997);
+  background: linear-gradient(135deg, #3498db, #2980b9);
 }
 .sound-toggle.disabled {
   background: linear-gradient(135deg, #6c757d, #495057);
 }
 .scan-btn {
-  background: linear-gradient(135deg, #3498db, #2980b9);
+  background: linear-gradient(135deg,  #28a745, #20c997);
 }
 
 .search-bar {
@@ -540,7 +544,6 @@
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
   color: white;
   font-size: 0.9rem;
   text-transform: uppercase;
@@ -701,6 +704,7 @@
   .orders-header h1 {
     text-align: center;
     font-size: 1.8rem;
+    margin-top: 10px;
   }
 
   .orders-card-grid {
@@ -756,6 +760,7 @@
 @media (max-width: 480px) {
   .orders-header {
     padding: 1rem;
+    margin-top: 3rem;
   }
 
   .orders-header h1 {

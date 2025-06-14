@@ -624,7 +624,6 @@ const generateOrderNumber = () => {
           <div className="payment-modal">
             <div className="modal-header">
                <h3>Pagamento</h3>
-              <img src="/images/Dandy.jpeg" alt="Dandy Logo" className="modal-logo" />
               <button
                 onClick={() => setShowPaymentModal(false)}
                 className="modal-close"
@@ -653,7 +652,7 @@ const generateOrderNumber = () => {
                 <CreditCard size={20} />
                 <div>
                   <div className="payment-title">Contanti</div>
-                  <div className="payment-subtitle">Procedi subito, paga al ritiro</div>
+                  <div className="payment-subtitle">Paga in Contanti</div>
                 </div>
               </button>
 
@@ -682,7 +681,7 @@ const generateOrderNumber = () => {
         </div>
       )}
 
-      {/* Pending Order Modal */}
+      {/* FIXED: Unified Pending Order Modal Design */}
       {showPendingModal && pendingOrder && (
         <div className="modal-overlay">
           <div className="pending-modal">
@@ -692,7 +691,7 @@ const generateOrderNumber = () => {
                 {orderStatus === 'confirmed' ? (
                   <CheckCircle size={40} color="#28a745" />
                 ) : (
-                  <Clock size={40} />
+                  <Clock size={40} color="#ffc107" />
                 )}
               </div>
               <h2>
@@ -715,22 +714,30 @@ const generateOrderNumber = () => {
                 )}
               </div>
 
+              {/* CONSISTENT ORDER SUMMARY FOR BOTH STATES */}
               <div className="order-summary">
                 <div className="summary-item">
-                  <strong>Consegna:</strong> {cart.orderType === 'tavolo' ? `Tavolo ${cart.tableNumber}` : 'Consegna'}
+                  <strong>Consegna:</strong>
+                  <span>{cart.orderType === 'tavolo' ? `Al Tavolo ${cart.tableNumber}` : 'Consegna'}</span>
                 </div>
                 <div className="summary-item">
-                  <strong>Totale:</strong> €{total.toFixed(2)}
+                  <strong>Totale:</strong>
+                  <span>€{total.toFixed(2)}</span>
                 </div>
                 <div className="summary-item">
-                  <strong>Pagamento:</strong> {selectedPayment === 'pay-at-till' ? 'Paga alla Cassa' : 'Pagamento Online'}
+                  <strong>Pagamento:</strong>
+                  <span>{selectedPayment === 'pay-at-till' ? 'Paga alla Cassa' : 'Pagamento Online'}</span>
                 </div>
                 <div className="summary-item">
-                  <strong>Stato:</strong> {orderStatus === 'confirmed' ? 'Confermato' : 'In Attesa'}
+                  <strong>Stato:</strong>
+                  <span style={{ color: orderStatus === 'confirmed' ? '#28a745' : '#ffc107' }}>
+                    {orderStatus === 'confirmed' ? 'Confermato' : 'In Attesa'}
+                  </span>
                 </div>
               </div>
 
-              {canCancel && orderStatus === 'pending' && (
+              {/* CONDITIONAL SECTIONS BASED ON STATUS */}
+              {orderStatus === 'pending' && canCancel && (
                 <div className="cancel-section">
                   <p>Puoi cancellare l'ordine entro:</p>
                   <div className="countdown">
@@ -750,7 +757,7 @@ const generateOrderNumber = () => {
               {orderStatus === 'confirmed' && (
                 <div className="confirmed-section">
                   <CheckCircle size={32} color="#28a745" />
-                  <p>Ordine confermato dal locale!</p>
+                  <p>Notifica di conferma creata!</p>
                   <button
                     onClick={handleOrderConfirmed}
                     className="continue-btn"

@@ -631,9 +631,9 @@ body:has(.order-success-wrapper) {
 }
 
 .notification-status.sent {
-  background: rgba(156, 169, 39, 0.15);
-  border-color: rgba(40, 167, 69, 0.4);
-  color: #28a745;
+  background: rgba(0, 0, 0, 0.032);
+  border-color: #ECF0BA;
+  color: #ECF0BA;
   box-shadow: 0 4px 20px rgba(40, 167, 69, 0.2);
   flex-direction: column;
   gap: 1rem;

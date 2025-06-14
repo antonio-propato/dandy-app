@@ -162,9 +162,9 @@ const fetchOrderAndUserData = async () => {
   const formatPaymentMethod = (method) => {
     switch (method) {
       case 'pay-at-till':
-        return 'Paga alla Cassa'
+        return 'Contanti'
       case 'pay-now':
-        return 'Pagamento Online'
+        return 'Online'
       default:
         return method || 'N/A'
     }
@@ -185,12 +185,11 @@ const fetchOrderAndUserData = async () => {
           <div className="notification-status sent">
             <FontAwesomeIcon icon={faBell} />
             <div className="notification-sent-content">
-              <span>Notifica di conferma creata!</span>
               <button
                 className="view-notifications-btn"
                 onClick={handleViewNotifications}
               >
-                Visualizza Notifiche
+                Riepilogo Ordine
               </button>
             </div>
           </div>

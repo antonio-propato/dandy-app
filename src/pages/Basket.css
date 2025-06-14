@@ -1069,13 +1069,13 @@ html, body {
 
 .modal-close {
   position: absolute;
-  top: 1rem;
+  top: 1.5rem;
   right: 1rem;
   background: rgba(255, 255, 255, 0.2);
   border: none;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1616,7 +1616,7 @@ html, body {
 
 .modal-close {
   position: absolute;
-  top: 1rem;
+  top: 1.5rem ;
   right: 1rem;
   background: rgba(236, 240, 186, 0.2);
   border: 1px solid rgba(236, 240, 186, 0.3);
