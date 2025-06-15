@@ -37,7 +37,8 @@ import {
   faListOl,
   faHome,
   faTruck,
-  faMoneyBillWave
+  faMoneyBillWave,
+  faCheckCircle
 } from '@fortawesome/free-solid-svg-icons';
 import './Orders.css';
 
@@ -60,7 +61,7 @@ const OrderCard = ({ order, onConfirm, onCancel, onConfirmPayment, onRejectPayme
 
   const getPaymentMethodDisplay = (method) => ({
     'pay-at-till': 'Contanti',
-    'pay-now': 'Online',
+    'pay-now': 'Carta Online',
     'card': 'Carta',
     'cash': 'Contanti',
     'contanti': 'Contanti'
@@ -132,7 +133,7 @@ const OrderCard = ({ order, onConfirm, onCancel, onConfirmPayment, onRejectPayme
               </div>
               {/* Display phone number if it exists in deliveryInfo */}
               {order.deliveryInfo?.telefono && (
-                <div className="detail-item telephone-number">
+                <div className="detail-item delivery-phone-item">
                   <FontAwesomeIcon icon={faPhone} />
                   <span>{order.deliveryInfo.telefono}</span>
                 </div>
@@ -155,7 +156,7 @@ const OrderCard = ({ order, onConfirm, onCancel, onConfirmPayment, onRejectPayme
                   <span className="item-name">{item.name}</span>
                 </span>
                 {item.price && !isNaN(Number(item.price)) && (
-                  <span className="item-price">{Number(item.price).toFixed(2)}</span>
+                  <span className="item-price">€{Number(item.price).toFixed(2)}</span>
                 )}
               </li>
             ))}
@@ -173,11 +174,87 @@ const OrderCard = ({ order, onConfirm, onCancel, onConfirmPayment, onRejectPayme
         </div>
       </div>
 
-      {/* Card Footer */}
+      {/* Card Footer with unified payment display */}
       <div className="card-footer">
-        <div className="payment-method">
-          <FontAwesomeIcon icon={faCreditCard} />
-          <span>{getPaymentMethodDisplay(order.paymentMethod)}</span>
+        <div className={`payment-info-section ${
+          order.status === 'confirmed' &&
+          isCashPayment &&
+          !order.paymentConfirmed &&
+          !order.paymentRejected &&
+          paymentOverdue ? 'payment-overdue-section' : ''
+        }`}
+        onClick={() => {
+          // Make entire section clickable when overdue for dramatic effect
+          if (order.status === 'confirmed' &&
+              isCashPayment &&
+              !order.paymentConfirmed &&
+              !order.paymentRejected &&
+              paymentOverdue &&
+              !isModal) {
+            onConfirmPayment(order.id);
+          }
+        }}
+        style={{
+          cursor: (order.status === 'confirmed' &&
+                  isCashPayment &&
+                  !order.paymentConfirmed &&
+                  !order.paymentRejected &&
+                  paymentOverdue &&
+                  !isModal) ? 'pointer' : 'default'
+        }}
+        title={
+          (order.status === 'confirmed' &&
+           isCashPayment &&
+           !order.paymentConfirmed &&
+           !order.paymentRejected &&
+           paymentOverdue &&
+           !isModal) ? 'PAGAMENTO SCADUTO! Clicca per confermare il pagamento ricevuto' : ''
+        }
+        >
+          <div className="payment-method-row">
+            <FontAwesomeIcon icon={faCreditCard} />
+            <span>{getPaymentMethodDisplay(order.paymentMethod)}</span>
+          </div>
+
+          {/* Payment Status Row - Show payment status for all payment types */}
+          {order.status === 'confirmed' && (
+            <div className="payment-status-row">
+              {/* UNIFIED PAYMENT STATUS DISPLAY */}
+              {order.paymentConfirmed ? (
+                // Payment confirmed - same styling for both cash and card
+                <div className="payment-status-indicator" style={{ color: '#28a745' }}>
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Pagato</span>
+                </div>
+              ) : order.paymentRejected ? (
+                // Payment rejected
+                <div className="payment-status-indicator" style={{ color: '#f44336' }}>
+                  <FontAwesomeIcon icon={faTimes} />
+                  <span>Rifiutato</span>
+                </div>
+              ) : isCashPayment ? (
+                // Cash payment - waiting for confirmation with overdue styling
+                <div
+                  className={`payment-status-indicator payment-clickable ${paymentOverdue ? 'payment-overdue-text' : ''}`}
+                  style={{ color: paymentOverdue ? '#f44336' : '#ffc107' }}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent double-click when section is also clickable
+                    if (!isModal) onConfirmPayment(order.id);
+                  }}
+                  title="Clicca per confermare il pagamento ricevuto"
+                >
+                  <FontAwesomeIcon icon={faMoneyBillWave} />
+                  <span>{paymentOverdue ? 'NON PAGATO!' : 'In Attesa'}</span>
+                </div>
+              ) : (
+                // Card payment - show as paid (already processed)
+                <div className="payment-status-indicator" style={{ color: '#28a745' }}>
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>Pagato</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {!isModal && (
@@ -207,32 +284,12 @@ const OrderCard = ({ order, onConfirm, onCancel, onConfirmPayment, onRejectPayme
                 icon={order.status === 'confirmed' ? faCheck : faTimes}
                 // **MODIFICATION**: Inline style removed, color handled by CSS
               />
+              {/* In the order status here you can add Confermato or Cancellato - currently only showing a ✅ or X*/}
               <span>{order.status === 'confirmed' ? '' : ''}</span>
             </div>
           )
         )}
       </div>
-
-      {/* Cash Payment Confirmation Section - Shows AFTER order is accepted */}
-      {isCashPayment && order.status === 'confirmed' && !isModal && (
-        <div className="payment-confirmation-compact">
-          {!paymentConfirmed ? (
-            <div
-              className={`payment-method-style payment-clickable ${paymentOverdue ? 'payment-overdue-section' : ''}`}
-              onClick={() => onConfirmPayment(order.id)}
-              style={{ cursor: 'pointer' }}
-            >
-              <FontAwesomeIcon icon={faMoneyBillWave} />
-              <span className={paymentOverdue ? 'payment-overdue-text' : ''}>PAGAMENTO RICEVUTO?</span>
-            </div>
-          ) : (
-            <div className="payment-confirmed-simple">
-              <FontAwesomeIcon icon={faMoneyBillWave} />
-              <span>Pagamento Confermato</span>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };
@@ -256,6 +313,7 @@ export default function Orders() {
   const [paymentOverdueOrders, setPaymentOverdueOrders] = useState(new Set());
   const previousOrderIds = useRef(new Set());
   const paymentTimers = useRef(new Map()); // Track payment timers
+  const paymentCheckInterval = useRef(null); // For live updates
 
   // Fetch orders with real-time updates
   useEffect(() => {
@@ -348,62 +406,55 @@ export default function Orders() {
     setFilteredTableOrders(searchTerm ? tableOrders.filter(filterFn) : tableOrders);
   }, [searchTerm, cardOrders, tableOrders]);
 
-  // Real-time payment overdue tracking
+  // IMPROVED: Real-time payment overdue tracking with live updates
   useEffect(() => {
-    // Clean up and set up payment timers for confirmed cash orders
-    const updatePaymentTimers = () => {
-      // Clear existing timers
-      paymentTimers.current.forEach((timer, orderId) => {
-        clearTimeout(timer);
-      });
-      paymentTimers.current.clear();
+    const checkPaymentOverdue = () => {
+      const currentTime = Date.now();
+      const newOverdueOrders = new Set();
 
-      // Set up new timers for confirmed cash orders without payment confirmation
       allOrders.forEach(order => {
         const isCashPayment = order.paymentMethod === 'pay-at-till' || order.paymentMethod === 'cash' || order.paymentMethod === 'contanti';
+
         if (isCashPayment && order.status === 'confirmed' && !order.paymentConfirmed && !order.paymentRejected) {
           const confirmationTime = order.confirmedAt?.toDate?.()?.getTime() || order.confirmedAt?.getTime() || 0;
+
           if (confirmationTime) {
-            const timeElapsed = Date.now() - confirmationTime;
-            const timeRemaining = 60 * 1000 - timeElapsed; // 1 minute in ms
+            const timeElapsed = currentTime - confirmationTime;
+            const overdueThreshold = 60 * 1000; // 1 minute in milliseconds
 
-            if (timeRemaining > 0) {
-              // Set timer for when it becomes overdue
-              const timer = setTimeout(() => {
-                console.log(`🔴 Payment timer triggered for order ${order.id}`);
-                setPaymentOverdueOrders(prev => new Set([...prev, order.id]));
-              }, timeRemaining);
-
-              paymentTimers.current.set(order.id, timer);
-              console.log(`⏰ Payment timer set for order ${order.id}, ${Math.round(timeRemaining/1000)}s remaining`);
-            } else {
-              // Already overdue
-              console.log(`🔴 Order ${order.id} is already payment overdue`);
-              setPaymentOverdueOrders(prev => new Set([...prev, order.id]));
+            if (timeElapsed > overdueThreshold) {
+              newOverdueOrders.add(order.id);
+              console.log(`🔴 Order ${order.id} is payment overdue (${Math.round(timeElapsed/1000)}s elapsed)`);
             }
           }
-        } else {
-          // Remove from overdue if no longer applicable
-          setPaymentOverdueOrders(prev => {
-            if (prev.has(order.id)) {
-              const newSet = new Set(prev);
-              newSet.delete(order.id);
-              return newSet;
-            }
-            return prev;
-          });
         }
+      });
+
+      // Update overdue orders state if changed
+      setPaymentOverdueOrders(prev => {
+        const prevArray = Array.from(prev).sort();
+        const newArray = Array.from(newOverdueOrders).sort();
+
+        if (JSON.stringify(prevArray) !== JSON.stringify(newArray)) {
+          console.log('🔴 Payment overdue orders updated:', Array.from(newOverdueOrders));
+          return newOverdueOrders;
+        }
+        return prev;
       });
     };
 
-    updatePaymentTimers();
+    // Initial check
+    checkPaymentOverdue();
 
-    // Cleanup on unmount
+    // Set up interval to check every 5 seconds for live updates
+    paymentCheckInterval.current = setInterval(checkPaymentOverdue, 5000);
+
+    // Cleanup interval on unmount or dependency change
     return () => {
-      paymentTimers.current.forEach((timer) => {
-        clearTimeout(timer);
-      });
-      paymentTimers.current.clear();
+      if (paymentCheckInterval.current) {
+        clearInterval(paymentCheckInterval.current);
+        paymentCheckInterval.current = null;
+      }
     };
   }, [allOrders]);
 
@@ -437,16 +488,6 @@ export default function Orders() {
     }
   };
 
-  /*
-   * PAYMENT CONFIRMATION FLOW:
-   * 1. Order arrives (status = 'pending')
-   * 2. Superuser accepts order (status = 'confirmed')
-   * 3. Payment confirmation section appears for cash orders
-   * 4. Superuser prepares order and takes cash payment
-   * 5. Superuser confirms payment in app
-   * 6. If not confirmed within 5 minutes of acceptance, card pulses red
-   */
-
   // Confirm payment received
   const confirmPayment = async (orderId) => {
     try {
@@ -455,6 +496,13 @@ export default function Orders() {
         paymentConfirmed: true,
         paymentConfirmedAt: serverTimestamp(),
         paymentConfirmedBy: 'superuser'
+      });
+
+      // Remove from overdue immediately
+      setPaymentOverdueOrders(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(orderId);
+        return newSet;
       });
 
       console.log(`✅ Payment confirmed for order ${orderId}`);
@@ -472,6 +520,13 @@ export default function Orders() {
         paymentRejected: true,
         paymentRejectedAt: serverTimestamp(),
         paymentRejectedBy: 'superuser'
+      });
+
+      // Remove from overdue immediately
+      setPaymentOverdueOrders(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(orderId);
+        return newSet;
       });
 
       console.log(`❌ Payment rejected for order ${orderId}`);
