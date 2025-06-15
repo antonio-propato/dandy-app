@@ -55,6 +55,19 @@ export default function Profile() {
     }
   }, [])
 
+  // Function to determine name length class
+  const getNameLengthClass = (firstName, lastName) => {
+    const fullName = `${firstName} ${lastName}`
+    const nameLength = fullName.length
+
+    if (nameLength > 25) {
+      return 'very-long'
+    } else if (nameLength > 18) {
+      return 'long-name'
+    }
+    return ''
+  }
+
   if (!profile) {
     return (
       <div
@@ -72,6 +85,9 @@ export default function Profile() {
   const [countryCode, ...numberParts] = rawPhone.split(' ')
   const phoneNumber = numberParts.join(' ')
 
+  // Get appropriate CSS class for name length
+  const nameClass = getNameLengthClass(profile.firstName, profile.lastName)
+
   return (
     <div
       className="profile-wrapper"
@@ -81,11 +97,11 @@ export default function Profile() {
       <Nav />
 
       <div className="profile-card">
-        {/* Diamond‐bling shine lives inside the card */}
+        {/* Diamond-bling shine lives inside the card */}
         <div className="shine-effect" />
 
         <div className="profile-content">
-          <h1 className="profile-name">
+          <h1 className={`profile-name ${nameClass}`}>
             {profile.firstName} {profile.lastName}
           </h1>
           <p><strong>Compleanno:</strong> {profile.dob}</p>

@@ -157,14 +157,52 @@ body:has(.profile-wrapper) {
   animation: contentFadeIn 0.6s ease-out 0.4s forwards;
 }
 
+/* ─── RESPONSIVE NAME STYLING ───────────────── */
 .profile-name {
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 5vw, 2rem);
   font-weight: 700;
-  white-space: nowrap;
-  margin-bottom: 1rem;
-  padding-top: 70px;
+  margin-bottom: 2.5rem;
+  padding-top: 90px;
   color: #ECF0BA;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  line-height: 1.2;
+  word-wrap: break-word;
+  hyphens: auto;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+/* Desktop/Tablet: Single line display */
+@media screen and (min-width: 481px) {
+  .profile-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* If name is too long, allow wrapping but prefer single line */
+  .profile-name.long-name {
+    white-space: normal;
+    word-break: break-word;
+  }
+}
+
+/* Mobile: Allow line breaks for better readability */
+@media screen and (max-width: 480px) {
+  .profile-name {
+    white-space: normal;
+    font-size: clamp(1.3rem, 6vw, 1.8rem);
+    line-height: 1.1;
+    padding-top: 90px;
+  }
+}
+
+/* Very small screens: Further adjustments */
+@media screen and (max-width: 320px) {
+  .profile-name {
+    font-size: 1.3rem;
+    padding-top: 50px;
+  }
 }
 
 .profile-content p {
@@ -178,6 +216,7 @@ body:has(.profile-wrapper) {
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .phone-code {
@@ -279,5 +318,17 @@ body:has(.profile-wrapper) {
   100% {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ─── NAME LENGTH DETECTION UTILITY ─────────── */
+/* This can be used with JavaScript to add .long-name class if needed */
+.profile-name.very-long {
+  font-size: clamp(1.2rem, 4vw, 1.6rem);
+}
+
+@media screen and (max-width: 480px) {
+  .profile-name.very-long {
+    font-size: clamp(1.1rem, 5vw, 1.4rem);
   }
 }
