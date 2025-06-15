@@ -1,17 +1,20 @@
-const { onCall, onRequest } = require('firebase-functions/v2/https')
-const { onSchedule } = require('firebase-functions/v2/scheduler')
-const { logger } = require('firebase-functions')
-const admin = require('firebase-admin')
-const { getFirestore } = require('firebase-admin/firestore')
-const { getMessaging } = require('firebase-admin/messaging')
+const { onCall, onRequest } = require('firebase-functions/v2/https');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { onDocumentUpdated } = require('firebase-functions/v2/firestore');
+const { logger } = require('firebase-functions');
+const { HttpsError } = require('firebase-functions/v2/https');
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+const { getFirestore } = require('firebase-admin/firestore');
+const { getMessaging } = require('firebase-admin/messaging');
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
-  admin.initializeApp()
+  admin.initializeApp();
 }
 
-const db = getFirestore()
-const messaging = getMessaging()
+const db = getFirestore();
+const messaging = getMessaging();
 
 // Helper function to clean up invalid FCM tokens
 async function cleanupInvalidTokens(userId, invalidTokens) {
@@ -553,7 +556,7 @@ exports.processStampScan = onCall({
   }
 })
 
-// 🧹 Cleanup Invalid FCM Tokens (Weekly)
+// Rest of your existing functions...
 exports.cleanupFCMTokens = onSchedule({
   schedule: 'every sunday 02:00',
   timeZone: 'Europe/Rome',
@@ -571,7 +574,6 @@ exports.cleanupFCMTokens = onSchedule({
 
       if (tokens.length === 0) continue
 
-      // Test tokens by sending a dry-run message
       try {
         const testMessage = {
           notification: { title: 'Test', body: 'Test' },
@@ -609,7 +611,6 @@ exports.cleanupFCMTokens = onSchedule({
   }
 })
 
-// 🔔 Test Notification Function (for debugging)
 exports.testNotification = onCall({
   region: "europe-west2"
 }, async (request) => {
@@ -620,7 +621,6 @@ exports.testNotification = onCall({
   const { userId, title = 'Test Notification', body = 'This is a test from Dandy!' } = request.data
 
   try {
-    // Get user's FCM tokens
     const userDoc = await db.doc(`users/${userId || request.auth.uid}`).get()
 
     if (!userDoc.exists) {
@@ -651,8 +651,6 @@ exports.testNotification = onCall({
   }
 })
 
-
-// 🎁 UPDATED FUNCTION: Generate Reward QR Code
 exports.generateRewardQR = onCall({
   region: "europe-west2"
 }, async (request) => {
@@ -663,9 +661,8 @@ exports.generateRewardQR = onCall({
   const userId = request.auth.uid;
 
   try {
-    console.log(`🎁 Generating reward QR for user: ${userId}`);
+    logger.info(`🎁 Generating reward QR for user: ${userId}`);
 
-    // Check if user has available rewards
     const stampsRef = db.doc(`stamps/${userId}`);
     const stampsSnap = await stampsRef.get();
 
@@ -680,15 +677,13 @@ exports.generateRewardQR = onCall({
       throw new HttpsError("failed-precondition", "No rewards available to generate QR");
     }
 
-    // Generate unique reward ID (simpler format)
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substr(2, 9);
     const rewardId = `reward_${timestamp}_${randomString}`;
     const rewardQRText = `reward://dandy-app/${userId}/${rewardId}`;
 
-    console.log(`📱 Generated reward QR text: ${rewardQRText}`);
+    logger.info(`📱 Generated reward QR text: ${rewardQRText}`);
 
-    // Generate QR code using qrcode library
     const QRCode = require('qrcode');
     const qrCodeDataURL = await QRCode.toDataURL(rewardQRText, {
       width: 300,
@@ -700,8 +695,7 @@ exports.generateRewardQR = onCall({
       errorCorrectionLevel: 'M'
     });
 
-    // Store reward QR in Firestore with expiration
-    const expirationTime = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+    const expirationTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await db.collection('rewardQRs').doc(rewardId).set({
       userId: userId,
       qrCode: rewardQRText,
@@ -712,7 +706,7 @@ exports.generateRewardQR = onCall({
       redeemedBy: null
     });
 
-    console.log(`✅ Reward QR created successfully with ID: ${rewardId}`);
+    logger.info(`✅ Reward QR created successfully with ID: ${rewardId}`);
 
     return {
       success: true,
@@ -722,7 +716,7 @@ exports.generateRewardQR = onCall({
     };
 
   } catch (error) {
-    console.error("💥 Error generating reward QR:", error);
+    logger.error("💥 Error generating reward QR:", error);
     if (error instanceof HttpsError) {
       throw error;
     }
@@ -730,9 +724,6 @@ exports.generateRewardQR = onCall({
   }
 });
 
-// 🎁 UPDATED FUNCTION: Redeem Reward QR Code (with reward history tracking)
-// 🎁 UPDATED FUNCTION: Redeem Reward QR Code (with enhanced Italian validation messages)
-// ONLY REPLACE THIS FUNCTION - Keep generateRewardQR and claimAndResetReward as they are
 exports.redeemRewardQR = onCall({
   region: "europe-west2"
 }, async (request) => {
@@ -742,51 +733,35 @@ exports.redeemRewardQR = onCall({
 
   const { qrCode } = request.data;
 
-  // Enhanced QR format validation with Italian message
   if (!qrCode || !qrCode.startsWith('reward://dandy-app/')) {
     throw new HttpsError("invalid-argument", "Questo QR code non è valido");
   }
 
   try {
-    console.log(`🎁 Processing reward QR redemption: ${qrCode}`);
+    logger.info(`🎁 Processing reward QR redemption: ${qrCode}`);
 
-    // Parse QR code to extract userId and rewardId
-    // Expected format: reward://dandy-app/{userId}/{rewardId}
     const qrPath = qrCode.replace('reward://dandy-app/', '');
     const qrParts = qrPath.split('/');
 
-    console.log(`🔍 QR Path: ${qrPath}`);
-    console.log(`🔍 QR Parts:`, qrParts);
-
-    // Enhanced QR parts validation with Italian message
     if (qrParts.length !== 2) {
       throw new HttpsError("invalid-argument", "Questo QR code non è valido");
     }
 
     const [userId, rewardId] = qrParts;
-    console.log(`👤 User ID: ${userId}, Reward ID: ${rewardId}`);
 
-    // Validate the extracted IDs with Italian messages
-    if (!userId || !rewardId) {
+    if (!userId || !rewardId || !rewardId.startsWith('reward_')) {
       throw new HttpsError("invalid-argument", "Questo QR code non è valido");
     }
 
-    if (!rewardId.startsWith('reward_')) {
-      throw new HttpsError("invalid-argument", "Questo QR code non è valido");
-    }
-
-    // Check if reward QR exists and is valid
     const rewardQRRef = db.doc(`rewardQRs/${rewardId}`);
     const rewardQRSnap = await rewardQRRef.get();
 
-    // Enhanced validation with specific Italian messages
     if (!rewardQRSnap.exists) {
       throw new HttpsError("not-found", "Questo QR code non è valido");
     }
 
     const rewardQRData = rewardQRSnap.data();
 
-    // Validate QR code with specific Italian messages
     if (rewardQRData.used) {
       throw new HttpsError("failed-precondition", "Questo QR code è già stato utilizzato");
     }
@@ -799,19 +774,14 @@ exports.redeemRewardQR = onCall({
       throw new HttpsError("permission-denied", "Questo QR code non è valido");
     }
 
-    // Get user and stamps data
     const [userSnap, stampsSnap, redeemerSnap] = await Promise.all([
       db.doc(`users/${userId}`).get(),
       db.doc(`stamps/${userId}`).get(),
       db.doc(`users/${request.auth.uid}`).get()
     ]);
 
-    if (!userSnap.exists) {
-      throw new HttpsError("not-found", "User not found");
-    }
-
-    if (!stampsSnap.exists) {
-      throw new HttpsError("not-found", "User stamps data not found");
+    if (!userSnap.exists || !stampsSnap.exists) {
+      throw new HttpsError("not-found", "User or stamps data not found");
     }
 
     const userData = userSnap.data();
@@ -822,9 +792,8 @@ exports.redeemRewardQR = onCall({
       throw new HttpsError("failed-precondition", "No rewards available to redeem");
     }
 
-    console.log(`🔄 Processing redemption for user ${userData.firstName} ${userData.lastName}`);
+    logger.info(`🔄 Processing redemption for user ${userData.firstName} ${userData.lastName}`);
 
-    // Use transaction to ensure atomicity
     const result = await db.runTransaction(async (transaction) => {
       const rewardEntry = {
         redeemedAt: new Date().toISOString(),
@@ -833,14 +802,12 @@ exports.redeemRewardQR = onCall({
         redeemedByName: redeemerData ? `${redeemerData.firstName || ''} ${redeemerData.lastName || ''}`.trim() : 'Unknown Staff'
       };
 
-      // Mark reward QR as used
       transaction.update(rewardQRRef, {
         used: true,
         usedAt: admin.firestore.FieldValue.serverTimestamp(),
         redeemedBy: request.auth.uid
       });
 
-      // Update user's stamps data with reward history
       const updateData = {
         availableRewards: stampsData.availableRewards - 1,
         rewardsEarned: (stampsData.rewardsEarned || 0) + 1,
@@ -848,10 +815,9 @@ exports.redeemRewardQR = onCall({
         rewardHistory: admin.firestore.FieldValue.arrayUnion(rewardEntry)
       };
 
-      // If user has exactly 9 stamps, reset the grid
       if (stampsData.stamps && stampsData.stamps.length === 9) {
         updateData.stamps = [];
-        console.log(`🔄 Resetting stamp grid (had 9 stamps)`);
+        logger.info(`🔄 Resetting stamp grid (had 9 stamps)`);
       }
 
       transaction.update(db.doc(`stamps/${userId}`), updateData);
@@ -866,12 +832,11 @@ exports.redeemRewardQR = onCall({
       };
     });
 
-    console.log(`✅ Reward QR redeemed successfully for user ${userId}`);
-
+    logger.info(`✅ Reward QR redeemed successfully for user ${userId}`);
     return result;
 
   } catch (error) {
-    console.error("💥 Error redeeming reward QR:", error);
+    logger.error("💥 Error redeeming reward QR:", error);
     if (error instanceof HttpsError) {
       throw error;
     }
@@ -879,7 +844,6 @@ exports.redeemRewardQR = onCall({
   }
 });
 
-// 🎁 UPDATED FUNCTION: Claim and Reset Reward (manual claiming with history tracking)
 exports.claimAndResetReward = onCall({
   region: "europe-west2"
 }, async (request) => {
@@ -890,7 +854,7 @@ exports.claimAndResetReward = onCall({
   const userId = request.auth.uid;
 
   try {
-    console.log(`🎁 Processing manual reward claim for user: ${userId}`);
+    logger.info(`🎁 Processing manual reward claim for user: ${userId}`);
 
     const [stampsSnap, userSnap] = await Promise.all([
       db.doc(`stamps/${userId}`).get(),
@@ -909,7 +873,6 @@ exports.claimAndResetReward = onCall({
       throw new HttpsError("failed-precondition", "No rewards available to claim");
     }
 
-    // Create reward history entry
     const rewardEntry = {
       redeemedAt: new Date().toISOString(),
       redemptionMethod: 'manual',
@@ -917,7 +880,6 @@ exports.claimAndResetReward = onCall({
       redeemedByName: userData ? `${userData.firstName || ''} ${userData.lastName || ''}`.trim() : 'Self Service'
     };
 
-    // Update the user's stamp data
     const updateData = {
       availableRewards: availableRewards - 1,
       rewardsEarned: (stampsData.rewardsEarned || 0) + 1,
@@ -925,14 +887,13 @@ exports.claimAndResetReward = onCall({
       rewardHistory: admin.firestore.FieldValue.arrayUnion(rewardEntry)
     };
 
-    // If user has exactly 9 stamps, reset the grid
     if (stampsData.stamps && stampsData.stamps.length === 9) {
       updateData.stamps = [];
     }
 
     await db.doc(`stamps/${userId}`).update(updateData);
 
-    console.log(`✅ Manual reward claimed successfully for user ${userId}`);
+    logger.info(`✅ Manual reward claimed successfully for user ${userId}`);
 
     return {
       success: true,
@@ -941,16 +902,13 @@ exports.claimAndResetReward = onCall({
     };
 
   } catch (error) {
-    console.error("💥 Error claiming reward:", error);
+    logger.error("💥 Error claiming reward:", error);
     if (error instanceof HttpsError) {
       throw error;
     }
     throw new HttpsError("internal", "Error claiming reward", { detail: error.message });
   }
 });
-
-// 📦 FIXED FUNCTION: sendOrderConfirmationNotification
-// Replace the old function at the end of your functions/index.js with this one.
 
 exports.sendOrderConfirmationNotification = onCall({
   region: "europe-west2"
@@ -967,7 +925,6 @@ exports.sendOrderConfirmationNotification = onCall({
   try {
     logger.info(`📦 Creating notification for order: ${orderId}`);
 
-    // Get order and user data
     const [orderDoc, userDoc] = await Promise.all([
       db.doc(`orders/${orderId}`).get(),
       db.doc(`users/${userId}`).get()
@@ -978,10 +935,8 @@ exports.sendOrderConfirmationNotification = onCall({
     }
 
     const orderData = orderDoc.data();
-    // Ensure orderNumber is present
     const orderNumber = orderData.orderNumber || orderId.slice(-6);
 
-    // Create the notification with the COMPLETE order data
     const notification = {
       userId: userId,
       title: `Ordine #${orderNumber} Confermato! ✅`,
@@ -989,16 +944,12 @@ exports.sendOrderConfirmationNotification = onCall({
       createdAt: new Date().toISOString(),
       read: false,
       data: {
-        // --- THIS IS THE FIX ---
-        // Spread the entire orderData object into the data payload
         ...orderData,
-        // Ensure our essential fields are present/overwritten if needed
         type: 'order_confirmation',
         orderId: orderId,
       }
     };
 
-    // Save to Firestore
     await db.collection('notifications').add(notification);
 
     logger.info(`✅ Notification created successfully for order ${orderId}`);
@@ -1010,251 +961,533 @@ exports.sendOrderConfirmationNotification = onCall({
   }
 });
 
-// 📅 NEW: Process Scheduled Notifications (Every 5 minutes)
-exports.processScheduledNotifications = onSchedule({
-  schedule: 'every 5 minutes',
-  timeZone: 'Europe/Rome',
-  region: 'europe-west2'
-}, async () => {
+// FIXED: createPaymentIntent function with proper amount handling
+exports.createPaymentIntent = onCall({
+  region: "europe-west2",
+  secrets: ['STRIPE_SECRET_KEY']
+}, async (request) => {
+  const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
   try {
-    logger.info('📅 Checking for scheduled notifications to send...')
-
-    const now = new Date()
-
-    // Query for scheduled notifications that are ready to be sent
-    const scheduledQuery = db.collection('scheduledNotifications')
-      .where('status', '==', 'scheduled')
-      .where('scheduledFor', '<=', now.toISOString())
-
-    const scheduledSnapshot = await scheduledQuery.get()
-
-    if (scheduledSnapshot.empty) {
-      logger.info('📅 No scheduled notifications ready to send')
-      return
+    if (!request.auth) {
+      logger.error("Authentication check failed.");
+      throw new HttpsError('unauthenticated', 'User must be authenticated');
     }
 
-    logger.info(`📅 Found ${scheduledSnapshot.size} scheduled notifications to process`)
+    logger.info('📝 Creating payment intent for user:', request.auth.uid);
+    const { amount, currency = 'eur', orderData, userId, capture_method = 'manual' } = request.data;
 
-    // Process each scheduled notification
-    const batch = db.batch()
-
-    for (const doc of scheduledSnapshot.docs) {
-      const notificationData = doc.data()
-
-      try {
-        logger.info(`📤 Sending scheduled notification: ${notificationData.title}`)
-
-        // Get target users based on criteria (same logic as sendPushNotification)
-        let targetUsers = []
-        const usersSnapshot = await db.collection('users').get()
-        const allUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-
-        switch (notificationData.target) {
-          case 'all':
-            targetUsers = allUsers.filter(u => u.role !== 'superuser' && u.fcmTokens?.length > 0)
-            break
-          case 'customers':
-            targetUsers = allUsers.filter(u => u.role === 'customer' && u.fcmTokens?.length > 0)
-            break
-          case 'birthday_today':
-            const today = new Date()
-            const todayStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}`
-            targetUsers = allUsers.filter(u =>
-              u.role !== 'superuser' &&
-              u.fcmTokens?.length > 0 &&
-              u.dob === todayStr
-            )
-            break
-          case 'inactive_users':
-            const thirtyDaysAgo = new Date()
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-            targetUsers = allUsers.filter(u =>
-              u.role !== 'superuser' &&
-              u.fcmTokens?.length > 0 &&
-              (!u.lastLogin || new Date(u.lastLogin) < thirtyDaysAgo)
-            )
-            break
-          case 'reward_eligible':
-            // Get users with exactly 9 stamps
-            const stampsSnapshot = await db.collection('stamps').get()
-            const usersWithNineStamps = new Set()
-
-            stampsSnapshot.docs.forEach(stampsDoc => {
-              const stampsData = stampsDoc.data()
-              if (stampsData.stamps?.length === 9) {
-                usersWithNineStamps.add(stampsDoc.id)
-              }
-            })
-
-            targetUsers = allUsers.filter(u =>
-              u.role !== 'superuser' &&
-              u.fcmTokens?.length > 0 &&
-              usersWithNineStamps.has(u.id)
-            )
-            break
-          default:
-            logger.warn(`Unknown target type: ${notificationData.target}`)
-            continue
-        }
-
-        if (targetUsers.length > 0) {
-          // Collect all FCM tokens
-          const allTokens = targetUsers.flatMap(user => user.fcmTokens || [])
-
-          if (allTokens.length > 0) {
-            // Send FCM messages
-            const fcmResult = await sendFCMMessage(
-              allTokens,
-              notificationData.title,
-              notificationData.body,
-              notificationData.clickAction || '/profile',
-              {
-                type: 'admin_scheduled',
-                target: notificationData.target,
-                scheduled: true
-              }
-            )
-
-            // Create notification records for users who received the notification
-            const notificationBatch = db.batch()
-            const sentTime = new Date().toISOString()
-
-            targetUsers.forEach(user => {
-              const userHasValidTokens = user.fcmTokens?.some(token => !fcmResult.invalidTokens?.includes(token))
-
-              if (userHasValidTokens) {
-                const notificationRef = db.collection('notifications').doc()
-                notificationBatch.set(notificationRef, {
-                  userId: user.id,
-                  title: notificationData.title,
-                  body: notificationData.body,
-                  createdAt: sentTime,
-                  read: false,
-                  readAt: null,
-                  data: {
-                    click_action: notificationData.clickAction || '/profile',
-                    type: 'admin_scheduled',
-                    target: notificationData.target,
-                    scheduled: true
-                  },
-                  sentBy: 'system',
-                  campaign: `scheduled_${notificationData.target}`
-                })
-              }
-            })
-
-            await notificationBatch.commit()
-
-            // Update scheduled notification status to 'sent'
-            batch.update(doc.ref, {
-              status: 'sent',
-              sentAt: sentTime,
-              targetCount: targetUsers.length,
-              successCount: fcmResult.success || 0,
-              failedCount: fcmResult.failed || 0
-            })
-
-            // Update admin notifications record
-            const adminNotificationQuery = db.collection('adminNotifications')
-              .where('type', '==', 'scheduled')
-              .where('title', '==', notificationData.title)
-              .where('body', '==', notificationData.body)
-              .where('status', '==', 'scheduled')
-              .limit(1)
-
-            const adminNotificationSnapshot = await adminNotificationQuery.get()
-            if (!adminNotificationSnapshot.empty) {
-              const adminNotificationDoc = adminNotificationSnapshot.docs[0]
-              batch.update(adminNotificationDoc.ref, {
-                status: 'delivered',
-                sentAt: sentTime,
-                targetCount: targetUsers.length,
-                successCount: fcmResult.success || 0,
-                failedCount: fcmResult.failed || 0
-              })
-            }
-
-            logger.info(`✅ Scheduled notification sent - Success: ${fcmResult.success}, Failed: ${fcmResult.failed}`)
-          } else {
-            logger.warn(`No valid FCM tokens found for target: ${notificationData.target}`)
-            batch.update(doc.ref, {
-              status: 'failed',
-              sentAt: new Date().toISOString(),
-              error: 'No valid FCM tokens found'
-            })
-          }
-        } else {
-          logger.warn(`No target users found for: ${notificationData.target}`)
-          batch.update(doc.ref, {
-            status: 'failed',
-            sentAt: new Date().toISOString(),
-            error: 'No target users found'
-          })
-        }
-
-      } catch (error) {
-        logger.error(`Error processing scheduled notification ${doc.id}:`, error)
-        batch.update(doc.ref, {
-          status: 'failed',
-          sentAt: new Date().toISOString(),
-          error: error.message
-        })
-      }
+    if (!amount || amount <= 0) {
+      throw new HttpsError('invalid-argument', 'Valid amount is required');
+    }
+    if (!orderData || !userId) {
+      throw new HttpsError('invalid-argument', 'Order data and user ID are required');
+    }
+    if (request.auth.uid !== userId) {
+      throw new HttpsError('permission-denied', 'User ID mismatch');
     }
 
-    // Commit all updates
-    await batch.commit()
-    logger.info(`📅 Processed ${scheduledSnapshot.size} scheduled notifications`)
+    // FIXED: Amount is already in cents from frontend, don't multiply again
+    const amountInCents = Math.round(amount); // Just ensure it's an integer
+    const amountInEuros = amountInCents / 100; // For logging and metadata
+
+    logger.info(`💰 Processing payment - Amount: ${amountInCents} cents (€${amountInEuros.toFixed(2)}) with capture method: ${capture_method}`);
+
+    const userDoc = await db.collection('users').doc(userId).get();
+    const userData = userDoc.exists ? userDoc.data() : {};
+
+    const paymentIntentConfig = {
+      amount: amountInCents, // Already in cents
+      currency: currency.toLowerCase(),
+      capture_method: capture_method,
+      metadata: {
+        userId: userId,
+        userName: `${userData.firstName || ''} ${userData.lastName || ''}`.trim(),
+        userEmail: userData.email || '',
+        orderType: orderData.orderType || 'N/A',
+        tableNumber: orderData.tableNumber || 'N/A',
+        totalPrice: amountInEuros.toFixed(2), // Store as euros for readability
+        timestamp: new Date().toISOString(),
+        captureMethod: capture_method,
+      },
+      description: `Dandy Order - ${orderData.orderType === 'tavolo' ? `Table ${orderData.tableNumber}` : 'Delivery'} - €${amountInEuros.toFixed(2)}`,
+      receipt_email: orderData.deliveryInfo?.email || userData.email || null,
+    };
+
+    if (capture_method === 'manual') {
+      paymentIntentConfig.payment_method_types = ['card'];
+    } else {
+      paymentIntentConfig.automatic_payment_methods = {
+        enabled: true,
+      };
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create(paymentIntentConfig);
+
+    logger.info('✅ Payment Intent created successfully:', paymentIntent.id, 'Status:', paymentIntent.status, 'Amount:', amountInCents, 'cents');
+
+    return {
+      client_secret: paymentIntent.client_secret,
+      payment_intent_id: paymentIntent.id,
+    };
 
   } catch (error) {
-    logger.error('💥 Error in scheduled notifications job:', error)
+    logger.error('❌ Error creating payment intent:', error);
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    throw new HttpsError('internal', `Unable to create payment intent: ${error.message}`);
   }
-})
+});
 
-// 🧹 Cleanup Old Scheduled Notifications (Daily cleanup)
-exports.cleanupScheduledNotifications = onSchedule({
-  schedule: 'every day 03:00',
-  timeZone: 'Europe/Rome',
-  region: 'europe-west2'
-}, async () => {
+// Capture authorized payment when order is confirmed
+exports.capturePayment = onCall({
+  region: "europe-west2",
+  secrets: ['STRIPE_SECRET_KEY']
+}, async (request) => {
+  const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+  // Check if user is authenticated
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  // Optional: Add admin role checking here if needed
+  // if (!request.auth.token.admin) {
+  //   throw new HttpsError('permission-denied', 'Only admins can capture payments');
+  // }
+
+  const { paymentIntentId, orderId } = request.data;
+
+  if (!paymentIntentId || !orderId) {
+    throw new HttpsError('invalid-argument', 'Missing payment intent ID or order ID');
+  }
+
   try {
-    logger.info('🧹 Cleaning up old scheduled notifications...')
+    logger.info(`💳 Capturing payment: ${paymentIntentId} for order: ${orderId}`);
 
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    // Capture the authorized payment
+    const paymentIntent = await stripe.paymentIntents.capture(paymentIntentId);
 
-    // Query for old scheduled notifications (sent or failed, older than 7 days)
-    const oldNotificationsQuery = db.collection('scheduledNotifications')
-      .where('status', 'in', ['sent', 'failed'])
-      .where('sentAt', '<', sevenDaysAgo.toISOString())
+    logger.info('✅ Payment captured successfully:', paymentIntentId, 'Status:', paymentIntent.status);
 
-    const oldNotificationsSnapshot = await oldNotificationsQuery.get()
+    // Update order in Firestore
+    await db.collection('orders').doc(orderId).update({
+      paymentStatus: 'captured',
+      paymentCapturedAt: admin.firestore.FieldValue.serverTimestamp(),
+      paymentCapturedBy: 'superuser',
+      stripePaymentIntentStatus: paymentIntent.status,
+      stripeChargeId: paymentIntent.latest_charge,
+    });
 
-    if (oldNotificationsSnapshot.empty) {
-      logger.info('🧹 No old scheduled notifications to clean up')
-      return
-    }
-
-    // Delete old notifications in batches
-    const batch = db.batch()
-    let deleteCount = 0
-
-    oldNotificationsSnapshot.docs.forEach(doc => {
-      if (deleteCount < 500) { // Firestore batch limit
-        batch.delete(doc.ref)
-        deleteCount++
-      }
-    })
-
-    await batch.commit()
-    logger.info(`🧹 Cleaned up ${deleteCount} old scheduled notifications`)
-
-    // If there are more to delete, schedule another cleanup
-    if (oldNotificationsSnapshot.size > 500) {
-      logger.info(`🧹 More notifications to clean up (${oldNotificationsSnapshot.size - 500} remaining)`)
-    }
+    return {
+      success: true,
+      paymentIntentStatus: paymentIntent.status,
+      chargeId: paymentIntent.latest_charge,
+    };
 
   } catch (error) {
-    logger.error('💥 Error in scheduled notifications cleanup job:', error)
+    logger.error('❌ Error capturing payment:', error);
+
+    // Update order with capture failure
+    await db.collection('orders').doc(orderId).update({
+      paymentStatus: 'capture_failed',
+      paymentCaptureError: error.message,
+      paymentCaptureFailedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    throw new HttpsError('internal', `Failed to capture payment: ${error.message}`);
   }
-})
+});
+
+// Cancel authorized payment when order is rejected
+exports.cancelPayment = onCall({
+  region: "europe-west2",
+  secrets: ['STRIPE_SECRET_KEY']
+}, async (request) => {
+  const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+  // Check if user is authenticated
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  // Optional: Add admin role checking here if needed
+  // if (!request.auth.token.admin) {
+  //   throw new HttpsError('permission-denied', 'Only admins can cancel payments');
+  // }
+
+  const { paymentIntentId, orderId, reason = 'requested_by_customer' } = request.data;
+
+  if (!paymentIntentId || !orderId) {
+    throw new HttpsError('invalid-argument', 'Missing payment intent ID or order ID');
+  }
+
+  try {
+    logger.info(`💳 Cancelling payment: ${paymentIntentId} for order: ${orderId}`);
+
+    // Cancel the authorized payment
+    const paymentIntent = await stripe.paymentIntents.cancel(paymentIntentId, {
+      cancellation_reason: reason,
+    });
+
+    logger.info('✅ Payment cancelled successfully:', paymentIntentId, 'Status:', paymentIntent.status);
+
+    // Update order in Firestore
+    await db.collection('orders').doc(orderId).update({
+      paymentStatus: 'cancelled',
+      paymentCancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+      paymentCancelledBy: 'superuser',
+      paymentCancelReason: reason,
+      stripePaymentIntentStatus: paymentIntent.status,
+    });
+
+    return {
+      success: true,
+      paymentIntentStatus: paymentIntent.status,
+    };
+
+  } catch (error) {
+    logger.error('❌ Error cancelling payment:', error);
+
+    // Update order with cancellation failure
+    await db.collection('orders').doc(orderId).update({
+      paymentStatus: 'cancel_failed',
+      paymentCancelError: error.message,
+      paymentCancelFailedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    throw new HttpsError('internal', `Failed to cancel payment: ${error.message}`);
+  }
+});
+
+// Firestore trigger: Automatically handle payment when order status changes
+exports.handleOrderStatusChange = onDocumentUpdated({
+  document: 'orders/{orderId}',
+  region: 'europe-west2',
+  secrets: ['STRIPE_SECRET_KEY']
+}, async (event) => {
+  const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+  const beforeData = event.data.before.data();
+  const afterData = event.data.after.data();
+  const orderId = event.params.orderId;
+
+  // Check if status changed to 'confirmed' and payment needs capture
+  if (
+    beforeData.status === 'pending' &&
+    afterData.status === 'confirmed' &&
+    afterData.paymentIntentId &&
+    afterData.requiresCapture &&
+    afterData.paymentStatus === 'authorized'
+  ) {
+    logger.info(`🔄 Order ${orderId} confirmed, capturing payment...`);
+
+    try {
+      // Capture the payment
+      const paymentIntent = await stripe.paymentIntents.capture(afterData.paymentIntentId);
+
+      // Update the order with capture success
+      await event.data.after.ref.update({
+        paymentStatus: 'captured',
+        paymentCapturedAt: admin.firestore.FieldValue.serverTimestamp(),
+        paymentCapturedBy: 'system_auto',
+        stripePaymentIntentStatus: paymentIntent.status,
+        stripeChargeId: paymentIntent.latest_charge,
+      });
+
+      logger.info(`✅ Payment auto-captured for order ${orderId}`);
+    } catch (error) {
+      logger.error(`❌ Auto-capture failed for order ${orderId}:`, error);
+
+      // Update the order with capture failure
+      await event.data.after.ref.update({
+        paymentStatus: 'capture_failed',
+        paymentCaptureError: error.message,
+        paymentCaptureFailedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+  }
+
+  // Check if status changed to 'cancelled' and payment needs cancellation
+  if (
+    beforeData.status === 'pending' &&
+    afterData.status === 'cancelled' &&
+    afterData.paymentIntentId &&
+    afterData.requiresCapture &&
+    afterData.paymentStatus === 'authorized'
+  ) {
+    logger.info(`🔄 Order ${orderId} cancelled, cancelling payment...`);
+
+    try {
+      // Cancel the authorized payment
+      const paymentIntent = await stripe.paymentIntents.cancel(afterData.paymentIntentId, {
+        cancellation_reason: afterData.cancelledBy === 'customer' ? 'requested_by_customer' : 'abandoned',
+      });
+
+      // Update the order with cancellation success
+      await event.data.after.ref.update({
+        paymentStatus: 'cancelled',
+        paymentCancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+        paymentCancelledBy: 'system_auto',
+        paymentCancelReason: afterData.cancelledBy === 'customer' ? 'requested_by_customer' : 'abandoned',
+        stripePaymentIntentStatus: paymentIntent.status,
+      });
+
+      logger.info(`✅ Payment auto-cancelled for order ${orderId}`);
+    } catch (error) {
+      logger.error(`❌ Auto-cancel failed for order ${orderId}:`, error);
+
+      // Update the order with cancellation failure
+      await event.data.after.ref.update({
+        paymentStatus: 'cancel_failed',
+        paymentCancelError: error.message,
+        paymentCancelFailedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+  }
+});
+
+// Enhanced Stripe webhook handler for manual capture flow
+exports.stripeWebhook = onRequest({
+  region: "europe-west2",
+  secrets: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']
+}, async (req, res) => {
+  const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!endpointSecret) {
+    logger.error('❌ Webhook secret not configured.');
+    return res.status(500).send('Webhook secret not configured');
+  }
+
+  const sig = req.headers['stripe-signature'];
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret);
+  } catch (err) {
+    logger.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  logger.info('📨 Received Stripe webhook event:', event.type);
+
+  switch (event.type) {
+    case 'payment_intent.requires_capture':
+      await handlePaymentIntentRequiresCapture(event.data.object);
+      break;
+    case 'payment_intent.succeeded':
+      await handlePaymentIntentSucceeded(event.data.object);
+      break;
+    case 'payment_intent.payment_failed':
+      await handlePaymentIntentFailed(event.data.object);
+      break;
+    case 'payment_intent.canceled':
+      await handlePaymentIntentCanceled(event.data.object);
+      break;
+    default:
+      logger.info(`Unhandled event type: ${event.type}`);
+  }
+
+  res.json({ received: true });
+});
+
+// NEW: Handle payment intent requires capture (manual capture flow)
+async function handlePaymentIntentRequiresCapture(paymentIntent) {
+  try {
+    logger.info('💳 Payment authorized (requires capture):', paymentIntent.id);
+    const { userId } = paymentIntent.metadata;
+
+    if (!userId) {
+      logger.error('No userId in payment intent metadata');
+      return;
+    }
+
+    const ordersRef = db.collection('orders');
+    const orderQuery = await ordersRef
+      .where('userId', '==', userId)
+      .where('paymentIntentId', '==', paymentIntent.id)
+      .limit(1)
+      .get();
+
+    if (orderQuery.empty) {
+      logger.error('No order found for payment intent:', paymentIntent.id);
+      return;
+    }
+
+    const orderDoc = orderQuery.docs[0];
+
+    await orderDoc.ref.update({
+      paymentStatus: 'authorized',
+      paymentAuthorizedAt: admin.firestore.FieldValue.serverTimestamp(),
+      stripePaymentIntentStatus: paymentIntent.status,
+    });
+
+    logger.info('✅ Order updated after payment authorization:', orderDoc.id);
+
+  } catch (error) {
+    logger.error('Error handling payment authorization:', error);
+  }
+}
+
+// UPDATED: Handle payment success (for captured payments)
+async function handlePaymentIntentSucceeded(paymentIntent) {
+  try {
+    logger.info('💳 Payment succeeded (captured):', paymentIntent.id);
+    const { userId } = paymentIntent.metadata;
+
+    if (!userId) {
+      logger.error('No userId in payment intent metadata');
+      return;
+    }
+
+    const ordersRef = db.collection('orders');
+    const orderQuery = await ordersRef
+      .where('userId', '==', userId)
+      .where('paymentIntentId', '==', paymentIntent.id)
+      .limit(1)
+      .get();
+
+    if (orderQuery.empty) {
+      logger.error('No order found for payment intent:', paymentIntent.id);
+      return;
+    }
+
+    const orderDoc = orderQuery.docs[0];
+    const orderData = orderDoc.data();
+
+    await orderDoc.ref.update({
+      paymentStatus: 'captured',
+      paymentCapturedAt: admin.firestore.FieldValue.serverTimestamp(),
+      stripePaymentIntentStatus: paymentIntent.status,
+      stripeChargeId: paymentIntent.latest_charge,
+    });
+
+    logger.info('✅ Order updated after successful payment capture:', orderDoc.id);
+
+    // Update user preferences
+    if (orderData.totalPrice) {
+      const userRef = db.collection('users').doc(userId);
+      await userRef.update({
+        'preferences.totalOrders': admin.firestore.FieldValue.increment(1),
+        'preferences.totalSpent': admin.firestore.FieldValue.increment(orderData.totalPrice),
+        'preferences.lastOrderDate': admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+
+    // Create notification
+    await db.collection('notifications').add({
+      userId: userId,
+      type: 'payment_success',
+      title: 'Pagamento Confermato',
+      body: `Il pagamento per l'ordine #${orderData.orderNumber} è stato confermato con successo.`,
+      orderNumber: orderData.orderNumber,
+      orderId: orderDoc.id,
+      amount: orderData.totalPrice,
+      createdAt: new Date().toISOString(),
+      read: false,
+      data: {
+        click_action: '/notifications',
+        type: 'payment_success'
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error handling payment success:', error);
+  }
+}
+
+// UPDATED: Handle payment failure
+async function handlePaymentIntentFailed(paymentIntent) {
+  try {
+    logger.info('❌ Payment failed:', paymentIntent.id);
+    const { userId } = paymentIntent.metadata;
+
+    if (!userId) {
+      logger.error('No userId in payment intent metadata');
+      return;
+    }
+
+    const ordersRef = db.collection('orders');
+    const orderQuery = await ordersRef
+      .where('userId', '==', userId)
+      .where('paymentIntentId', '==', paymentIntent.id)
+      .limit(1)
+      .get();
+
+    if (orderQuery.empty) {
+      logger.error('No order found for payment intent:', paymentIntent.id);
+      return;
+    }
+
+    const orderDoc = orderQuery.docs[0];
+
+    await orderDoc.ref.update({
+      status: 'payment_failed',
+      paymentStatus: 'failed',
+      paymentFailedAt: admin.firestore.FieldValue.serverTimestamp(),
+      failureReason: paymentIntent.last_payment_error?.message || 'Payment failed',
+    });
+
+    logger.info('Order updated after failed payment:', orderDoc.id);
+
+    const orderData = orderDoc.data();
+    await db.collection('notifications').add({
+      userId: userId,
+      type: 'payment_failed',
+      title: 'Pagamento Fallito',
+      body: `Il pagamento per l'ordine #${orderData.orderNumber} non è andato a buon fine. Riprova o contatta il supporto.`,
+      orderNumber: orderData.orderNumber,
+      orderId: orderDoc.id,
+      createdAt: new Date().toISOString(),
+      read: false,
+      data: {
+        click_action: '/notifications',
+        type: 'payment_failed'
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error handling payment failure:', error);
+  }
+}
+
+// UPDATED: Handle payment cancellation
+async function handlePaymentIntentCanceled(paymentIntent) {
+  try {
+    logger.info('🚫 Payment canceled:', paymentIntent.id);
+    const { userId } = paymentIntent.metadata;
+
+    if (!userId) {
+      logger.error('No userId in payment intent metadata');
+      return;
+    }
+
+    const ordersRef = db.collection('orders');
+    const orderQuery = await ordersRef
+      .where('userId', '==', userId)
+      .where('paymentIntentId', '==', paymentIntent.id)
+      .limit(1)
+      .get();
+
+    if (orderQuery.empty) {
+      logger.error('No order found for payment intent:', paymentIntent.id);
+      return;
+    }
+
+    const orderDoc = orderQuery.docs[0];
+
+    await orderDoc.ref.update({
+      paymentStatus: 'cancelled',
+      paymentCancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+      paymentCancelledBy: 'payment_system',
+      stripePaymentIntentStatus: paymentIntent.status,
+    });
+
+    logger.info('Order payment canceled:', orderDoc.id);
+
+  } catch (error) {
+    logger.error('Error handling payment cancellation:', error);
+  }
+}
