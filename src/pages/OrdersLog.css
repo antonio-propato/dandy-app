@@ -277,10 +277,11 @@
 .orderslog-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  align-items: center; /* Center cards horizontally */
+  gap: 12px;
   max-height: 600px;
   overflow-y: auto;
-  padding-right: 10px;
+  padding: 10px;
 }
 
 .orderslog-list::-webkit-scrollbar {
@@ -297,107 +298,49 @@
   border-radius: 4px;
 }
 
+/* --- NEW Card Styles --- */
 .orderslog-card {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  transition: all 0.3s;
-  border-left: 4px solid transparent;
-  overflow: hidden;
+  width: fit-content; /* Make card only as wide as its content */
+  background: #3a2e2c; /* Dark, warm brown */
+  border-radius: 50px; /* Pill shape */
+  padding: 14px 28px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease-out;
+  cursor: default;
 }
 
 .orderslog-card:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: translateX(8px);
-  border-left-color: #FFD700;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-}
-
-.orderslog-main {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.orderslog-customer-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.orderslog-info-line {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-  gap: 1rem;
+  background: #4a3a38;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.1);
 }
 
 .orderslog-customer-name {
-  color: white;
-  font-size: 18px;
-  font-weight: 700;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
-  flex: 1;
-  min-width: 0;
-  word-break: break-word;
-}
-
-.orderslog-date {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  margin: 0;
-}
-
-.orderslog-details {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
-  flex-wrap: wrap;
-}
-
-.orderslog-notes {
-  margin-top: 0.5rem;
-  font-size: 13px;
-  color: #FF6B35;
-  font-style: italic;
-  word-break: break-word;
-}
-
-.orderslog-method {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
-
-.orderslog-method-badge {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
+  color: #ffffff;
+  font-size: 1.1rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
   white-space: nowrap;
 }
 
-.orderslog-today-badge {
-  background: rgba(255, 107, 53, 0.2);
-  color: #FF6B35;
-  border: 1px solid rgba(255, 107, 53, 0.3);
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+.orderslog-order-type {
+  display: flex;
+  align-items: center;
+  font-weight: bold;
 }
+
+.orderslog-tavolo {
+  color: #66bb6a; /* Bright, pleasant green */
+}
+
+.orderslog-consegna {
+  font-size: 1.3rem; /* Make emoji slightly larger */
+}
+
 
 /* --- No Orders Message --- */
 .orderslog-no-orders {
@@ -484,39 +427,16 @@
     min-width: auto;
   }
 
-  .orderslog-main {
+  .orderslog-card {
     flex-direction: column;
-    gap: 12px;
-  }
-
-  .orderslog-info-line {
-    flex-direction: column;
-    gap: 8px;
+    width: 90%;
+    padding: 12px 15px;
+    gap: 0.5rem;
+    text-align: center;
   }
 
   .orderslog-customer-name {
-    font-size: 16px;
-  }
-
-  .orderslog-date {
-    align-self: flex-start;
-    margin: 0;
-  }
-
-  .orderslog-details {
-    gap: 0.5rem;
-    font-size: 13px;
-  }
-
-  .orderslog-method {
-    align-items: flex-start;
-    flex-direction: row;
-    justify-content: space-between;
-    width: 100%;
-  }
-
-  .orderslog-list {
-    max-height: 500px;
+    font-size: 0.9rem;
   }
 }
 
@@ -540,39 +460,6 @@
   .orderslog-filters-container {
     padding: 15px;
   }
-
-  .orderslog-card {
-    padding: 15px;
-  }
-
-  .orderslog-customer-name {
-    font-size: 15px;
-  }
-
-  .orderslog-date {
-    font-size: 12px;
-  }
-
-  .orderslog-details {
-    flex-direction: column;
-    gap: 0.3rem;
-    align-items: flex-start;
-    font-size: 12px;
-  }
-
-  .orderslog-method-badge {
-    font-size: 10px;
-    padding: 4px 8px;
-  }
-
-  .orderslog-today-badge {
-    font-size: 10px;
-    padding: 3px 6px;
-  }
-
-  .orderslog-notes {
-    font-size: 12px;
-  }
 }
 
 /* Ensure no horizontal scrolling on mobile */
@@ -581,26 +468,5 @@
     max-width: 100%;
     overflow-wrap: break-word;
     word-wrap: break-word;
-  }
-
-  .orderslog-card {
-    width: 100%;
-    box-sizing: border-box;
-  }
-
-  .orderslog-main {
-    width: 100%;
-    box-sizing: border-box;
-  }
-
-  .orderslog-customer-info {
-    width: 100%;
-    min-width: 0;
-    overflow: hidden;
-  }
-
-  .orderslog-info-line {
-    width: 100%;
-    overflow: hidden;
   }
 }
