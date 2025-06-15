@@ -267,6 +267,7 @@
   box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
 }
 
+/* Regular unread notifications (push notifications) - Gold */
 .notification-item.unread {
   border-left: 4px solid #FFD700;
   background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 255, 255, 0.12) 100%);
@@ -275,6 +276,40 @@
 
 .notification-item.unread::before {
   background: linear-gradient(180deg, #FFD700, #FFA500);
+}
+
+/* Unread order notifications - Green */
+.notification-item.unread-order {
+  border-left: 4px solid #22c55e !important;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(255, 255, 255, 0.12) 100%) !important;
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.2) !important;
+}
+
+.notification-item.unread-order::before {
+  background: linear-gradient(180deg, #22c55e, #16a34a) !important;
+}
+
+.notification-item.unread-order:hover {
+  border-color: rgba(34, 197, 94, 0.5) !important;
+  box-shadow:
+    0 16px 50px rgba(0, 0, 0, 0.4),
+    0 4px 20px rgba(34, 197, 94, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+.notification-item.unread-order:hover::before {
+  background: linear-gradient(90deg,
+    rgba(34, 197, 94, 0.8) 0%,
+    rgba(16, 163, 74, 0.6) 50%,
+    rgba(34, 197, 94, 0.8) 100%) !important;
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.6) !important;
+}
+
+/* Green unread indicator for orders */
+.notification-item.unread-order .notification-unread-indicator {
+  background: #22c55e !important;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.8) !important;
+  animation: pulse-glow-green 2s infinite !important;
 }
 
 /* Content Layout */
@@ -334,6 +369,14 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
+.notification-item.unread-order:hover .notification-icon {
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  box-shadow:
+    0 6px 25px rgba(0, 0, 0, 0.2),
+    0 0 15px rgba(34, 197, 94, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+
 .notification-status-icon {
   font-size: 16px;
   color: rgba(255, 255, 255, 0.7);
@@ -343,6 +386,11 @@
 .notification-status-icon.unread {
   color: #FFD700;
   filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.4));
+}
+
+.notification-item.unread-order .notification-status-icon.unread {
+  color: #22c55e !important;
+  filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.4)) !important;
 }
 
 .notification-text-content {
@@ -604,6 +652,10 @@
   border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
+.order-modal-status-tick {
+  color: #22c55e;
+}
+
 .order-modal-info-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -641,6 +693,13 @@
   color: white;
   font-weight: 600;
   font-size: 0.9rem;
+}
+
+.info-total {
+  color: #22c55e;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-top: 4px;
 }
 
 .order-modal-section-title {
@@ -822,6 +881,19 @@
     opacity: 0.7;
     transform: scale(1.1);
     box-shadow: 0 0 20px rgba(255, 215, 0, 1);
+  }
+}
+
+@keyframes pulse-glow-green {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.8);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 1);
   }
 }
 

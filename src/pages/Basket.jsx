@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Minus, Plus, CreditCard, Clock, X, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, CreditCard, Clock, X, CheckCircle, AlertTriangle } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, firestore } from '../lib/firebase';
 import { doc, getDoc, addDoc, collection, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
-import "./Basket.css";
+import "./Basket.css"; // Updated CSS import
 import { useCart } from '../contexts/CartContext';
 
 export default function Basket() {
@@ -27,6 +27,9 @@ export default function Basket() {
   const [notesSaved, setNotesSaved] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
 
+  // Delivery warning modal state
+  const [showDeliveryWarningModal, setShowDeliveryWarningModal] = useState(false);
+
   // Order confirmation modal states
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPendingModal, setShowPendingModal] = useState(false);
@@ -35,7 +38,7 @@ export default function Basket() {
   const [pendingOrder, setPendingOrder] = useState(null);
   const [cancelCountdown, setCancelCountdown] = useState(10);
   const [canCancel, setCanCancel] = useState(true);
-  const [orderStatus, setOrderStatus] = useState('pending'); // Track order status explicitly
+  const [orderStatus, setOrderStatus] = useState('pending');
   const [showCancelledNotification, setShowCancelledNotification] = useState(false);
 
   // Fetch user profile data
@@ -89,13 +92,11 @@ export default function Basket() {
   // Auto-populate delivery info when switching to delivery and user profile is available
   useEffect(() => {
     if (cart.orderType === 'consegna' && userProfile) {
-      // Parse phone number to handle different formats
       let formattedPhone = userProfile.phone || '';
       if (formattedPhone && !formattedPhone.startsWith('+')) {
         formattedPhone = `+${formattedPhone}`;
       }
 
-      // Only populate if the basic fields are empty
       const shouldPopulate = !cart.deliveryInfo.nome ||
                            !cart.deliveryInfo.cognome ||
                            !cart.deliveryInfo.email ||
@@ -103,7 +104,7 @@ export default function Basket() {
 
       if (shouldPopulate) {
         setDeliveryInfo({
-          ...cart.deliveryInfo, // Preserve existing address fields
+          ...cart.deliveryInfo,
           nome: userProfile.firstName || '',
           cognome: userProfile.lastName || '',
           telefono: formattedPhone,
@@ -134,7 +135,6 @@ export default function Basket() {
               console.log('✅ Order confirmed by superuser!');
               setCanCancel(false);
               setCancelCountdown(0);
-              // Small delay to show the confirmation, then redirect
               setTimeout(() => {
                 handleOrderConfirmed();
               }, 2000);
@@ -186,18 +186,17 @@ export default function Basket() {
   }, [showPendingModal, canCancel, cancelCountdown, orderStatus]);
 
   // Generate unique order number
-const generateOrderNumber = () => {
-  const now = new Date();
-  const year = now.getFullYear().toString().slice(-2); // Last 2 digits of year
-  const month = (now.getMonth() + 1).toString().padStart(2, '0');
-  const day = now.getDate().toString().padStart(2, '0');
-  const hour = now.getHours().toString().padStart(2, '0');
-  const minute = now.getMinutes().toString().padStart(2, '0');
-  const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+  const generateOrderNumber = () => {
+    const now = new Date();
+    const year = now.getFullYear().toString().slice(-2);
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    const hour = now.getHours().toString().padStart(2, '0');
+    const minute = now.getMinutes().toString().padStart(2, '0');
+    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
 
-  return `${year}${month}${day}${hour}${minute}${random}`;
-  // Example: 250613162499
-};
+    return `${year}${month}${day}${hour}${minute}${random}`;
+  };
 
   // Save user preferences for marketing
   const saveUserPreferences = async (orderData) => {
@@ -248,21 +247,18 @@ const generateOrderNumber = () => {
         promoCode: cart.promoCode || '',
         totalPrice: total,
         paymentMethod,
-        status: 'pending', // IMPORTANT: Start as pending
+        status: 'pending',
         timestamp: serverTimestamp(),
         createdAt: new Date().toISOString()
       };
 
       console.log('📦 Order data:', orderData);
 
-      // Add order to Firebase
       const orderRef = await addDoc(collection(firestore, 'orders'), orderData);
       console.log('✅ Order submitted with ID:', orderRef.id);
 
-      // Save user preferences
       await saveUserPreferences(orderData);
 
-      // Store order for pending modal
       setPendingOrder({ ...orderData, id: orderRef.id });
       setOrderStatus('pending');
 
@@ -281,7 +277,6 @@ const generateOrderNumber = () => {
       if (pendingOrder && pendingOrder.id && canCancel && orderStatus === 'pending') {
         console.log('❌ Cancelling order:', pendingOrder.id);
 
-        // Update order status to cancelled
         await updateDoc(doc(firestore, 'orders', pendingOrder.id), {
           status: 'cancelled',
           cancelledAt: serverTimestamp(),
@@ -289,13 +284,8 @@ const generateOrderNumber = () => {
         });
 
         console.log('✅ Order cancelled successfully');
-
-        // The real-time listener will handle the UI updates
       } else {
         console.log('❌ Cannot cancel order - conditions not met');
-        console.log('Pending order:', !!pendingOrder);
-        console.log('Can cancel:', canCancel);
-        console.log('Order status:', orderStatus);
       }
     } catch (error) {
       console.error('❌ Error cancelling order:', error);
@@ -314,8 +304,18 @@ const generateOrderNumber = () => {
     setSelectedPayment(null);
     setOrderStatus('pending');
     setShowCancelledNotification(true);
-    // Auto-hide notification after 3 seconds
     setTimeout(() => setShowCancelledNotification(false), 3000);
+  };
+
+  // Handle delivery button click
+  const handleDeliveryClick = () => {
+    setShowDeliveryWarningModal(true);
+  };
+
+  // Handle proceeding with delivery after warning
+  const proceedWithDelivery = () => {
+    setOrderType('consegna');
+    setShowDeliveryWarningModal(false);
   };
 
   const cartItems = cart.items;
@@ -334,7 +334,6 @@ const generateOrderNumber = () => {
   const saveNotes = () => {
     if (cart.notes.trim()) {
       setNotesSaved(true);
-      // Here you could also save to backend if needed
       alert('Note salvate!');
     } else {
       alert('Inserisci delle note prima di salvare!');
@@ -343,8 +342,7 @@ const generateOrderNumber = () => {
 
   const amendNotes = () => {
     setNotesSaved(false);
-    // Focus on the textarea for better UX
-    const textarea = document.querySelector('.cart-notes-textarea');
+    const textarea = document.querySelector('.basket-notes-textarea'); // Updated selector
     if (textarea) {
       textarea.focus();
     }
@@ -379,53 +377,51 @@ const generateOrderNumber = () => {
   const handleOrderConfirmed = () => {
     console.log('🎉 Navigating to success page');
     setShowPendingModal(false);
-    // Clear cart
     cartItems.forEach(item => {
       updateQuantity(item.id, 0);
     });
-    // Navigate to success page
     navigate('/order-success');
   };
 
   return (
-    <div className="cart-container">
-      <div className="cart-background-overlay" />
+    <div className="basket-container">
+      <div className="basket-background-overlay" />
 
-      <div className="cart-content">
-        <div className="cart-order-summary">
-          <div className="cart-summary-header">
-            <button className="cart-back-button" onClick={() => navigate('/menu')}>
+      <div className="basket-content">
+        <div className="basket-order-summary">
+          <div className="basket-summary-header">
+            <button className="basket-back-button" onClick={() => navigate('/menu')}>
               <ArrowLeft size={20} />
             </button>
-            <h2 className="cart-summary-title">
+            <h2 className="basket-summary-title">
               RIEPILOGO ORDINE
             </h2>
           </div>
 
           {/* Cart items */}
           {Object.entries(groupedItems).map(([category, items]) => (
-            <div key={category} className="cart-category-group">
-              <div className="cart-category-header">
+            <div key={category} className="basket-category-group">
+              <div className="basket-category-header">
                 {category}
               </div>
-              <div className="cart-category-items">
+              <div className="basket-category-items">
                 {items.map((item) => (
-                  <div key={item.id} className="cart-item">
-                    <div className="menu-item-count">{item.quantity}</div>
-                    <div className="cart-item-name">{item.name}</div>
-                    <div className="cart-item-price">
+                  <div key={item.id} className="basket-item">
+                    <div className="basket-item-count">{item.quantity}</div>
+                    <div className="basket-item-name">{item.name}</div>
+                    <div className="basket-item-price">
                       €{(parseFloat(item.price.replace('€', '')) * item.quantity).toFixed(2)}
                     </div>
-                    <div className="cart-item-controls">
+                    <div className="basket-item-controls">
                       <button
-                        className="menu-minus-btn"
+                        className="basket-minus-btn"
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
                         aria-label={`Remove one ${item.name}`}
                       >
                         -
                       </button>
                       <button
-                        className="menu-plus-btn"
+                        className="basket-plus-btn"
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
                         aria-label={`Add one ${item.name}`}
                       >
@@ -439,93 +435,92 @@ const generateOrderNumber = () => {
           ))}
 
           {/* Total */}
-          <div className="cart-total-section">
-            <div className="cart-total-row">
-              <span className="cart-total-label">Totale ({totalItems}):</span>
-              <span className="cart-total-amount">€{total.toFixed(2)}</span>
+          <div className="basket-total-section">
+            <div className="basket-total-row">
+              <span className="basket-total-label">Totale ({totalItems}):</span>
+              <span className="basket-total-amount">€{total.toFixed(2)}</span>
             </div>
           </div>
         </div>
 
         {/* Promo code */}
-        <div className="cart-promo-section">
+        <div className="basket-promo-section">
           <input
             type="text"
             placeholder="Codice promozionale"
             value={cart.promoCode}
             onChange={(e) => setPromoCode(e.target.value)}
-            className="cart-promo-input"
+            className="basket-promo-input"
           />
-          <button className="cart-promo-btn">Applica</button>
+          <button className="basket-promo-btn">Applica</button>
         </div>
 
-        {/* Notes section with improved functionality */}
-        <div className="cart-notes-section">
+        {/* Notes section */}
+        <div className="basket-notes-section">
           <textarea
             placeholder="Note (allergie, richieste speciali...)"
             value={cart.notes}
             onChange={(e) => {
               setNotes(e.target.value);
-              // Reset saved state if user modifies notes
               if (notesSaved && e.target.value !== cart.notes) {
                 setNotesSaved(false);
               }
             }}
             rows={3}
-            className="cart-notes-textarea"
+            className="basket-notes-textarea"
             disabled={notesSaved}
           />
           <button
             onClick={notesSaved ? amendNotes : saveNotes}
-            className={`cart-save-notes-btn ${notesSaved ? 'cart-amend-notes-btn' : ''}`}
+            className={`basket-save-notes-btn ${notesSaved ? 'basket-amend-notes-btn' : ''}`}
           >
             {notesSaved ? 'Modifica Note' : 'Salva Note'}
           </button>
         </div>
 
         {/* Order type */}
-        <div className="cart-order-type-section">
-          <h3 className="cart-order-type-title">Tipo di Ordine</h3>
-          <div className="cart-order-type-buttons">
+        <div className="basket-order-type-section">
+          <h3 className="basket-order-type-title">Tipo di Ordine</h3>
+          <div className="basket-order-type-buttons">
             <button
               onClick={() => setOrderType('tavolo')}
-              className={`cart-order-type-btn ${cart.orderType === 'tavolo' ? 'active' : ''}`}
+              className={`basket-order-type-btn ${cart.orderType === 'tavolo' ? 'active' : ''}`}
             >
               Al Tavolo
             </button>
             <button
-              onClick={() => setOrderType('consegna')}
-              className={`cart-order-type-btn ${cart.orderType === 'consegna' ? 'active' : ''}`}
+              onClick={handleDeliveryClick}
+              className={`basket-order-type-btn ${cart.orderType === 'consegna' ? 'active' : ''}`}
             >
               Consegna
             </button>
           </div>
         </div>
 
-        {/* Conditional sections based on order type - only show when selected */}
+        {/* Conditional sections based on order type */}
         {cart.orderType === 'tavolo' && (
-          <div className="cart-table-section">
-            <label className="cart-table-label">Numero Tavolo:</label>
+          <div className="basket-table-section">
+            <label className="basket-table-label">Numero Tavolo:</label>
             <input
               type="text"
               value={cart.tableNumber || ''}
               onChange={(e) => setTableNumber(e.target.value)}
               placeholder="Tavolo 1"
-              className="cart-table-input"
+              className="basket-table-input"
             />
           </div>
         )}
 
         {cart.orderType === 'consegna' && (
-          <div className="cart-delivery-section">
-            <h3 className="cart-delivery-title">Informazioni Consegna</h3>
-            <div className="cart-delivery-grid">
+          <div className="basket-delivery-section">
+            <h3 className="basket-delivery-title">Informazioni Consegna</h3>
+            <div className="basket-delivery-grid">
               <input
                 type="text"
                 placeholder="Nome *"
                 value={cart.deliveryInfo.nome || ''}
                 onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, nome: e.target.value })}
-                className="cart-delivery-input"
+                className="basket-delivery-input"
                 required
               />
               <input
@@ -533,7 +528,7 @@ const generateOrderNumber = () => {
                 placeholder="Cognome *"
                 value={cart.deliveryInfo.cognome || ''}
                 onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, cognome: e.target.value })}
-                className="cart-delivery-input"
+                className="basket-delivery-input"
                 required
               />
               <input
@@ -541,7 +536,7 @@ const generateOrderNumber = () => {
                 placeholder="Telefono *"
                 value={cart.deliveryInfo.telefono || ''}
                 onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, telefono: e.target.value })}
-                className="cart-delivery-input"
+                className="basket-delivery-input"
                 required
               />
               <input
@@ -549,26 +544,24 @@ const generateOrderNumber = () => {
                 placeholder="Email *"
                 value={cart.deliveryInfo.email || ''}
                 onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, email: e.target.value })}
-                className="cart-delivery-input"
+                className="basket-delivery-input"
                 required
               />
 
-              {/* Company field - optional, spans full width */}
               <input
                 type="text"
                 placeholder="Compagnia (opzionale)"
                 value={cart.deliveryInfo.compagnia || ''}
                 onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, compagnia: e.target.value })}
-                className="cart-delivery-input cart-delivery-full-width"
+                className="basket-delivery-input basket-delivery-full-width"
               />
 
-              {/* Address fields */}
               <input
                 type="text"
                 placeholder="Indirizzo *"
                 value={cart.deliveryInfo.indirizzo || ''}
                 onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, indirizzo: e.target.value })}
-                className="cart-delivery-input"
+                className="basket-delivery-input"
                 required
               />
               <input
@@ -576,7 +569,7 @@ const generateOrderNumber = () => {
                 placeholder="Numero Civico *"
                 value={cart.deliveryInfo.civico || ''}
                 onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, civico: e.target.value })}
-                className="cart-delivery-input"
+                className="basket-delivery-input"
                 required
               />
               <input
@@ -584,7 +577,7 @@ const generateOrderNumber = () => {
                 placeholder="Città *"
                 value={cart.deliveryInfo.citta || ''}
                 onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, citta: e.target.value })}
-                className="cart-delivery-input"
+                className="basket-delivery-input"
                 required
               />
               <input
@@ -592,7 +585,7 @@ const generateOrderNumber = () => {
                 placeholder="Provincia *"
                 value={cart.deliveryInfo.provincia || ''}
                 onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, provincia: e.target.value })}
-                className="cart-delivery-input"
+                className="basket-delivery-input"
                 required
               />
               <input
@@ -600,7 +593,7 @@ const generateOrderNumber = () => {
                 placeholder="CAP *"
                 value={cart.deliveryInfo.cap || ''}
                 onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, cap: e.target.value })}
-                className="cart-delivery-input"
+                className="basket-delivery-input"
                 maxLength="5"
                 pattern="[0-9]{5}"
                 required
@@ -612,67 +605,102 @@ const generateOrderNumber = () => {
         <button
           onClick={confirmOrder}
           disabled={!isOrderValid()}
-          className={`cart-confirm-btn ${!isOrderValid() ? 'cart-confirm-btn-disabled' : ''}`}
+          className={`basket-confirm-btn ${!isOrderValid() ? 'basket-confirm-btn-disabled' : ''}`}
         >
           CONFERMA ORDINE
         </button>
       </div>
 
+      {/* Delivery Warning Modal */}
+      {showDeliveryWarningModal && (
+        <div className="basket-modal-overlay">
+          <div className="basket-payment-modal">
+            <div className="basket-pending-content">
+              <div className="basket-pending-icon">
+                <AlertTriangle size={40} color="#ffc107" />
+              </div>
+
+              <div className="basket-status-message">
+                <p><strong>Gli ordini a domicilio non accumulano timbri fedeltà.</strong></p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                <button
+                  onClick={() => setShowDeliveryWarningModal(false)}
+                  className="basket-cancel-btn"
+                  style={{ flex: 1 }}
+                >
+                  Annulla
+                </button>
+                <button
+                  onClick={proceedWithDelivery}
+                  className="basket-continue-btn"
+                  style={{ flex: 1 }}
+                >
+                  Procedi
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Payment Selection Modal */}
       {showPaymentModal && (
-        <div className="modal-overlay">
-          <div className="payment-modal">
-            <div className="modal-header">
-               <h3>Pagamento</h3>
+        <div className="basket-modal-overlay">
+          <div className="basket-payment-modal">
+            <div className="basket-modal-header">
+              <img src="/images/Dandy.jpeg" alt="Dandy Logo" className="basket-modal-logo" />
+              <h3>Pagamento</h3>
               <button
                 onClick={() => setShowPaymentModal(false)}
-                className="modal-close"
+                className="basket-modal-close"
               >
                 <X size={15} />
               </button>
             </div>
 
-            <div className="payment-summary">
-              <div className="summary-row">
+            <div className="basket-payment-summary">
+              <div className="basket-summary-row">
                 <span>Subtotale ({totalItems} articoli)</span>
                 <span>€{total.toFixed(2)}</span>
               </div>
-              <div className="summary-row total">
+              <div className="basket-summary-row total">
                 <span>Totale</span>
                 <span>€{total.toFixed(2)}</span>
               </div>
             </div>
 
-            <div className="payment-methods">
+            <div className="basket-payment-methods">
               <button
                 onClick={() => handlePaymentSelect('pay-at-till')}
-                className="payment-btn pay-till"
+                className="basket-payment-btn pay-till"
                 disabled={orderProcessing}
               >
                 <CreditCard size={20} />
                 <div>
-                  <div className="payment-title">Contanti</div>
-                  <div className="payment-subtitle">Paga in Contanti</div>
+                  <div className="basket-payment-title">Contanti</div>
+                  <div className="basket-payment-subtitle">Paga in Contanti</div>
                 </div>
               </button>
 
               <button
                 onClick={() => handlePaymentSelect('pay-now')}
-                className="payment-btn pay-now disabled"
+                className="basket-payment-btn pay-now disabled"
                 disabled={true}
                 title="Pagamento online non ancora disponibile"
               >
                 <CreditCard size={20} />
                 <div>
-                  <div className="payment-title">Carta</div>
-                  <div className="payment-subtitle">Apple Pay / Google Pay / PayPal</div>
-                  <div className="payment-coming-soon">Presto disponibile</div>
+                  <div className="basket-payment-title">Carta</div>
+                  <div className="basket-payment-subtitle">Apple Pay / Google Pay / PayPal</div>
+                  <div className="basket-payment-coming-soon">Presto disponibile</div>
                 </div>
               </button>
             </div>
 
             {orderProcessing && (
-              <div className="processing-indicator">
+              <div className="basket-processing-indicator">
                 <Clock size={20} />
                 <span>Elaborazione ordine...</span>
               </div>
@@ -681,29 +709,32 @@ const generateOrderNumber = () => {
         </div>
       )}
 
-      {/* FIXED: Unified Pending Order Modal Design */}
+      {/* Pending Order Modal */}
       {showPendingModal && pendingOrder && (
-        <div className="modal-overlay">
-          <div className="pending-modal">
-            <div className="pending-header">
-              <img src="/images/Dandy.jpeg" alt="Dandy Logo" className="modal-logo" />
-              <div className="pending-icon">
+        <div className="basket-modal-overlay">
+          <div className="basket-pending-modal">
+            <div className="basket-pending-shine" />
+
+            <div className="basket-pending-content">
+              <div className="basket-pending-icon">
                 {orderStatus === 'confirmed' ? (
                   <CheckCircle size={40} color="#28a745" />
                 ) : (
                   <Clock size={40} color="#ffc107" />
                 )}
               </div>
-              <h2>
+
+              <img src="/images/Dandy.jpeg" alt="Dandy Logo" className="basket-pending-logo" />
+
+              <h2 className="basket-pending-title">
                 {orderStatus === 'confirmed' ? 'Ordine Confermato!' : 'Ordine in Attesa'}
               </h2>
-              <div className="order-number">
+
+              <div className="basket-order-number">
                 Ordine #{pendingOrder.orderNumber}
               </div>
-            </div>
 
-            <div className="pending-content">
-              <div className="status-message">
+              <div className="basket-status-message">
                 {orderStatus === 'confirmed' ? (
                   <p>Il tuo ordine è stato confermato dal locale!</p>
                 ) : (
@@ -714,21 +745,20 @@ const generateOrderNumber = () => {
                 )}
               </div>
 
-              {/* CONSISTENT ORDER SUMMARY FOR BOTH STATES */}
-              <div className="order-summary">
-                <div className="summary-item">
+              <div className="basket-order-summary">
+                <div className="basket-summary-item">
                   <strong>Consegna:</strong>
                   <span>{cart.orderType === 'tavolo' ? `Al Tavolo ${cart.tableNumber}` : 'Consegna'}</span>
                 </div>
-                <div className="summary-item">
+                <div className="basket-summary-item">
                   <strong>Totale:</strong>
                   <span>€{total.toFixed(2)}</span>
                 </div>
-                <div className="summary-item">
+                <div className="basket-summary-item">
                   <strong>Pagamento:</strong>
-                  <span>{selectedPayment === 'pay-at-till' ? 'Paga alla Cassa' : 'Pagamento Online'}</span>
+                  <span>{selectedPayment === 'pay-at-till' ? 'Contanti' : 'Pagamento Online'}</span>
                 </div>
-                <div className="summary-item">
+                <div className="basket-summary-item">
                   <strong>Stato:</strong>
                   <span style={{ color: orderStatus === 'confirmed' ? '#28a745' : '#ffc107' }}>
                     {orderStatus === 'confirmed' ? 'Confermato' : 'In Attesa'}
@@ -736,17 +766,16 @@ const generateOrderNumber = () => {
                 </div>
               </div>
 
-              {/* CONDITIONAL SECTIONS BASED ON STATUS */}
               {orderStatus === 'pending' && canCancel && (
-                <div className="cancel-section">
+                <div className="basket-cancel-section">
                   <p>Puoi cancellare l'ordine entro:</p>
-                  <div className="countdown">
-                    <span className="countdown-number">{cancelCountdown}</span>
+                  <div className="basket-countdown">
+                    <span className="basket-countdown-number">{cancelCountdown}</span>
                     <span>secondi</span>
                   </div>
                   <button
                     onClick={cancelOrder}
-                    className="cancel-btn"
+                    className="basket-cancel-btn"
                     disabled={!canCancel}
                   >
                     Cancella Ordine
@@ -755,12 +784,12 @@ const generateOrderNumber = () => {
               )}
 
               {orderStatus === 'confirmed' && (
-                <div className="confirmed-section">
+                <div className="basket-confirmed-section">
                   <CheckCircle size={32} color="#28a745" />
                   <p>Notifica di conferma creata!</p>
                   <button
                     onClick={handleOrderConfirmed}
-                    className="continue-btn"
+                    className="basket-continue-btn"
                   >
                     Continua
                   </button>
@@ -768,10 +797,10 @@ const generateOrderNumber = () => {
               )}
 
               {orderStatus === 'pending' && !canCancel && (
-                <div className="waiting-section">
+                <div className="basket-waiting-section">
                   <Clock size={32} color="#ffc107" />
                   <p>In attesa di conferma dal locale...</p>
-                  <p className="small-text">Non è più possibile cancellare l'ordine</p>
+                  <p className="basket-small-text">Non è più possibile cancellare l'ordine</p>
                 </div>
               )}
             </div>
@@ -781,10 +810,10 @@ const generateOrderNumber = () => {
 
       {/* Custom Cancellation Notification */}
       {showCancelledNotification && (
-        <div className="custom-notification">
-          <div className="notification-content">
-            <img src="/images/Dandy.jpeg" alt="Dandy Logo" className="notification-logo" />
-            <div className="notification-text">
+        <div className="basket-custom-notification">
+          <div className="basket-notification-content">
+            <img src="/images/Dandy.jpeg" alt="Dandy Logo" className="basket-notification-logo" />
+            <div className="basket-notification-text">
               <h3>Ordine Cancellato</h3>
               <p>Il tuo ordine è stato cancellato con successo.</p>
             </div>
