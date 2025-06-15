@@ -14,8 +14,8 @@ export default function Scan() {
   const [success, setSuccess] = useState(false);
   const [customerInfo, setCustomerInfo] = useState(null);
   const [cameraPermission, setCameraPermission] = useState(null);
-  const [availableCameras, setAvailableCameras] = useState([]);
-  const [selectedCamera, setSelectedCamera] = useState(null);
+  // State for camera choice: 'environment' (back) or 'user' (front)
+  const [cameraFacingMode, setCameraFacingMode] = useState('environment');
   const [processing, setProcessing] = useState(false);
 
   // Today's stamps log state
@@ -41,8 +41,14 @@ export default function Scan() {
     }
   };
 
-  // Check user permissions on component mount
+  // Check user permissions and load camera preference on component mount
   useEffect(() => {
+    // Load saved camera preference from localStorage
+    const savedCameraMode = localStorage.getItem('dandy-camera-mode');
+    if (savedCameraMode === 'user' || savedCameraMode === 'environment') {
+      setCameraFacingMode(savedCameraMode);
+    }
+
     const checkSuperUser = async () => {
       if (!auth.currentUser) {
         navigate('/signin');
@@ -70,31 +76,24 @@ export default function Scan() {
     setLoadingTodayStamps(true);
 
     try {
-      // Calculate today's date range (midnight to midnight)
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      // Get all stamps documents
       const stampsSnapshot = await getDocs(collection(firestore, 'stamps'));
-
       const todayStampsActivity = [];
       let stampsCount = 0;
 
-      // Process each stamps document
       for (const stampDoc of stampsSnapshot.docs) {
         const stampsData = stampDoc.data();
         const userId = stampDoc.id;
 
-        // Count today's stamps - check stamps created today
         if (stampsData.stamps && Array.isArray(stampsData.stamps)) {
           stampsData.stamps.forEach(stamp => {
             const stampDate = new Date(stamp.date);
             if (stampDate >= today && stampDate < tomorrow) {
               stampsCount++;
-
-              // Add to today's stamps log
               todayStampsActivity.push({
                 userId,
                 timestamp: stampDate,
@@ -108,35 +107,24 @@ export default function Scan() {
         }
       }
 
-      // Sort by timestamp (newest first)
       todayStampsActivity.sort((a, b) => b.timestamp - a.timestamp);
 
-      // Enrich with user names
       const enrichedTodayStamps = await Promise.all(
         todayStampsActivity.map(async (activity) => {
           try {
-            // Get customer info
             const userDoc = await getDoc(doc(firestore, 'users', activity.userId));
             const customerName = userDoc.exists()
               ? `${userDoc.data().firstName} ${userDoc.data().lastName}`
               : 'Utente Sconosciuto';
-
-            // Determine who added the stamp
             let addedByText = '';
             if (activity.addedByName) {
               addedByText = activity.addedByName;
             } else if (activity.addedByUser && activity.addedBy === 'manual') {
-              try {
-                const staffDoc = await getDoc(doc(firestore, 'users', activity.addedByUser));
-                if (staffDoc.exists()) {
-                  const staffData = staffDoc.data();
-                  addedByText = `${staffData.firstName} ${staffData.lastName}`;
-                } else {
-                  addedByText = 'Staff';
-                }
-              } catch (err) {
-                addedByText = 'Staff';
-              }
+              const staffDoc = await getDoc(doc(firestore, 'users', activity.addedByUser));
+              if (staffDoc.exists()) {
+                const staffData = staffDoc.data();
+                addedByText = `${staffData.firstName} ${staffData.lastName}`;
+              } else { addedByText = 'Staff'; }
             } else if (activity.addedBy === 'qr') {
               addedByText = 'QR Scan';
             } else if (activity.addedBy === 'manual') {
@@ -144,26 +132,15 @@ export default function Scan() {
             } else {
               addedByText = 'Sistema';
             }
-
-            return {
-              ...activity,
-              userName: customerName,
-              addedByText: addedByText
-            };
+            return { ...activity, userName: customerName, addedByText: addedByText };
           } catch (err) {
             console.error('Error fetching today activity details:', err);
-            return {
-              ...activity,
-              userName: 'Utente Sconosciuto',
-              addedByText: 'Sistema'
-            };
+            return { ...activity, userName: 'Utente Sconosciuto', addedByText: 'Sistema' };
           }
         })
       );
-
       setTodayStamps(enrichedTodayStamps);
       setTodayStampsCount(stampsCount);
-
     } catch (error) {
       console.error('Error loading today stamps:', error);
     } finally {
@@ -184,34 +161,12 @@ export default function Scan() {
     };
   }, []);
 
-  // Get available cameras
-  const getAvailableCameras = async () => {
-    try {
-      const devices = await Html5Qrcode.getCameras();
-      if (devices && devices.length) {
-        setAvailableCameras(devices);
-        const backCamera = devices.find(
-          device => device.label && device.label.toLowerCase().includes('back')
-        );
-        setSelectedCamera(backCamera ? backCamera.id : devices[0].id);
-        return true;
-      } else {
-        setError('No cameras found on your device.');
-        return false;
-      }
-    } catch (err) {
-      console.error('Error getting cameras:', err);
-      setError('Failed to access cameras: ' + err.message);
-      return false;
-    }
-  };
-
   // Check camera permissions
   const checkCameraPermission = async () => {
     try {
       await navigator.mediaDevices.getUserMedia({ video: true });
       setCameraPermission(true);
-      return await getAvailableCameras();
+      return true;
     } catch (err) {
       console.error('Camera permission error:', err);
       setCameraPermission(false);
@@ -220,189 +175,85 @@ export default function Scan() {
     }
   };
 
-  // Handle camera selection change
-  const handleCameraChange = (e) => {
-    setSelectedCamera(e.target.value);
+  // Handle camera toggle switch
+  const handleCameraToggle = () => {
+    const newMode = cameraFacingMode === 'environment' ? 'user' : 'environment';
+    setCameraFacingMode(newMode);
+    localStorage.setItem('dandy-camera-mode', newMode);
   };
 
-// Update the processRewardQRScan function in your Scan.js component:
-
-// Complete the processRewardQRScan function in your Scan.js:
-
-const processRewardQRScan = async (decodedText) => {
-  try {
-    console.log("Reward QR code detected:", decodedText);
-
-    const result = await redeemRewardQR({ qrCode: decodedText });
-
-    if (result.data.success) {
-      const {
-        message,
-        customerName,
-        customerEmail,
-        remainingRewards
-      } = result.data;
-
-      console.log("Reward QR redeemed successfully:", result.data);
-
-      setCustomerInfo({
-        name: customerName,
-        email: customerEmail,
-        message: message,
-        rewardRedeemed: true,
-        remainingRewards: remainingRewards,
-        stampsReset: true
-      });
-
-      setSuccess(true);
-      setResult(decodedText);
-
-      console.log("🎁 Reward successfully redeemed via QR!");
-      await loadTodayStamps();
-
-    } else {
-      throw new Error('Cloud Function returned unsuccessful result for reward QR');
-    }
-
-  } catch (error) {
-    console.error('Error processing reward QR scan:', error);
-
-    // Enhanced error handling with specific Italian messages and emojis
-    let errorMessage = error.message;
-
-    // Check for specific QR validation errors and add appropriate emoji/styling
-    if (errorMessage.includes('già stato utilizzato')) {
-      errorMessage = `🔄 ${errorMessage}`;
-    } else if (errorMessage.includes('non è valido')) {
-      errorMessage = `⚠️ ${errorMessage}`;
-    } else if (errorMessage.includes('scaduto')) {
-      errorMessage = `⏰ ${errorMessage}`;
-    } else {
-      // Fallback for other errors
-      errorMessage = `❌ Errore durante il riscatto: ${errorMessage}`;
-    }
-
-    throw new Error(errorMessage);
-  }
-};
-
-  // Process regular stamp QR scan using Cloud Function
-  const processStampQRScan = async (decodedText) => {
+  const processRewardQRScan = async (decodedText) => {
     try {
-      console.log("Regular stamp QR code detected:", decodedText);
-
-      let userId;
-      if (decodedText.includes('/profile/')) {
-        userId = decodedText.split('/profile/')[1];
-      } else {
-        userId = decodedText;
-      }
-
-      if (!userId) {
-        throw new Error('Invalid QR code format');
-      }
-
-      userId = userId.split('?')[0].split('#')[0].replace(/\/$/, '');
-      console.log("Extracted User ID:", userId);
-
-      const userDoc = await getDoc(doc(firestore, 'users', userId));
-      if (!userDoc.exists()) {
-        throw new Error(`User not found for ID: ${userId}`);
-      }
-
-      const userData = userDoc.data();
-      console.log("User data:", userData);
-
-      const result = await processStampScan({ scannedUserId: userId });
-
+      const result = await redeemRewardQR({ qrCode: decodedText });
       if (result.data.success) {
-        const {
-          message,
-          stampsAdded,
-          birthdayBonus,
-          rewardEarned,
-          currentStamps
-        } = result.data;
-
-        console.log("Cloud Function result:", result.data);
-
-        setCustomerInfo({
-          name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Unknown',
-          email: userData.email || 'No email',
-          message: message,
-          stampsAdded: stampsAdded,
-          birthdayBonus: birthdayBonus,
-          rewardEarned: rewardEarned,
-          currentStamps: currentStamps,
-          newStampCount: rewardEarned ? 0 : currentStamps,
-          stampsReset: rewardEarned,
-          rewardRedeemed: false
-        });
-
+        const { message, customerName, customerEmail, remainingRewards } = result.data;
+        setCustomerInfo({ name: customerName, email: customerEmail, message: message, rewardRedeemed: true, remainingRewards: remainingRewards, stampsReset: true });
         setSuccess(true);
         setResult(decodedText);
-
-        if (birthdayBonus) {
-          console.log("🎉 Birthday bonus activated!");
-        }
-
-        if (rewardEarned) {
-          console.log("🎁 Reward earned - stamps reset!");
-        }
-
         await loadTodayStamps();
+      } else {
+        throw new Error('Cloud Function returned unsuccessful result for reward QR');
+      }
+    } catch (error) {
+      let errorMessage = error.message;
+      if (errorMessage.includes('già stato utilizzato')) { errorMessage = `🔄 ${errorMessage}`; }
+      else if (errorMessage.includes('non è valido')) { errorMessage = `⚠️ ${errorMessage}`; }
+      else if (errorMessage.includes('scaduto')) { errorMessage = `⏰ ${errorMessage}`; }
+      else { errorMessage = `❌ Errore durante il riscatto: ${errorMessage}`; }
+      throw new Error(errorMessage);
+    }
+  };
 
+  const processStampQRScan = async (decodedText) => {
+    try {
+      let userId = decodedText.includes('/profile/') ? decodedText.split('/profile/')[1] : decodedText;
+      if (!userId) { throw new Error('Invalid QR code format'); }
+      userId = userId.split('?')[0].split('#')[0].replace(/\/$/, '');
+      const userDoc = await getDoc(doc(firestore, 'users', userId));
+      if (!userDoc.exists()) { throw new Error(`User not found for ID: ${userId}`); }
+      const userData = userDoc.data();
+      const result = await processStampScan({ scannedUserId: userId });
+      if (result.data.success) {
+        const { message, stampsAdded, birthdayBonus, rewardEarned, currentStamps } = result.data;
+        setCustomerInfo({ name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Unknown', email: userData.email || 'No email', message: message, stampsAdded: stampsAdded, birthdayBonus: birthdayBonus, rewardEarned: rewardEarned, currentStamps: currentStamps, newStampCount: rewardEarned ? 0 : currentStamps, stampsReset: rewardEarned, rewardRedeemed: false });
+        setSuccess(true);
+        setResult(decodedText);
+        await loadTodayStamps();
       } else {
         throw new Error('Cloud Function returned unsuccessful result');
       }
-
     } catch (error) {
-      console.error('Error processing stamp QR scan:', error);
       throw new Error(`Failed to process stamp scan: ${error.message}`);
     }
   };
 
-  // Main QR processing function - determines QR type and routes accordingly
   const processQRScan = async (decodedText) => {
     setProcessing(true);
-
     try {
       if (decodedText.startsWith('reward://dandy-app/')) {
-        console.log("🎁 Detected reward QR code");
         await processRewardQRScan(decodedText);
       } else {
-        console.log("📋 Detected regular stamp QR code");
         await processStampQRScan(decodedText);
       }
-
     } catch (error) {
-      console.error('Error processing QR scan:', error);
       setError(`Failed to process scan: ${error.message}`);
     } finally {
       setProcessing(false);
     }
   };
 
-  // Start QR scanner
   const startScanner = async () => {
     const hasPermission = await checkCameraPermission();
-    if (!hasPermission) {
-      return;
-    }
-
+    if (!hasPermission) { return; }
     setScanning(true);
     setResult(null);
     setError(null);
     setSuccess(false);
     setCustomerInfo(null);
     setProcessing(false);
-
-    setTimeout(() => {
-      initializeScanner();
-    }, 100);
+    setTimeout(() => { initializeScanner(); }, 100);
   };
 
-  // Initialize scanner in a separate function
   const initializeScanner = () => {
     try {
       if (!readerRef.current) {
@@ -410,13 +261,11 @@ const processRewardQRScan = async (decodedText) => {
         setScanning(false);
         return;
       }
-
       const html5QrCode = new Html5Qrcode("reader");
       scannerRef.current = html5QrCode;
 
-      const cameraConfig = selectedCamera ?
-        { deviceId: selectedCamera } :
-        { facingMode: "environment" };
+      // Use the new state for camera config
+      const cameraConfig = { facingMode: cameraFacingMode };
 
       html5QrCode.start(
         cameraConfig,
@@ -426,31 +275,23 @@ const processRewardQRScan = async (decodedText) => {
             await html5QrCode.stop();
             scannerRef.current = null;
             setScanning(false);
-
             await processQRScan(decodedText);
-
           } catch (err) {
-            console.error('Error stopping scanner or processing scan:', err);
             setError(err.message);
             setScanning(false);
           }
         },
-        (errorMessage) => {
-          console.log('QR scanning in progress:', errorMessage);
-        }
+        (errorMessage) => { /* Optional: handle non-decode events */ }
       ).catch(err => {
-        console.error('Error starting scanner:', err);
         setError(`Scanner initialization failed: ${err.message}`);
         setScanning(false);
       });
     } catch (err) {
-      console.error('Error starting scanner:', err);
       setError(`Failed to start scanner: ${err.message || 'Unknown error'}. Please try again.`);
       setScanning(false);
     }
   };
 
-  // Cancel scanning
   const cancelScanning = async () => {
     if (scannerRef.current) {
       try {
@@ -464,13 +305,8 @@ const processRewardQRScan = async (decodedText) => {
     setProcessing(false);
   };
 
-  // Format time for compact display
   const formatTime = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('it-IT', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return new Date(dateString).toLocaleString('it-IT', { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -483,42 +319,25 @@ const processRewardQRScan = async (decodedText) => {
             Avvia Scanner
           </button>
 
-          {availableCameras.length > 1 && (
-            <div className="camera-selector">
-              <label htmlFor="camera-select">Scegli fotocamera:</label>
-              <select
-                id="camera-select"
-                value={selectedCamera || ''}
-                onChange={handleCameraChange}
-              >
-                {availableCameras.map(camera => (
-                  <option key={camera.id} value={camera.id}>
-                    {camera.label || `Camera ${camera.id}`}
-                  </option>
-                ))}
-              </select>
+          {/* New Camera Toggle Switch */}
+          <div className="camera-toggle-container">
+            <label>Scegli fotocamera</label>
+            <div className="toggle-switch" onClick={handleCameraToggle}>
+              <div className="toggle-option-text">Posteriore</div>
+              <div className="toggle-option-text">Frontale</div>
+              <div className={`toggle-handle ${cameraFacingMode === 'user' ? 'right' : ''}`}>
+                {cameraFacingMode === 'environment' ? 'Posteriore' : 'Frontale'}
+              </div>
             </div>
-          )}
+          </div>
         </>
       )}
 
       {scanning && (
         <div className="scanner-container">
-          <div
-            id="reader"
-            ref={readerRef}
-            style={{
-              width: '100%',
-              maxWidth: '500px',
-              height: '400px',
-              margin: '0 auto',
-              border: '1px solid #ddd'
-            }}
-          ></div>
+          <div id="reader" ref={readerRef} style={{ width: '100%', maxWidth: '500px', height: '400px', margin: '0 auto', border: '1px solid #ddd' }}></div>
           <p className="scanning-instruction">Posiziona il QR code dentro il quadrato</p>
-          <button className="cancel-button" onClick={cancelScanning}>
-            Annulla
-          </button>
+          <button className="cancel-button" onClick={cancelScanning}>Annulla</button>
         </div>
       )}
 
@@ -532,14 +351,9 @@ const processRewardQRScan = async (decodedText) => {
       {error && (
         <div className="error-message">
           <p>{error}</p>
-          <button className="retry-button" onClick={startScanner}>
-            Riprova
-          </button>
+          <button className="retry-button" onClick={startScanner}>Riprova</button>
           {cameraPermission === false && (
-            <p>
-              Controlla le impostazioni del browser e assicurati che l'accesso alla fotocamera
-              sia consentito per questo sito web.
-            </p>
+            <p>Controlla le impostazioni del browser e assicurati che l'accesso alla fotocamera sia consentito per questo sito web.</p>
           )}
         </div>
       )}
@@ -547,83 +361,39 @@ const processRewardQRScan = async (decodedText) => {
       {success && customerInfo && (
         <div className="success-message">
           <h2>
-            {customerInfo.rewardRedeemed
-              ? '🎁 Premio Riscattato con Successo!'
-              : customerInfo.stampsReset
-                ? '🎁 Premio Riscattato!'
-                : customerInfo.birthdayBonus
-                  ? '🎉 Timbri Aggiunti - Buon Compleanno!'
-                  : '✅ Timbro Aggiunto con Successo!'}
+            {customerInfo.rewardRedeemed ? '🎁 Premio Riscattato con Successo!' : customerInfo.stampsReset ? '🎁 Premio Riscattato!' : customerInfo.birthdayBonus ? '🎉 Timbri Aggiunti - Buon Compleanno!' : '✅ Timbro Aggiunto con Successo!'}
           </h2>
           <div className="customer-info">
             <p><strong>Cliente:</strong> {customerInfo.name}</p>
             <p><strong>Email:</strong> {customerInfo.email}</p>
             <p><strong>Messaggio:</strong> {customerInfo.message}</p>
-
             {customerInfo.rewardRedeemed && (
               <>
-                <p style={{color: '#ff6b6b', fontWeight: 'bold'}}>
-                  🎁 Premio riscattato tramite QR!
-                </p>
-                {customerInfo.remainingRewards !== undefined && (
-                  <p><strong>Premi rimanenti:</strong> {customerInfo.remainingRewards}</p>
-                )}
+                <p style={{ color: '#ff6b6b', fontWeight: 'bold' }}>🎁 Premio riscattato tramite QR!</p>
+                {customerInfo.remainingRewards !== undefined && (<p><strong>Premi rimanenti:</strong> {customerInfo.remainingRewards}</p>)}
               </>
             )}
-
-            {customerInfo.birthdayBonus && !customerInfo.rewardRedeemed && (
-              <p style={{color: '#ff6b6b', fontWeight: 'bold'}}>
-                🎂 Bonus compleanno: +{customerInfo.stampsAdded} timbri!
-              </p>
-            )}
-
-            {!customerInfo.rewardRedeemed && (
-              <>
-                {customerInfo.stampsReset ? (
-                  <p><strong>Timbri resettati:</strong> Inizia nuova raccolta</p>
-                ) : (
-                  <p><strong>Timbri Attuali:</strong> {customerInfo.newStampCount}/9</p>
-                )}
-              </>
-            )}
+            {customerInfo.birthdayBonus && !customerInfo.rewardRedeemed && (<p style={{ color: '#ff6b6b', fontWeight: 'bold' }}>🎂 Bonus compleanno: +{customerInfo.stampsAdded} timbri!</p>)}
+            {!customerInfo.rewardRedeemed && (customerInfo.stampsReset ? (<p><strong>Timbri resettati:</strong> Inizia nuova raccolta</p>) : (<p><strong>Timbri Attuali:</strong> {customerInfo.newStampCount}/9</p>))}
           </div>
-          <button className="scan-again-button" onClick={startScanner}>
-            Scansiona Altro
-          </button>
+          <button className="scan-again-button" onClick={startScanner}>Scansiona Altro</button>
         </div>
       )}
 
-      {/* Refresh button outside the section */}
       <div className="refresh-container">
-        <button
-          className="refresh-today-button"
-          onClick={loadTodayStamps}
-          disabled={loadingTodayStamps}
-        >
-          {loadingTodayStamps ? (
-            <div className="mini-loader"></div>
-          ) : (
-            ''
-          )}
+        <button className="refresh-today-button" onClick={loadTodayStamps} disabled={loadingTodayStamps}>
+          {loadingTodayStamps ? <div className="mini-loader"></div> : ''}
           Aggiorna
         </button>
       </div>
 
-      {/* Compact Today's Stamps Log Section */}
       <div className="todays-stamps-section">
         <div className="section-header">
           <h2>Timbri di Oggi</h2>
-          <div className="today-counter">
-            <span className="count-badge">{todayStampsCount}</span>
-          </div>
+          <div className="today-counter"><span className="count-badge">{todayStampsCount}</span></div>
         </div>
-
         <div className="compact-log-list">
-          {loadingTodayStamps ? (
-            <div className="loading-today">
-              <p>Caricamento...</p>
-            </div>
-          ) : todayStamps.length > 0 ? (
+          {loadingTodayStamps ? (<div className="loading-today"><p>Caricamento...</p></div>) : todayStamps.length > 0 ? (
             todayStamps.map((stamp, index) => (
               <div className="compact-log-item" key={index}>
                 <div className="log-time">{formatTime(stamp.date)}</div>
@@ -631,11 +401,7 @@ const processRewardQRScan = async (decodedText) => {
                 <div className="log-addedby">{stamp.addedByText}</div>
               </div>
             ))
-          ) : (
-            <div className="no-stamps-today">
-              <p>Nessun timbro oggi</p>
-            </div>
-          )}
+          ) : (<div className="no-stamps-today"><p>Nessun timbro oggi</p></div>)}
         </div>
       </div>
     </div>

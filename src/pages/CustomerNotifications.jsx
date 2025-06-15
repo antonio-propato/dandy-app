@@ -17,7 +17,8 @@ import {
   faChevronUp,
   faHashtag,
   faCheckCircle,
-  faTimes
+  faTimes,
+  faStamp
 } from '@fortawesome/free-solid-svg-icons'
 import './CustomerNotifications.css'
 
@@ -47,12 +48,17 @@ const OrderDetailsModal = ({ notification }) => {
   const formatPaymentMethod = (method) => {
     switch (method) {
       case 'pay-at-till':
-        return 'Paga alla Cassa'
+        return 'Contanti'
       case 'pay-now':
-        return 'Pagamento Online'
+        return 'Online'
       default:
         return method || 'N/A'
     }
+  }
+
+  const formatTimbro = (details) => {
+    const orderType = formatOrderType(details)
+    return orderType.includes('Al Tavolo') ? 'Si' : 'No'
   }
 
   return (
@@ -81,6 +87,14 @@ const OrderDetailsModal = ({ notification }) => {
             <div className="info-content">
               <span className="info-label">Pagamento</span>
               <span className="info-value">{formatPaymentMethod(orderDetails.paymentMethod)}</span>
+            </div>
+          </div>
+
+          <div className="order-modal-info-item">
+            <FontAwesomeIcon icon={faStamp} className="info-icon" />
+            <div className="info-content">
+              <span className="info-label">Timbro</span>
+              <span className="info-value">{formatTimbro(orderDetails)}</span>
             </div>
           </div>
         </div>
@@ -117,16 +131,6 @@ const OrderDetailsModal = ({ notification }) => {
           </div>
         </div>
       )}
-
-      <div className="order-modal-status">
-        <div className="status-indicator confirmed">
-          <FontAwesomeIcon icon={faCheckCircle} size="lg" />
-          <span>Ordine Confermato</span>
-        </div>
-        {/* <p className="status-description">
-          Il tuo ordine è stato confermato e riceverai aggiornamenti sullo stato di preparazione.
-        </p> */}
-      </div>
     </div>
   )
 }
@@ -305,14 +309,27 @@ export default function CustomerNotifications() {
   }
 
   const formatPaymentMethod = (method) => {
-    if (method === 'pay-at-till') return 'Paga alla Cassa'
-    if (method === 'pay-now') return 'Pagato Online'
+    if (method === 'pay-at-till') return 'Contanti'
+    if (method === 'pay-now') return 'Online'
     return 'N/A'
+  }
+
+  const formatTimbro = (orderDetails) => {
+    const orderType = formatOrderType(orderDetails)
+    return orderType.includes('Al Tavolo') ? 'Yes' : 'No'
   }
 
   const getNotificationIcon = (notification) => {
     if (notification.data?.type === 'order_confirmation') return faShoppingCart
     return faBell
+  }
+
+  const getCleanTitle = (notification) => {
+    if (notification.data?.type === 'order_confirmation') {
+      // Remove "Confermato! ✅" and clean up the title
+      return notification.title.replace(/\s*Confermato!\s*✅?\s*/g, '').trim()
+    }
+    return notification.title
   }
 
   if (loading) {
@@ -421,7 +438,7 @@ export default function CustomerNotifications() {
                     <FontAwesomeIcon icon={faTrash} />
                   </div>
                   <div
-                    className={`notification-item ${!notification.read ? 'unread' : ''} ${swipeInfo.type}`}
+                    className={`notification-item ${!notification.read ? 'unread' : ''} ${isOrder && !notification.read ? 'unread-order' : ''} ${swipeInfo.type}`}
                     style={{
                       transform: `translateX(-${swipeInfo.offset}px)`
                     }}
@@ -442,7 +459,7 @@ export default function CustomerNotifications() {
                           />
                         </div>
                         <div className="notification-text-content">
-                          <h3 className="notification-title">{notification.title}</h3>
+                          <h3 className="notification-title">{getCleanTitle(notification)}</h3>
                         </div>
                         <div className="notification-meta-right">
                           <span className="notification-time">
@@ -508,6 +525,10 @@ export default function CustomerNotifications() {
                                     <div className="order-detail-item">
                                       <FontAwesomeIcon icon={faCreditCard} className="order-detail-icon" />
                                       <span className="order-detail-value">{formatPaymentMethod(orderDetails.paymentMethod)}</span>
+                                    </div>
+                                    <div className="order-detail-item">
+                                      <FontAwesomeIcon icon={faStamp} className="order-detail-icon" />
+                                      <span className="order-detail-value">{formatTimbro(orderDetails)}</span>
                                     </div>
                                     <div className="order-detail-item total">
                                       <span className="order-detail-value">€{orderDetails.totalPrice?.toFixed(2)}</span>

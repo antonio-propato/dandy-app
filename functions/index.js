@@ -1009,3 +1009,252 @@ exports.sendOrderConfirmationNotification = onCall({
     throw new Error(`Failed to create notification: ${error.message}`);
   }
 });
+
+// 📅 NEW: Process Scheduled Notifications (Every 5 minutes)
+exports.processScheduledNotifications = onSchedule({
+  schedule: 'every 5 minutes',
+  timeZone: 'Europe/Rome',
+  region: 'europe-west2'
+}, async () => {
+  try {
+    logger.info('📅 Checking for scheduled notifications to send...')
+
+    const now = new Date()
+
+    // Query for scheduled notifications that are ready to be sent
+    const scheduledQuery = db.collection('scheduledNotifications')
+      .where('status', '==', 'scheduled')
+      .where('scheduledFor', '<=', now.toISOString())
+
+    const scheduledSnapshot = await scheduledQuery.get()
+
+    if (scheduledSnapshot.empty) {
+      logger.info('📅 No scheduled notifications ready to send')
+      return
+    }
+
+    logger.info(`📅 Found ${scheduledSnapshot.size} scheduled notifications to process`)
+
+    // Process each scheduled notification
+    const batch = db.batch()
+
+    for (const doc of scheduledSnapshot.docs) {
+      const notificationData = doc.data()
+
+      try {
+        logger.info(`📤 Sending scheduled notification: ${notificationData.title}`)
+
+        // Get target users based on criteria (same logic as sendPushNotification)
+        let targetUsers = []
+        const usersSnapshot = await db.collection('users').get()
+        const allUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+
+        switch (notificationData.target) {
+          case 'all':
+            targetUsers = allUsers.filter(u => u.role !== 'superuser' && u.fcmTokens?.length > 0)
+            break
+          case 'customers':
+            targetUsers = allUsers.filter(u => u.role === 'customer' && u.fcmTokens?.length > 0)
+            break
+          case 'birthday_today':
+            const today = new Date()
+            const todayStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}`
+            targetUsers = allUsers.filter(u =>
+              u.role !== 'superuser' &&
+              u.fcmTokens?.length > 0 &&
+              u.dob === todayStr
+            )
+            break
+          case 'inactive_users':
+            const thirtyDaysAgo = new Date()
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+            targetUsers = allUsers.filter(u =>
+              u.role !== 'superuser' &&
+              u.fcmTokens?.length > 0 &&
+              (!u.lastLogin || new Date(u.lastLogin) < thirtyDaysAgo)
+            )
+            break
+          case 'reward_eligible':
+            // Get users with exactly 9 stamps
+            const stampsSnapshot = await db.collection('stamps').get()
+            const usersWithNineStamps = new Set()
+
+            stampsSnapshot.docs.forEach(stampsDoc => {
+              const stampsData = stampsDoc.data()
+              if (stampsData.stamps?.length === 9) {
+                usersWithNineStamps.add(stampsDoc.id)
+              }
+            })
+
+            targetUsers = allUsers.filter(u =>
+              u.role !== 'superuser' &&
+              u.fcmTokens?.length > 0 &&
+              usersWithNineStamps.has(u.id)
+            )
+            break
+          default:
+            logger.warn(`Unknown target type: ${notificationData.target}`)
+            continue
+        }
+
+        if (targetUsers.length > 0) {
+          // Collect all FCM tokens
+          const allTokens = targetUsers.flatMap(user => user.fcmTokens || [])
+
+          if (allTokens.length > 0) {
+            // Send FCM messages
+            const fcmResult = await sendFCMMessage(
+              allTokens,
+              notificationData.title,
+              notificationData.body,
+              notificationData.clickAction || '/profile',
+              {
+                type: 'admin_scheduled',
+                target: notificationData.target,
+                scheduled: true
+              }
+            )
+
+            // Create notification records for users who received the notification
+            const notificationBatch = db.batch()
+            const sentTime = new Date().toISOString()
+
+            targetUsers.forEach(user => {
+              const userHasValidTokens = user.fcmTokens?.some(token => !fcmResult.invalidTokens?.includes(token))
+
+              if (userHasValidTokens) {
+                const notificationRef = db.collection('notifications').doc()
+                notificationBatch.set(notificationRef, {
+                  userId: user.id,
+                  title: notificationData.title,
+                  body: notificationData.body,
+                  createdAt: sentTime,
+                  read: false,
+                  readAt: null,
+                  data: {
+                    click_action: notificationData.clickAction || '/profile',
+                    type: 'admin_scheduled',
+                    target: notificationData.target,
+                    scheduled: true
+                  },
+                  sentBy: 'system',
+                  campaign: `scheduled_${notificationData.target}`
+                })
+              }
+            })
+
+            await notificationBatch.commit()
+
+            // Update scheduled notification status to 'sent'
+            batch.update(doc.ref, {
+              status: 'sent',
+              sentAt: sentTime,
+              targetCount: targetUsers.length,
+              successCount: fcmResult.success || 0,
+              failedCount: fcmResult.failed || 0
+            })
+
+            // Update admin notifications record
+            const adminNotificationQuery = db.collection('adminNotifications')
+              .where('type', '==', 'scheduled')
+              .where('title', '==', notificationData.title)
+              .where('body', '==', notificationData.body)
+              .where('status', '==', 'scheduled')
+              .limit(1)
+
+            const adminNotificationSnapshot = await adminNotificationQuery.get()
+            if (!adminNotificationSnapshot.empty) {
+              const adminNotificationDoc = adminNotificationSnapshot.docs[0]
+              batch.update(adminNotificationDoc.ref, {
+                status: 'delivered',
+                sentAt: sentTime,
+                targetCount: targetUsers.length,
+                successCount: fcmResult.success || 0,
+                failedCount: fcmResult.failed || 0
+              })
+            }
+
+            logger.info(`✅ Scheduled notification sent - Success: ${fcmResult.success}, Failed: ${fcmResult.failed}`)
+          } else {
+            logger.warn(`No valid FCM tokens found for target: ${notificationData.target}`)
+            batch.update(doc.ref, {
+              status: 'failed',
+              sentAt: new Date().toISOString(),
+              error: 'No valid FCM tokens found'
+            })
+          }
+        } else {
+          logger.warn(`No target users found for: ${notificationData.target}`)
+          batch.update(doc.ref, {
+            status: 'failed',
+            sentAt: new Date().toISOString(),
+            error: 'No target users found'
+          })
+        }
+
+      } catch (error) {
+        logger.error(`Error processing scheduled notification ${doc.id}:`, error)
+        batch.update(doc.ref, {
+          status: 'failed',
+          sentAt: new Date().toISOString(),
+          error: error.message
+        })
+      }
+    }
+
+    // Commit all updates
+    await batch.commit()
+    logger.info(`📅 Processed ${scheduledSnapshot.size} scheduled notifications`)
+
+  } catch (error) {
+    logger.error('💥 Error in scheduled notifications job:', error)
+  }
+})
+
+// 🧹 Cleanup Old Scheduled Notifications (Daily cleanup)
+exports.cleanupScheduledNotifications = onSchedule({
+  schedule: 'every day 03:00',
+  timeZone: 'Europe/Rome',
+  region: 'europe-west2'
+}, async () => {
+  try {
+    logger.info('🧹 Cleaning up old scheduled notifications...')
+
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+
+    // Query for old scheduled notifications (sent or failed, older than 7 days)
+    const oldNotificationsQuery = db.collection('scheduledNotifications')
+      .where('status', 'in', ['sent', 'failed'])
+      .where('sentAt', '<', sevenDaysAgo.toISOString())
+
+    const oldNotificationsSnapshot = await oldNotificationsQuery.get()
+
+    if (oldNotificationsSnapshot.empty) {
+      logger.info('🧹 No old scheduled notifications to clean up')
+      return
+    }
+
+    // Delete old notifications in batches
+    const batch = db.batch()
+    let deleteCount = 0
+
+    oldNotificationsSnapshot.docs.forEach(doc => {
+      if (deleteCount < 500) { // Firestore batch limit
+        batch.delete(doc.ref)
+        deleteCount++
+      }
+    })
+
+    await batch.commit()
+    logger.info(`🧹 Cleaned up ${deleteCount} old scheduled notifications`)
+
+    // If there are more to delete, schedule another cleanup
+    if (oldNotificationsSnapshot.size > 500) {
+      logger.info(`🧹 More notifications to clean up (${oldNotificationsSnapshot.size - 500} remaining)`)
+    }
+
+  } catch (error) {
+    logger.error('💥 Error in scheduled notifications cleanup job:', error)
+  }
+})

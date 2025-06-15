@@ -170,6 +170,11 @@ const fetchOrderAndUserData = async () => {
     }
   }
 
+  const formatTimbro = (order) => {
+    const orderType = formatOrderType(order)
+    return orderType.includes('Al Tavolo') ? 'Disponibile' : 'Non Disponibile'
+  }
+
   // Notification status component
   const NotificationStatusIndicator = () => {
     switch (notificationStatus) {
@@ -250,7 +255,7 @@ const fetchOrderAndUserData = async () => {
             <FontAwesomeIcon icon={faHashtag} />
             <span>
               {lastOrder?.orderNumber
-                ? `Ordine #${lastOrder.orderNumber}`
+                ? `Ordine ${lastOrder.orderNumber.startsWith('#') ? lastOrder.orderNumber : '#' + lastOrder.orderNumber}`
                 : 'Ordine #[Numero non disponibile]'
               }
             </span>
@@ -278,6 +283,11 @@ const fetchOrderAndUserData = async () => {
                 <div className="order-success-summary-detail">
                   <span className="detail-label">Stato:</span>
                   <span className="detail-value" style={{color: '#28a745'}}>Confermato</span>
+                </div>
+
+                <div className="order-success-summary-detail">
+                  <span className="detail-label">Timbri:</span>
+                  <span className="detail-value">{formatTimbro(lastOrder)}</span>
                 </div>
               </div>
             </div>
