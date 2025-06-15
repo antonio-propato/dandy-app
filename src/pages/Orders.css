@@ -186,6 +186,85 @@
   }
 }
 
+/* --- GHOSTING STYLES --- */
+.order-card.ghosted {
+  opacity: 0.5;
+  pointer-events: none;
+  position: relative;
+  filter: grayscale(50%);
+  transition: all 0.3s ease;
+}
+
+.ghosting-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 20px;
+  backdrop-filter: blur(2px);
+}
+
+.ghosting-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: #FFD700;
+  font-weight: 600;
+  text-align: center;
+}
+
+.ghosting-message svg {
+  font-size: 2rem;
+  animation: ghost-pulse 1.5s infinite;
+}
+
+@keyframes ghost-pulse {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+/* --- PAYMENT OVERDUE ANIMATION (FIXED) --- */
+.order-card.payment-overdue {
+  animation: payment-overdue-pulse 1.5s infinite !important;
+  border: 3px solid #f44336 !important;
+  transform: none !important;
+}
+
+.order-card.payment-overdue:hover {
+  transform: none !important;
+}
+
+@keyframes payment-overdue-pulse {
+  0%, 100% {
+    box-shadow: 0 8px 25px rgba(244, 67, 54, 0.6),
+                0 0 0 0 rgba(244, 67, 54, 0.7);
+    border-color: #f44336;
+    background: #43221B;
+  }
+  50% {
+    box-shadow: 0 20px 50px rgba(244, 67, 54, 1),
+                0 0 30px rgba(244, 67, 54, 0.8),
+                0 0 0 10px rgba(244, 67, 54, 0.3),
+                inset 0 0 30px rgba(244, 67, 54, 0.2);
+    border-color: #ff1744;
+    background: rgba(244, 67, 54, 0.15);
+    transform: scale(1.02);
+  }
+}
+
 /* --- CARD HEADER (Order Number & Price) --- */
 .card-header {
   display: flex;
@@ -560,6 +639,307 @@
   box-shadow: 0 3px 10px rgba(244, 67, 54, 0.4);
 }
 
+/* --- PAYMENT OVERDUE TEXT ANIMATION --- */
+.payment-overdue-text {
+  animation: payment-text-overdue-pulse 1.5s infinite !important;
+  color: #f44336 !important;
+  font-weight: 600 !important;
+}
+
+@keyframes payment-text-overdue-pulse {
+  0%, 100% {
+    color: #f44336;
+    text-shadow: 0 0 0 rgba(244, 67, 54, 0.7);
+    transform: scale(1);
+  }
+  50% {
+    color: #ff1744;
+    text-shadow: 0 0 10px rgba(244, 67, 54, 0.8),
+                 0 0 20px rgba(244, 67, 54, 0.6),
+                 0 0 30px rgba(244, 67, 54, 0.4);
+    transform: scale(1.02);
+  }
+}
+
+/* --- CLICKABLE PAYMENT CONFIRMATION --- */
+.payment-clickable {
+  cursor: pointer !important;
+  transition: all 0.2s ease;
+  padding: 0.5rem;
+  border-radius: 8px;
+  width: 100%;
+}
+
+.payment-clickable:hover {
+  background: rgba(255, 215, 0, 0.1);
+}
+
+/* Enhanced overdue section styling for clickable area */
+.payment-clickable.payment-overdue-section {
+  animation: payment-clickable-overdue-pulse 1.5s infinite !important;
+  border: 2px solid #f44336 !important;
+  border-radius: 12px !important;
+}
+
+@keyframes payment-clickable-overdue-pulse {
+  0%, 100% {
+    background: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
+    border-color: #f44336;
+    transform: scale(1);
+  }
+  50% {
+    background: rgba(244, 67, 54, 0.15);
+    box-shadow: 0 0 30px rgba(244, 67, 54, 0.8),
+                0 0 0 8px rgba(244, 67, 54, 0.3);
+    border-color: #ff1744;
+    transform: scale(1.02);
+  }
+}
+
+/* Simple confirmed payment styling */
+.payment-confirmed-simple {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #4caf50;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.5rem;
+  width: 100%;
+}
+
+.payment-confirmed-simple svg {
+  color: #4caf50;
+  width: 16px;
+}
+.payment-confirmation-compact {
+  background: #000;
+  border-top: 1px solid rgba(255, 215, 0, 0.1);
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+/* WHOLE SECTION RED PULSE when overdue */
+.payment-confirmation-compact.payment-overdue-section {
+  animation: payment-section-overdue-pulse 1.5s infinite !important;
+  border: 2px solid #f44336 !important;
+  border-radius: 12px !important;
+}
+
+@keyframes payment-section-overdue-pulse {
+  0%, 100% {
+    background: #000;
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
+    border-color: #f44336;
+    transform: scale(1);
+  }
+  50% {
+    background: rgba(244, 67, 54, 0.15);
+    box-shadow: 0 0 30px rgba(244, 67, 54, 0.8),
+                0 0 0 8px rgba(244, 67, 54, 0.3);
+    border-color: #ff1744;
+    transform: scale(1.02);
+  }
+}
+
+/* Payment method style - left side */
+.payment-confirmation-compact .payment-method-style {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.payment-confirmation-compact .payment-method-style svg {
+  color: #FFD700;
+  width: 16px;
+}
+
+/* Payment actions - right side */
+.payment-confirmation-compact .payment-actions-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Payment confirmed badge - replaces the whole section when confirmed */
+.payment-confirmed-badge {
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 15px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 3px 10px rgba(76, 175, 80, 0.4);
+  width: 100%;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.payment-confirmed-badge svg {
+  color: white;
+  width: 16px;
+  height: 16px;
+}
+
+.payment-confirmed-badge span {
+  color: white;
+  font-weight: 600;
+}
+
+.payment-method-style {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #ffc107;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.payment-method-style svg {
+  color: #ffc107;
+  width: 16px;
+}
+
+.payment-actions-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.payment-btn-compact {
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  font-weight: 600;
+}
+
+.payment-btn-compact:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.payment-btn-compact:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.confirm-payment-compact {
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+}
+
+.confirm-payment-compact:hover:not(:disabled) {
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.5);
+}
+
+.reject-payment-compact {
+  background: linear-gradient(135deg, #f44336, #d32f2f);
+  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.4);
+}
+
+.reject-payment-compact:hover:not(:disabled) {
+  box-shadow: 0 4px 15px rgba(244, 67, 54, 0.5);
+}
+
+.payment-confirmed-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #4caf50;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.payment-confirmed-compact svg {
+  color: #4caf50;
+  width: 16px;
+}
+
+.payment-status-badge {
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+  min-width: 36px;
+  height: 36px;
+}
+
+/* --- Enhanced Cancellation Colors --- */
+.status-badge.status-cancelled {
+  background: linear-gradient(135deg, #f44336, #d32f2f);
+  box-shadow: 0 3px 10px rgba(244, 67, 54, 0.4);
+}
+
+/* User cancellation styling (orange) - from 10-second cancellation window */
+.status-badge.status-cancelled.user-cancelled {
+  background: linear-gradient(135deg, #ff9800, #f57c00) !important;
+  box-shadow: 0 3px 10px rgba(255, 152, 0, 0.4) !important;
+}
+
+/* Superuser cancellation styling (red) - when superuser cancels */
+.status-badge.status-cancelled.superuser-cancelled {
+  background: linear-gradient(135deg, #f44336, #d32f2f) !important;
+  box-shadow: 0 3px 10px rgba(244, 67, 54, 0.4) !important;
+}
+
+/* Override icon colors for proper contrast */
+.status-badge.status-cancelled.user-cancelled svg {
+  color: white !important;
+}
+
+.status-badge.status-cancelled.superuser-cancelled svg {
+  color: white !important;
+}
+
+/* Default cancelled styling (fallback to red if no specific class) */
+.status-badge.status-cancelled svg {
+  color: white !important;
+}
+
+.action-btn.cancel-btn.user-cancelled {
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+  box-shadow: 0 3px 10px rgba(255, 152, 0, 0.4);
+}
+
+.action-btn.cancel-btn.user-cancelled:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.5);
+}
+
+.action-btn.cancel-btn.superuser-cancelled {
+  background: linear-gradient(135deg, #f44336, #d32f2f);
+  box-shadow: 0 3px 10px rgba(244, 67, 54, 0.4);
+}
+
+.action-btn.cancel-btn.superuser-cancelled:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(244, 67, 54, 0.5);
+}
+
 /* --- Table Styles --- */
 .table-container {
   overflow-x: auto;
@@ -755,6 +1135,25 @@
   .detail-item {
     font-size: 0.9rem;
   }
+
+  .payment-confirmation-compact {
+    padding: 0.8rem 1.2rem;
+  }
+
+  .payment-confirmation-compact .payment-method-style {
+    font-size: 0.85rem;
+  }
+
+  .payment-confirmed-badge {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    gap: 0.4rem;
+  }
+
+  .payment-confirmed-badge svg {
+    width: 14px;
+    height: 14px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -824,9 +1223,36 @@
   .items-list li {
     font-size: 0.85rem;
   }
+
+  .payment-confirmation-compact {
+    padding: 0.8rem 1rem;
+    flex-direction: column;
+    gap: 0.8rem;
+    align-items: flex-start;
+  }
+
+  .payment-method-style {
+    font-size: 0.8rem;
+  }
+
+  .payment-actions-compact {
+    align-self: flex-end;
+  }
+
+  .payment-btn-compact {
+    width: 30px;
+    height: 30px;
+    font-size: 0.75rem;
+  }
+
+  .payment-status-badge {
+    min-width: 30px;
+    height: 30px;
+    font-size: 0.65rem;
+  }
 }
 
-/* Add to your Orders.css */
+/* Additional styles */
 .rewards-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

@@ -1,4 +1,3 @@
-// Orders.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -33,18 +32,20 @@ import {
   faVolumeMute,
   faTimes,
   faStickyNote,
-  faPhone, // <-- IMPORT THE PHONE ICON
+  faPhone,
   faBuilding,
   faListOl,
   faHome,
-  faTruck
+  faTruck,
+  faMoneyBillWave
 } from '@fortawesome/free-solid-svg-icons';
 import './Orders.css';
 
 // --- Enhanced OrderCard Component ---
-const OrderCard = ({ order, onConfirm, onCancel, processingOrders, isModal = false }) => {
+const OrderCard = ({ order, onConfirm, onCancel, onConfirmPayment, onRejectPayment, processingOrders, isModal = false, isGhosted = false, paymentConfirmed = false, paymentOverdue = false }) => {
   const isPending = order.status === 'pending';
   const isProcessing = processingOrders.has(order.id);
+  const isCashPayment = order.paymentMethod === 'pay-at-till' || order.paymentMethod === 'cash' || order.paymentMethod === 'contanti';
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'N/A';
@@ -61,11 +62,37 @@ const OrderCard = ({ order, onConfirm, onCancel, processingOrders, isModal = fal
     'pay-at-till': 'Contanti',
     'pay-now': 'Online',
     'card': 'Carta',
-    'cash': 'Contanti'
+    'cash': 'Contanti',
+    'contanti': 'Contanti'
   }[method] || method || 'N/A');
 
+  // **MODIFICATION**: Determine CSS class for cancellation type
+  const cancellationClass =
+    order.status === 'cancelled'
+      ? (order.cancelledBy === 'user' || order.cancelledBy === 'customer')
+        ? 'user-cancelled'
+        : 'superuser-cancelled'
+      : '';
+
+  const cardClasses = [
+    'order-card',
+    `status-${order.status}`,
+    isGhosted ? 'ghosted' : '',
+    paymentOverdue ? 'payment-overdue' : ''
+  ].filter(Boolean).join(' ');
+
   return (
-    <div className={`order-card status-${order.status}`} data-order-id={order.id}>
+    <div className={cardClasses} data-order-id={order.id}>
+      {/* Ghosting overlay */}
+      {isGhosted && (
+        <div className="ghosting-overlay">
+          <div className="ghosting-message">
+            <FontAwesomeIcon icon={faClock} />
+            <span>Nuovo ordine in arrivo...</span>
+          </div>
+        </div>
+      )}
+
       {/* Card Header with Order Number and Price */}
       <div className="card-header">
         <div className="card-header-left">
@@ -103,7 +130,6 @@ const OrderCard = ({ order, onConfirm, onCancel, processingOrders, isModal = fal
                 <FontAwesomeIcon icon={faTruck} />
                 <span>{order.deliveryInfo?.indirizzo}, {order.deliveryInfo?.civico} - {order.deliveryInfo?.citta}</span>
               </div>
-              {/* --- THIS IS THE FIX --- */}
               {/* Display phone number if it exists in deliveryInfo */}
               {order.deliveryInfo?.telefono && (
                 <div className="detail-item telephone-number">
@@ -159,7 +185,7 @@ const OrderCard = ({ order, onConfirm, onCancel, processingOrders, isModal = fal
             <div className="card-actions">
               <button
                 onClick={() => onCancel(order.id)}
-                disabled={isProcessing}
+                disabled={isGhosted || isProcessing}
                 className="action-btn cancel-btn"
                 title="Cancella Ordine"
               >
@@ -167,7 +193,7 @@ const OrderCard = ({ order, onConfirm, onCancel, processingOrders, isModal = fal
               </button>
               <button
                 onClick={() => onConfirm(order.id)}
-                disabled={isProcessing}
+                disabled={isGhosted || isProcessing}
                 className="action-btn confirm-btn"
                 title="Conferma Ordine"
               >
@@ -175,19 +201,42 @@ const OrderCard = ({ order, onConfirm, onCancel, processingOrders, isModal = fal
               </button>
             </div>
           ) : (
-            <div className={`status-badge status-${order.status}`}>
-              <FontAwesomeIcon icon={order.status === 'confirmed' ? faCheck : faTimes} />
+            // **MODIFICATION**: The className now includes the dynamic cancellationClass
+            <div className={`status-badge status-${order.status} ${cancellationClass}`}>
+              <FontAwesomeIcon
+                icon={order.status === 'confirmed' ? faCheck : faTimes}
+                // **MODIFICATION**: Inline style removed, color handled by CSS
+              />
               <span>{order.status === 'confirmed' ? '' : ''}</span>
             </div>
           )
         )}
       </div>
+
+      {/* Cash Payment Confirmation Section - Shows AFTER order is accepted */}
+      {isCashPayment && order.status === 'confirmed' && !isModal && (
+        <div className="payment-confirmation-compact">
+          {!paymentConfirmed ? (
+            <div
+              className={`payment-method-style payment-clickable ${paymentOverdue ? 'payment-overdue-section' : ''}`}
+              onClick={() => onConfirmPayment(order.id)}
+              style={{ cursor: 'pointer' }}
+            >
+              <FontAwesomeIcon icon={faMoneyBillWave} />
+              <span className={paymentOverdue ? 'payment-overdue-text' : ''}>PAGAMENTO RICEVUTO?</span>
+            </div>
+          ) : (
+            <div className="payment-confirmed-simple">
+              <FontAwesomeIcon icon={faMoneyBillWave} />
+              <span>Pagamento Confermato</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
 
-
-// The rest of the Orders.jsx file remains unchanged.
 // --- Main Orders Component ---
 export default function Orders() {
   const navigate = useNavigate();
@@ -201,6 +250,12 @@ export default function Orders() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [processingOrders, setProcessingOrders] = useState(new Set());
   const [selectedOrder, setSelectedOrder] = useState(null);
+
+  // New state for enhancements
+  const [newOrders, setNewOrders] = useState(new Set());
+  const [paymentOverdueOrders, setPaymentOverdueOrders] = useState(new Set());
+  const previousOrderIds = useRef(new Set());
+  const paymentTimers = useRef(new Map()); // Track payment timers
 
   // Fetch orders with real-time updates
   useEffect(() => {
@@ -221,6 +276,34 @@ export default function Orders() {
       }));
 
       console.log('📦 Orders updated:', orders.length);
+
+      // Detect new orders for ghosting
+      const currentOrderIds = new Set(orders.map(order => order.id));
+      const newOrderIds = new Set();
+
+      currentOrderIds.forEach(id => {
+        if (!previousOrderIds.current.has(id)) {
+          newOrderIds.add(id);
+        }
+      });
+
+      if (newOrderIds.size > 0) {
+        console.log('👻 New orders detected:', Array.from(newOrderIds));
+        setNewOrders(prev => new Set([...prev, ...newOrderIds]));
+
+        // Set timeout to remove ghosting after 10 seconds
+        newOrderIds.forEach(orderId => {
+          setTimeout(() => {
+            setNewOrders(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(orderId);
+              return newSet;
+            });
+          }, 10000);
+        });
+      }
+
+      previousOrderIds.current = currentOrderIds;
       setAllOrders(orders);
 
       if (loading) setLoading(false);
@@ -265,6 +348,65 @@ export default function Orders() {
     setFilteredTableOrders(searchTerm ? tableOrders.filter(filterFn) : tableOrders);
   }, [searchTerm, cardOrders, tableOrders]);
 
+  // Real-time payment overdue tracking
+  useEffect(() => {
+    // Clean up and set up payment timers for confirmed cash orders
+    const updatePaymentTimers = () => {
+      // Clear existing timers
+      paymentTimers.current.forEach((timer, orderId) => {
+        clearTimeout(timer);
+      });
+      paymentTimers.current.clear();
+
+      // Set up new timers for confirmed cash orders without payment confirmation
+      allOrders.forEach(order => {
+        const isCashPayment = order.paymentMethod === 'pay-at-till' || order.paymentMethod === 'cash' || order.paymentMethod === 'contanti';
+        if (isCashPayment && order.status === 'confirmed' && !order.paymentConfirmed && !order.paymentRejected) {
+          const confirmationTime = order.confirmedAt?.toDate?.()?.getTime() || order.confirmedAt?.getTime() || 0;
+          if (confirmationTime) {
+            const timeElapsed = Date.now() - confirmationTime;
+            const timeRemaining = 60 * 1000 - timeElapsed; // 1 minute in ms
+
+            if (timeRemaining > 0) {
+              // Set timer for when it becomes overdue
+              const timer = setTimeout(() => {
+                console.log(`🔴 Payment timer triggered for order ${order.id}`);
+                setPaymentOverdueOrders(prev => new Set([...prev, order.id]));
+              }, timeRemaining);
+
+              paymentTimers.current.set(order.id, timer);
+              console.log(`⏰ Payment timer set for order ${order.id}, ${Math.round(timeRemaining/1000)}s remaining`);
+            } else {
+              // Already overdue
+              console.log(`🔴 Order ${order.id} is already payment overdue`);
+              setPaymentOverdueOrders(prev => new Set([...prev, order.id]));
+            }
+          }
+        } else {
+          // Remove from overdue if no longer applicable
+          setPaymentOverdueOrders(prev => {
+            if (prev.has(order.id)) {
+              const newSet = new Set(prev);
+              newSet.delete(order.id);
+              return newSet;
+            }
+            return prev;
+          });
+        }
+      });
+    };
+
+    updatePaymentTimers();
+
+    // Cleanup on unmount
+    return () => {
+      paymentTimers.current.forEach((timer) => {
+        clearTimeout(timer);
+      });
+      paymentTimers.current.clear();
+    };
+  }, [allOrders]);
+
   // Update order status
   const updateOrderStatus = async (orderId, status) => {
     const data = {
@@ -281,7 +423,6 @@ export default function Orders() {
 
       // Play sound notification if enabled
       if (soundEnabled) {
-        // You can add sound notification here
         console.log('🔊 Playing notification sound');
       }
     } catch (error) {
@@ -293,6 +434,50 @@ export default function Orders() {
         newSet.delete(orderId);
         return newSet;
       });
+    }
+  };
+
+  /*
+   * PAYMENT CONFIRMATION FLOW:
+   * 1. Order arrives (status = 'pending')
+   * 2. Superuser accepts order (status = 'confirmed')
+   * 3. Payment confirmation section appears for cash orders
+   * 4. Superuser prepares order and takes cash payment
+   * 5. Superuser confirms payment in app
+   * 6. If not confirmed within 5 minutes of acceptance, card pulses red
+   */
+
+  // Confirm payment received
+  const confirmPayment = async (orderId) => {
+    try {
+      console.log(`💰 Confirming payment for order ${orderId}`);
+      await updateDoc(doc(firestore, 'orders', orderId), {
+        paymentConfirmed: true,
+        paymentConfirmedAt: serverTimestamp(),
+        paymentConfirmedBy: 'superuser'
+      });
+
+      console.log(`✅ Payment confirmed for order ${orderId}`);
+    } catch (error) {
+      console.error(`❌ Error confirming payment for order ${orderId}:`, error);
+      alert(`Errore nella conferma del pagamento. Riprova.`);
+    }
+  };
+
+  // Reject payment (mark as payment rejected)
+  const rejectPayment = async (orderId) => {
+    try {
+      console.log(`💰 Rejecting payment for order ${orderId}`);
+      await updateDoc(doc(firestore, 'orders', orderId), {
+        paymentRejected: true,
+        paymentRejectedAt: serverTimestamp(),
+        paymentRejectedBy: 'superuser'
+      });
+
+      console.log(`❌ Payment rejected for order ${orderId}`);
+    } catch (error) {
+      console.error(`❌ Error rejecting payment for order ${orderId}:`, error);
+      alert(`Errore nel rifiuto del pagamento. Riprova.`);
     }
   };
 
@@ -316,6 +501,11 @@ export default function Orders() {
     });
   };
 
+  // Check if payment is overdue using real-time state
+  const isPaymentOverdue = (order) => {
+    return paymentOverdueOrders.has(order.id);
+  };
+
   // Table row component
   const OrderTableRow = ({ order }) => (
     <tr className="order-table-row" onClick={() => setSelectedOrder(order)}>
@@ -332,7 +522,14 @@ export default function Orders() {
       <td>€{order.totalPrice?.toFixed(2)}</td>
       <td className={`status-cell status-${order.status}`}>
         {order.status === 'confirmed' && <FontAwesomeIcon icon={faCheck} />}
-        {order.status === 'cancelled' && <FontAwesomeIcon icon={faTimes} />}
+        {order.status === 'cancelled' && (
+          <FontAwesomeIcon
+            icon={faTimes}
+            style={{
+              color: order.cancelledBy === 'user' || order.cancelledBy === 'customer' ? '#ff9800' : '#f44336'
+            }}
+          />
+        )}
         {order.status === 'pending' && <FontAwesomeIcon icon={faClock} />}
         <span style={{marginLeft: '0.5rem'}}>{order.status}</span>
       </td>
@@ -369,6 +566,8 @@ export default function Orders() {
               order={selectedOrder}
               processingOrders={processingOrders}
               isModal={true}
+              paymentConfirmed={selectedOrder.paymentConfirmed}
+              paymentOverdue={isPaymentOverdue(selectedOrder)}
             />
           </div>
         </div>
@@ -422,15 +621,23 @@ export default function Orders() {
 
           {filteredCardOrders.length > 0 ? (
             <div className="orders-card-grid">
-              {filteredCardOrders.map(order => (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                  onConfirm={confirmOrder}
-                  onCancel={cancelOrder}
-                  processingOrders={processingOrders}
-                />
-              ))}
+              {filteredCardOrders.map(order => {
+                const overdue = isPaymentOverdue(order);
+                return (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    onConfirm={confirmOrder}
+                    onCancel={cancelOrder}
+                    onConfirmPayment={confirmPayment}
+                    onRejectPayment={rejectPayment}
+                    processingOrders={processingOrders}
+                    isGhosted={newOrders.has(order.id)}
+                    paymentConfirmed={order.paymentConfirmed}
+                    paymentOverdue={overdue}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="no-orders-message">

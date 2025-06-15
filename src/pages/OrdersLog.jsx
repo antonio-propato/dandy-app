@@ -225,36 +225,6 @@ export default function OrdersLog() {
     setFilteredHistory(filtered);
   }, [searchTerm, selectedDate, ordersHistory]);
 
-  const formatDateTime = (timestamp) => {
-    if (!timestamp) return 'N/A';
-    return timestamp.toLocaleString('it-IT', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const getStatusDisplay = (status) => ({
-    'pending': 'In Attesa',
-    'confirmed': 'Confermato',
-    'cancelled': 'Cancellato'
-  }[status] || status);
-
-  const getStatusColor = (status) => ({
-    'pending': '#ff9800',
-    'confirmed': '#4caf50',
-    'cancelled': '#f44336'
-  }[status] || '#6c757d');
-
-  const getPaymentMethodDisplay = (method) => ({
-    'pay-at-till': 'Paga alla Cassa',
-    'pay-now': 'Pagamento Online',
-    'card': 'Carta',
-    'cash': 'Contanti'
-  }[method] || method || 'N/A');
-
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedDate('');
@@ -375,15 +345,15 @@ export default function OrdersLog() {
       </div>
 
       {/* Results Info */}
-      {/* <div className="orderslog-results-info">
-        <p> */}
-          {/* Mostrando <strong>{filteredHistory.length}</strong> di <strong>{ordersHistory.length}</strong> ordini recenti */}
-          {/* <span style={{color: 'rgba(255,255,255,0.6)', marginLeft: '10px', fontSize: '0.9rem'}}> */}
-            {/* (Stats calcolate da {stats.totalOrders} ordini totali) */}
-          {/* </span>
+      <div className="orderslog-results-info">
+        <p>
+          Mostrando <strong>{filteredHistory.length}</strong> di <strong>{ordersHistory.length}</strong> ordini recenti
+          <span style={{color: 'rgba(255,255,255,0.6)', marginLeft: '10px', fontSize: '0.9rem'}}>
+            (Stats calcolate da {stats.totalOrders} ordini totali)
+          </span> <br />
           {selectedDate && (
             <span style={{color: '#FFD700', marginLeft: '10px'}}>
-              📅 Data: {new Date(selectedDate).toLocaleDateString('it-IT')}
+              Data: {new Date(selectedDate).toLocaleDateString('it-IT')}
             </span>
           )}
           {searchTerm && (
@@ -392,55 +362,26 @@ export default function OrdersLog() {
             </span>
           )}
         </p>
-      </div> */}
+      </div>
 
-      {/* Orders List
       <div className="orderslog-list">
         {filteredHistory.length > 0 ? (
           filteredHistory.map((order) => (
             <div className="orderslog-card" key={order.id}>
-              <div className="orderslog-main">
-                <div className="orderslog-customer-info">
-                  <div className="orderslog-info-line">
-                    <span className="orderslog-customer-name">
-                      #{order.orderNumber} - {order.userName}
-                      {order.orderType === 'tavolo' && order.tableNumber && (
-                        <span style={{ color: '#4caf50', marginLeft: '8px' }}>
-                          🏠 Tavolo {order.tableNumber}
-                        </span>
-                      )}
-                      {order.orderType === 'consegna' && (
-                        <span style={{ color: '#2196f3', marginLeft: '8px' }}>
-                          🚚 Consegna
-                        </span>
-                      )}
-                    </span>
-                    <span className="orderslog-date">{formatDateTime(order.timestamp)}</span>
-                  </div>
-                  <div className="orderslog-details">
-                    <span>💰 €{order.totalPrice.toFixed(2)}</span>
-                    <span>🍽️ {order.items.length} articoli</span>
-                    <span>💳 {getPaymentMethodDisplay(order.paymentMethod)}</span>
-                  </div>
-                  {order.notes && (
-                    <div className="orderslog-notes">
-                      📝 {order.notes}
-                    </div>
-                  )}
-                </div>
-                <div className="orderslog-method">
-                  <span
-                    className="orderslog-method-badge"
-                    style={{
-                      backgroundColor: `${getStatusColor(order.status)}20`,
-                      color: getStatusColor(order.status),
-                      border: `1px solid ${getStatusColor(order.status)}40`
-                    }}
-                  >
-                    {getStatusDisplay(order.status)}
+              <span className="orderslog-customer-name">
+                #{order.orderNumber} - {order.userName}
+              </span>
+              <div className="orderslog-order-type">
+                {order.orderType === 'tavolo' && (
+                  <span className="orderslog-tavolo">
+                    🏠 Tavolo{order.tableNumber ? ` ${order.tableNumber}` : ''}
                   </span>
-                  {order.isToday && <span className="orderslog-today-badge">Oggi</span>}
-                </div>
+                )}
+                {order.orderType === 'consegna' && (
+                  <span className="orderslog-consegna">
+                    🚚
+                  </span>
+                )}
               </div>
             </div>
           ))
@@ -452,7 +393,7 @@ export default function OrdersLog() {
             </button>
           </div>
         )}
-      </div> */}
+      </div>
     </div>
   );
 }
