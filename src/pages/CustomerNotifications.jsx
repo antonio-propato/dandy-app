@@ -186,7 +186,6 @@ export default function CustomerNotifications() {
       return sortBy === 'newest' ? bTime - aTime : aTime - bTime
     })
 
-  // FIXED: Using the working touch handlers from the old code
   const handleTouchStart = (e, notificationId) => {
     touchStart.current[notificationId] = {
       x: e.targetTouches[0].clientX,
@@ -301,6 +300,18 @@ export default function CustomerNotifications() {
     }
   }
 
+  const formatFullDateTime = (dateString) => {
+    const date = new Date(dateString)
+    if (isNaN(date)) return 'Data non valida'
+    return date.toLocaleString('it-IT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
   const formatOrderType = (orderDetails) => {
     if (!orderDetails) return 'N/A'
     if (orderDetails.orderType === 'tavolo') return `Al Tavolo ${orderDetails.tableNumber || ''}`
@@ -326,7 +337,6 @@ export default function CustomerNotifications() {
 
   const getCleanTitle = (notification) => {
     if (notification.data?.type === 'order_confirmation') {
-      // Remove "Confermato! ✅" and clean up the title
       return notification.title.replace(/\s*Confermato!\s*✅?\s*/g, '').trim()
     }
     return notification.title
@@ -459,7 +469,21 @@ export default function CustomerNotifications() {
                           />
                         </div>
                         <div className="notification-text-content">
-                          <h3 className="notification-title">{getCleanTitle(notification)}</h3>
+                           {isOrder && orderDetails ? (
+                            <>
+                              <h3 className="notification-title">
+                                {formatFullDateTime(notification.createdAt)}
+                              </h3>
+                              <p className="notification-body-preview" style={{ marginTop: '4px', fontWeight: '600', color: '#fff' }}>
+                                Ordine #{orderDetails.orderNumber}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <h3 className="notification-title">{notification.title}</h3>
+                              <p className="notification-body-preview">{notification.body}</p>
+                            </>
+                          )}
                         </div>
                         <div className="notification-meta-right">
                           <span className="notification-time">
@@ -467,10 +491,12 @@ export default function CustomerNotifications() {
                             {formatDate(notification.createdAt)}
                           </span>
                           {!isOrder && (
+                            // --- THIS WAS THE FIX ---
                             <FontAwesomeIcon
                               icon={isExpanded ? faChevronUp : faChevronDown}
                               className="notification-expand-icon"
                             />
+                            // --- END FIX ---
                           )}
                         </div>
                       </div>
@@ -482,7 +508,7 @@ export default function CustomerNotifications() {
                             exit={{ height: 0, opacity: 0 }}
                             className="notification-expanded-content"
                           >
-                            <div className="notification-expanded-inner">
+                             <div className="notification-expanded-inner">
                               <div className="notification-full-body">
                                 <div style={{
                                   background: 'rgba(251, 191, 36, 0.05)',

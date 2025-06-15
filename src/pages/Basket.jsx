@@ -185,18 +185,25 @@ export default function Basket() {
     };
   }, [showPendingModal, canCancel, cancelCountdown, orderStatus]);
 
-  // Generate unique order number
-  const generateOrderNumber = () => {
-    const now = new Date();
-    const year = now.getFullYear().toString().slice(-2);
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const day = now.getDate().toString().padStart(2, '0');
-    const hour = now.getHours().toString().padStart(2, '0');
-    const minute = now.getMinutes().toString().padStart(2, '0');
-    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+// --- New, more secure order number generator ---
+const generateOrderNumber = () => {
+  // 1. Create the 6-digit date prefix (YYMMDD)
+  const now = new Date();
+  const year = now.getFullYear().toString().slice(-2);
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const day = now.getDate().toString().padStart(2, '0');
+  const datePrefix = `${year}${month}${day}`;
 
-    return `${year}${month}${day}${hour}${minute}${random}`;
-  };
+  // 2. Generate a 4-digit cryptographically secure random number
+  // We use window.crypto for unpredictability, which is better than Math.random().
+  // It generates a random value between 0 and 9999.
+  const randomValues = new Uint32Array(1);
+  window.crypto.getRandomValues(randomValues);
+  const randomSuffix = (randomValues[0] % 10000).toString().padStart(4, '0');
+
+  // 3. Combine them for the final 10-digit order number
+  return `${datePrefix}${randomSuffix}`;
+};
 
   // Save user preferences for marketing
   const saveUserPreferences = async (orderData) => {
