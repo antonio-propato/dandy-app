@@ -1,6 +1,6 @@
-// NewBasket.jsx - Updated with UI improvements
+// Optimized NewBasket.jsx - Complete component with tap-to-close modals
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Minus, Plus, CreditCard, Clock, X, CheckCircle, AlertTriangle, Info, ChevronDown, Banknote } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, CreditCard, Clock, CheckCircle, AlertTriangle, Info, ChevronDown, Banknote } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, firestore, functions } from '../lib/firebase';
 import { doc, getDoc, addDoc, collection, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
@@ -27,8 +27,7 @@ if (!STRIPE_KEY) {
 }
 
 // =========================================================================
-//  FINAL & REFINED Stripe Payment Form Component
-//  Includes collapsible card form for a cleaner UI.
+//  OPTIMIZED Stripe Payment Form Component
 // =========================================================================
 const StripePaymentForm = ({ total, onSuccess, onError, onCancel, clientSecret, orderData, userProfile }) => {
   const stripe = useStripe();
@@ -37,7 +36,7 @@ const StripePaymentForm = ({ total, onSuccess, onError, onCancel, clientSecret, 
   const [processing, setProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [paymentRequest, setPaymentRequest] = useState(null);
-  const [showCardForm, setShowCardForm] = useState(false); // State for collapsible form
+  const [showCardForm, setShowCardForm] = useState(false);
 
   useEffect(() => {
     if (!stripe) return;
@@ -48,34 +47,50 @@ const StripePaymentForm = ({ total, onSuccess, onError, onCancel, clientSecret, 
       total: { label: 'Totale ordine', amount: Math.round(total * 100) },
       requestPayerName: true,
       requestPayerEmail: true,
+      requestPayerPhone: true,
     });
 
     pr.canMakePayment().then(result => {
       if (result) {
         setPaymentRequest(pr);
+        console.log('✅ Apple Pay/Google Pay available');
+      } else {
+        console.log('❌ Apple Pay/Google Pay not available');
       }
     });
 
     pr.on('paymentmethod', async (ev) => {
+      console.log('🍎 Apple Pay payment initiated');
       setProcessing(true);
-      const { paymentIntent, error: confirmError } = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: ev.paymentMethod.id,
-      });
 
-      if (confirmError) {
-        ev.complete('fail');
-        setErrorMessage(confirmError.message);
-        onError(confirmError.message);
-      } else {
-        if (paymentIntent.status === 'requires_capture') {
-          ev.complete('success');
-          onSuccess(paymentIntent.id);
+      try {
+        const { paymentIntent, error: confirmError } = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: ev.paymentMethod.id,
+        });
+
+        if (confirmError) {
+          console.error('❌ Apple Pay payment failed:', confirmError);
+          ev.complete('fail');
+          setErrorMessage(confirmError.message);
+          onError(confirmError.message);
         } else {
-           ev.complete('fail');
-           onError(`Unexpected payment status: ${paymentIntent.status}`);
+          if (paymentIntent.status === 'requires_capture') {
+            console.log('✅ Apple Pay payment authorized');
+            ev.complete('success');
+            onSuccess(paymentIntent.id);
+          } else {
+             console.warn('⚠️ Unexpected payment status:', paymentIntent.status);
+             ev.complete('fail');
+             onError(`Unexpected payment status: ${paymentIntent.status}`);
+          }
         }
+      } catch (error) {
+        console.error('❌ Apple Pay error:', error);
+        ev.complete('fail');
+        onError('Errore durante il pagamento. Riprova.');
+      } finally {
+        setProcessing(false);
       }
-      setProcessing(false);
     });
   }, [stripe, total, clientSecret, onSuccess, onError]);
 
@@ -115,7 +130,8 @@ const StripePaymentForm = ({ total, onSuccess, onError, onCancel, clientSecret, 
   const elementOptions = {
     style: {
       base: {
-        fontSize: '16px', color: '#ECF0BA',
+        fontSize: '16px',
+        color: '#ECF0BA',
         '::placeholder': { color: 'rgba(236, 240, 186, 0.5)' },
         fontFamily: 'Raleway, sans-serif',
       },
@@ -125,17 +141,30 @@ const StripePaymentForm = ({ total, onSuccess, onError, onCancel, clientSecret, 
 
   return (
     <form onSubmit={handleSubmit} className="stripe-payment-form">
-
       {paymentRequest && (
         <div id="payment-request-button">
-          <PaymentRequestButtonElement options={{ paymentRequest, style: { paymentRequestButton: { theme: 'dark', height: '48px' }}}} />
+          <PaymentRequestButtonElement
+            options={{
+              paymentRequest,
+              style: {
+                paymentRequestButton: {
+                  theme: 'dark',
+                  height: '56px',
+                  type: 'default', // Use default for better compatibility
+                }
+              }
+            }}
+          />
         </div>
       )}
 
-      <div className="form-divider"><span>OPPURE</span></div>
+      {paymentRequest && <div className="form-divider"><span>OPPURE</span></div>}
 
-      {/* Collapsible Card Form */}
-      <button type="button" className="stripe-card-toggle-btn" onClick={() => setShowCardForm(!showCardForm)}>
+      <button
+        type="button"
+        className="stripe-card-toggle-btn"
+        onClick={() => setShowCardForm(!showCardForm)}
+      >
         <CreditCard size={20} />
         <span>Paga con Carta</span>
         <ChevronDown size={20} className={`chevron-icon ${showCardForm ? 'open' : ''}`} />
@@ -143,42 +172,66 @@ const StripePaymentForm = ({ total, onSuccess, onError, onCancel, clientSecret, 
 
       {showCardForm && (
         <div className="stripe-card-form-collapsible">
+          <div className="stripe-input-container">
+            <CardNumberElement options={elementOptions} />
+          </div>
+          <div className="stripe-input-grid">
             <div className="stripe-input-container">
-                <CardNumberElement options={elementOptions} />
+              <CardExpiryElement options={elementOptions} />
             </div>
-            <div className="stripe-input-grid">
-                <div className="stripe-input-container">
-                <CardExpiryElement options={elementOptions} />
-                </div>
-                <div className="stripe-input-container">
-                <CardCvcElement options={{...elementOptions, placeholder: 'CVC'}} />
-                </div>
+            <div className="stripe-input-container">
+              <CardCvcElement options={{...elementOptions, placeholder: 'CVC'}} />
             </div>
+          </div>
 
-            <div className="stripe-form-actions">
-                <button type="button" onClick={onCancel} className="basket-cancel-btn" disabled={processing}>Annulla</button>
-                <button type="submit" disabled={!stripe || processing} className="stripe-pay-button">
-                {processing ? 'Autorizzazione...' : `Autorizza €${total.toFixed(2)}`}
-                </button>
-            </div>
+          <div className="stripe-form-actions">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="basket-cancel-btn"
+              disabled={processing}
+            >
+              Annulla
+            </button>
+            <button
+              type="submit"
+              disabled={!stripe || processing}
+              className="stripe-pay-button"
+            >
+              {processing ? 'Autorizzazione...' : `Autorizza €${total.toFixed(2)}`}
+            </button>
+          </div>
         </div>
       )}
 
       {errorMessage && (
-        <div className="stripe-error-message"><AlertTriangle size={16} /> {errorMessage}</div>
+        <div className="stripe-error-message">
+          <AlertTriangle size={16} />
+          {errorMessage}
+        </div>
       )}
     </form>
   );
 };
 
-
 // =========================================================================
-//  MAIN Basket Component - Updated for modern Stripe flow
+//  MAIN Basket Component - Optimized with Tap-to-Close
 // =========================================================================
 export default function Basket() {
   const navigate = useNavigate();
-  const { cart, updateQuantity, getTotalItems, getTotalPrice, setPromoCode, setNotes, setOrderType, setTableNumber, setDeliveryInfo } = useCart();
+  const {
+    cart,
+    updateQuantity,
+    getTotalItems,
+    getTotalPrice,
+    setPromoCode,
+    setNotes,
+    setOrderType,
+    setTableNumber,
+    setDeliveryInfo
+  } = useCart();
 
+  // State management
   const [notesSaved, setNotesSaved] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const [showDeliveryWarningModal, setShowDeliveryWarningModal] = useState(false);
@@ -197,32 +250,21 @@ export default function Basket() {
   const createPaymentIntent = httpsCallable(functions, 'createPaymentIntent');
   const cartItems = cart.items;
 
+  // Effects
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async user => {
       if (user) {
         try {
-            const docRef = doc(firestore, 'users', user.uid);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) setUserProfile(docSnap.data());
+          const docRef = doc(firestore, 'users', user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) setUserProfile(docSnap.data());
         } catch (error) {
-            console.error('Error fetching user profile:', error);
+          console.error('Error fetching user profile:', error);
         }
       }
     });
     return unsubscribe;
   }, []);
-
-  const isOrderValid = () => {
-    if (cartItems.length === 0) return false;
-    if (cart.orderType === 'tavolo') {
-        return cart.tableNumber && cart.tableNumber.trim() !== '';
-    }
-    if (cart.orderType === 'consegna') {
-        const { nome, cognome, telefono, email, indirizzo, civico, citta, provincia, cap } = cart.deliveryInfo;
-        return [nome, cognome, telefono, email, indirizzo, civico, citta, provincia, cap].every(field => field && field.trim() !== '');
-    }
-    return false;
-  };
 
   useEffect(() => {
     if (cart.orderType === 'consegna' && userProfile) {
@@ -262,8 +304,37 @@ export default function Basket() {
     return () => clearTimeout(timer);
   }, [showPendingModal, canCancel, cancelCountdown]);
 
-  const generateOrderNumber = () => `${new Date().getFullYear().toString().slice(-2)}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${new Date().getDate().toString().padStart(2, '0')}${Math.floor(Math.random() * 9000) + 1000}`;
+  // Event handlers for modal closing
+  const handleOverlayClick = (e, closeFunction) => {
+    // Only close if clicking on the overlay itself, not the modal content
+    if (e.target === e.currentTarget) {
+      closeFunction();
+    }
+  };
 
+  // Utility functions
+  const isOrderValid = () => {
+    if (cartItems.length === 0) return false;
+    if (cart.orderType === 'tavolo') {
+      return cart.tableNumber && cart.tableNumber.trim() !== '';
+    }
+    if (cart.orderType === 'consegna') {
+      const { nome, cognome, telefono, email, indirizzo, civico, citta, provincia, cap } = cart.deliveryInfo;
+      return [nome, cognome, telefono, email, indirizzo, civico, citta, provincia, cap]
+        .every(field => field && field.trim() !== '');
+    }
+    return false;
+  };
+
+  const generateOrderNumber = () =>
+    `${new Date().getFullYear().toString().slice(-2)}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${new Date().getDate().toString().padStart(2, '0')}${Math.floor(Math.random() * 9000) + 1000}`;
+
+  const createOrderDataForStripe = () => ({
+    orderType: cart.orderType,
+    deliveryInfo: cart.orderType === 'consegna' ? cart.deliveryInfo : null,
+  });
+
+  // Event handlers
   const submitOrder = async (paymentMethod, paymentIntentId = null) => {
     setOrderProcessing(true);
     try {
@@ -275,9 +346,17 @@ export default function Basket() {
         orderType: cart.orderType,
         tableNumber: cart.orderType === 'tavolo' ? cart.tableNumber : null,
         deliveryInfo: cart.orderType === 'consegna' ? cart.deliveryInfo : null,
-        items: cartItems, notes: cart.notes || '', promoCode: cart.promoCode || '', totalPrice: getTotalPrice(), paymentMethod,
-        paymentIntentId, status: 'pending', paymentStatus: paymentIntentId ? 'authorized' : 'pending_payment',
-        requiresCapture: !!paymentIntentId, timestamp: serverTimestamp(), createdAt: new Date().toISOString()
+        items: cartItems,
+        notes: cart.notes || '',
+        promoCode: cart.promoCode || '',
+        totalPrice: getTotalPrice(),
+        paymentMethod,
+        paymentIntentId,
+        status: 'pending',
+        paymentStatus: paymentIntentId ? 'authorized' : 'pending_payment',
+        requiresCapture: !!paymentIntentId,
+        timestamp: serverTimestamp(),
+        createdAt: new Date().toISOString()
       };
       const orderRef = await addDoc(collection(firestore, 'orders'), orderData);
       setPendingOrder({ ...orderData, id: orderRef.id });
@@ -294,39 +373,49 @@ export default function Basket() {
   };
 
   const cancelOrder = async () => {
-    if (pendingOrder?.id && canCancel)
+    if (pendingOrder?.id && canCancel) {
       await updateDoc(doc(firestore, 'orders', pendingOrder.id), {
         status: 'cancelled',
         cancelledBy: 'customer'
       });
+    }
   };
 
-  const total = getTotalPrice();
-  const totalItems = getTotalItems();
-  const groupedItems = cartItems.reduce((acc, item) => { (acc[item.category] = acc[item.category] || []).push(item); return acc; }, {});
-  const confirmOrder = () => { isOrderValid() ? setShowPaymentModal(true) : alert('Completa tutti i campi richiesti per procedere'); };
-  const handleContinue = () => { setShowPendingModal(false); cartItems.forEach(item => updateQuantity(item.id, 0)); navigate('/menu'); };
+  const confirmOrder = () => {
+    if (isOrderValid()) {
+      setShowPaymentModal(true);
+    } else {
+      alert('Completa tutti i campi richiesti per procedere');
+    }
+  };
 
-  const createOrderDataForStripe = () => ({
-    orderType: cart.orderType,
-    deliveryInfo: cart.orderType === 'consegna' ? cart.deliveryInfo : null,
-  });
+  const handleContinue = () => {
+    setShowPendingModal(false);
+    cartItems.forEach(item => updateQuantity(item.id, 0));
+    navigate('/menu');
+  };
 
   const handlePaymentSelect = async (method) => {
     setSelectedPayment(method);
     setShowPaymentModal(false);
     setOrderProcessing(true);
+
     if (method === 'pay-now') {
       try {
         const result = await createPaymentIntent({
-          amount: Math.round(total * 100), currency: 'eur', orderData: createOrderDataForStripe(),
-          userId: auth.currentUser.uid, capture_method: 'manual'
+          amount: Math.round(total * 100),
+          currency: 'eur',
+          orderData: createOrderDataForStripe(),
+          userId: auth.currentUser.uid,
+          capture_method: 'manual'
         });
         const { client_secret } = result.data;
         if (client_secret) {
           setStripeClientSecret(client_secret);
           setShowStripeModal(true);
-        } else throw new Error("Client secret not received");
+        } else {
+          throw new Error("Client secret not received");
+        }
       } catch (error) {
         console.error("Failed to create Payment Intent:", error);
         alert("Errore nell'inizializzazione del pagamento. Riprova.");
@@ -334,7 +423,7 @@ export default function Basket() {
       } finally {
         setOrderProcessing(false);
       }
-    } else { // pay-at-till
+    } else {
       await submitOrder(method);
       setShowPendingModal(true);
       setOrderProcessing(false);
@@ -348,8 +437,15 @@ export default function Basket() {
     setStripeClientSecret('');
   };
 
-  const handleStripeError = (error) => console.error('Stripe payment error:', error);
-  const handleStripeCancel = () => { setShowStripeModal(false); setSelectedPayment(null); setStripeClientSecret(''); };
+  const handleStripeError = (error) => {
+    console.error('Stripe payment error:', error);
+  };
+
+  const handleStripeCancel = () => {
+    setShowStripeModal(false);
+    setSelectedPayment(null);
+    setStripeClientSecret('');
+  };
 
   const saveNotes = () => {
     if (cart.notes.trim()) {
@@ -368,105 +464,273 @@ export default function Basket() {
     }
   };
 
+  // Computed values
+  const total = getTotalPrice();
+  const totalItems = getTotalItems();
+  const groupedItems = cartItems.reduce((acc, item) => {
+    (acc[item.category] = acc[item.category] || []).push(item);
+    return acc;
+  }, {});
+
   return (
     <div className="basket-container">
       <div className="basket-background-overlay" />
       <div className="basket-content">
+        {/* Order Summary */}
         <div className="basket-order-summary">
-            <div className="basket-summary-header">
-              <button className="basket-back-button" onClick={() => navigate('/menu')}><ArrowLeft size={20} /></button>
-              <h2 className="basket-summary-title">RIEPILOGO ORDINE</h2>
-            </div>
-            {Object.entries(groupedItems).map(([category, items]) => (
-              <div key={category} className="basket-category-group">
-                <div className="basket-category-header">{category}</div>
-                <div className="basket-category-items">
-                  {items.map((item) => (
-                    <div key={item.id} className="basket-item">
-                      <div className="basket-item-count">{item.quantity}</div>
-                      <div className="basket-item-name">{item.name}</div>
-                      <div className="basket-item-price">€{(parseFloat(item.price.replace('€', '')) * item.quantity).toFixed(2)}</div>
-                      <div className="basket-item-controls">
-                        <button className="basket-minus-btn" onClick={() => updateQuantity(item.id, item.quantity - 1)}>-</button>
-                        <button className="basket-plus-btn" onClick={() => updateQuantity(item.id, item.quantity + 1)}>+</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-            <div className="basket-total-section">
-              <div className="basket-total-row">
-                <span className="basket-total-label">Totale ({totalItems}):</span>
-                <span className="basket-total-amount">€{total.toFixed(2)}</span>
-              </div>
-            </div>
-        </div>
-        <div className="basket-promo-section">
-            <input type="text" placeholder="Codice promozionale" value={cart.promoCode} onChange={(e) => setPromoCode(e.target.value)} className="basket-promo-input" />
-            <button className="basket-promo-btn">Applica</button>
-        </div>
-        <div className="basket-notes-section">
-            <textarea
-              placeholder="Note (allergie, richieste speciali...)"
-              value={cart.notes}
-              onChange={(e) => {
-                setNotes(e.target.value);
-                if (notesSaved && e.target.value !== cart.notes) {
-                  setNotesSaved(false);
-                }
-              }}
-              rows={3}
-              className="basket-notes-textarea"
-              disabled={notesSaved}
-            />
-            <button
-              onClick={notesSaved ? amendNotes : saveNotes}
-              className={`basket-save-notes-btn ${notesSaved ? 'basket-amend-notes-btn' : ''}`}
-            >
-              {notesSaved ? 'Modifica Note' : 'Salva Note'}
+          <div className="basket-summary-header">
+            <button className="basket-back-button" onClick={() => navigate('/menu')}>
+              <ArrowLeft size={20} />
             </button>
-        </div>
-        <div className="basket-order-type-section">
-            <h3 className="basket-order-type-title">Tipo di Ordine</h3>
-            <div className="basket-order-type-buttons">
-                <button onClick={() => setOrderType('tavolo')} className={`basket-order-type-btn ${cart.orderType === 'tavolo' ? 'active' : ''}`}>Al Tavolo</button>
-                <button onClick={() => setShowDeliveryWarningModal(true)} className={`basket-order-type-btn ${cart.orderType === 'consegna' ? 'active' : ''}`}>Consegna</button>
+            <h2 className="basket-summary-title">RIEPILOGO ORDINE</h2>
+          </div>
+          {Object.entries(groupedItems).map(([category, items]) => (
+            <div key={category} className="basket-category-group">
+              <div className="basket-category-header">{category}</div>
+              <div className="basket-category-items">
+                {items.map((item) => (
+                  <div key={item.id} className="basket-item">
+                    <div className="basket-item-count">{item.quantity}</div>
+                    <div className="basket-item-name">{item.name}</div>
+                    <div className="basket-item-price">
+                      €{(parseFloat(item.price.replace('€', '')) * item.quantity).toFixed(2)}
+                    </div>
+                    <div className="basket-item-controls">
+                      <button
+                        className="basket-minus-btn"
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                      >
+                        -
+                      </button>
+                      <button
+                        className="basket-plus-btn"
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+          ))}
+          <div className="basket-total-section">
+            <div className="basket-total-row">
+              <span className="basket-total-label">Totale ({totalItems}):</span>
+              <span className="basket-total-amount">€{total.toFixed(2)}</span>
+            </div>
+          </div>
         </div>
+
+        {/* Promo Section */}
+        <div className="basket-promo-section">
+          <input
+            type="text"
+            placeholder="Codice promozionale"
+            value={cart.promoCode}
+            onChange={(e) => setPromoCode(e.target.value)}
+            className="basket-promo-input"
+          />
+          <button className="basket-promo-btn">Applica</button>
+        </div>
+
+        {/* Notes Section */}
+        <div className="basket-notes-section">
+          <textarea
+            placeholder="Note (allergie, richieste speciali...)"
+            value={cart.notes}
+            onChange={(e) => {
+              setNotes(e.target.value);
+              if (notesSaved && e.target.value !== cart.notes) {
+                setNotesSaved(false);
+              }
+            }}
+            rows={3}
+            className="basket-notes-textarea"
+            disabled={notesSaved}
+          />
+          <button
+            onClick={notesSaved ? amendNotes : saveNotes}
+            className={`basket-save-notes-btn ${notesSaved ? 'basket-amend-notes-btn' : ''}`}
+          >
+            {notesSaved ? 'Modifica Note' : 'Salva Note'}
+          </button>
+        </div>
+
+        {/* Order Type Section */}
+        <div className="basket-order-type-section">
+          <h3 className="basket-order-type-title">Tipo di Ordine</h3>
+          <div className="basket-order-type-buttons">
+            <button
+              onClick={() => setOrderType('tavolo')}
+              className={`basket-order-type-btn ${cart.orderType === 'tavolo' ? 'active' : ''}`}
+            >
+              Al Tavolo
+            </button>
+            <button
+              onClick={() => setShowDeliveryWarningModal(true)}
+              className={`basket-order-type-btn ${cart.orderType === 'consegna' ? 'active' : ''}`}
+            >
+              Consegna
+            </button>
+          </div>
+        </div>
+
+        {/* Table Number Input */}
         {cart.orderType === 'tavolo' && (
-          <div className="basket-table-section"><label className="basket-table-label">Numero Tavolo:</label><input type="text" value={cart.tableNumber || ''} onChange={(e) => setTableNumber(e.target.value)} placeholder="Tavolo 1" className="basket-table-input" /></div>
+          <div className="basket-table-section">
+            <label className="basket-table-label">Numero Tavolo:</label>
+            <input
+              type="text"
+              value={cart.tableNumber || ''}
+              onChange={(e) => setTableNumber(e.target.value)}
+              placeholder="Tavolo 1"
+              className="basket-table-input"
+            />
+          </div>
         )}
+
+        {/* Delivery Info */}
         {cart.orderType === 'consegna' && (
           <div className="basket-delivery-section">
             <h3 className="basket-delivery-title">Informazioni Consegna</h3>
             <div className="basket-delivery-grid">
-              <input type="text" placeholder="Nome *" value={cart.deliveryInfo.nome || ''} onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, nome: e.target.value })} className="basket-delivery-input" required />
-              <input type="text" placeholder="Cognome *" value={cart.deliveryInfo.cognome || ''} onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, cognome: e.target.value })} className="basket-delivery-input" required />
-              <input type="tel" placeholder="Telefono *" value={cart.deliveryInfo.telefono || ''} onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, telefono: e.target.value })} className="basket-delivery-input" required />
-              <input type="email" placeholder="Email *" value={cart.deliveryInfo.email || ''} onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, email: e.target.value })} className="basket-delivery-input" required />
-              <input type="text" placeholder="Indirizzo *" value={cart.deliveryInfo.indirizzo || ''} onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, indirizzo: e.target.value })} className="basket-delivery-input" required />
-              <input type="text" placeholder="Numero Civico *" value={cart.deliveryInfo.civico || ''} onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, civico: e.target.value })} className="basket-delivery-input" required />
-              <input type="text" placeholder="Città *" value={cart.deliveryInfo.citta || ''} onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, citta: e.target.value })} className="basket-delivery-input" required />
-              <input type="text" placeholder="Provincia *" value={cart.deliveryInfo.provincia || ''} onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, provincia: e.target.value })} className="basket-delivery-input" required />
-              <input type="text" placeholder="CAP *" value={cart.deliveryInfo.cap || ''} onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, cap: e.target.value })} className="basket-delivery-input" maxLength="5" required />
+              <input
+                type="text"
+                placeholder="Nome *"
+                value={cart.deliveryInfo.nome || ''}
+                onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, nome: e.target.value })}
+                className="basket-delivery-input"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Cognome *"
+                value={cart.deliveryInfo.cognome || ''}
+                onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, cognome: e.target.value })}
+                className="basket-delivery-input"
+                required
+              />
+              <input
+                type="tel"
+                placeholder="Telefono *"
+                value={cart.deliveryInfo.telefono || ''}
+                onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, telefono: e.target.value })}
+                className="basket-delivery-input"
+                required
+              />
+              <input
+                type="email"
+                placeholder="Email *"
+                value={cart.deliveryInfo.email || ''}
+                onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, email: e.target.value })}
+                className="basket-delivery-input"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Indirizzo *"
+                value={cart.deliveryInfo.indirizzo || ''}
+                onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, indirizzo: e.target.value })}
+                className="basket-delivery-input"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Numero Civico *"
+                value={cart.deliveryInfo.civico || ''}
+                onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, civico: e.target.value })}
+                className="basket-delivery-input"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Città *"
+                value={cart.deliveryInfo.citta || ''}
+                onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, citta: e.target.value })}
+                className="basket-delivery-input"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Provincia *"
+                value={cart.deliveryInfo.provincia || ''}
+                onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, provincia: e.target.value })}
+                className="basket-delivery-input"
+                required
+              />
+              <input
+                type="text"
+                placeholder="CAP *"
+                value={cart.deliveryInfo.cap || ''}
+                onChange={(e) => setDeliveryInfo({ ...cart.deliveryInfo, cap: e.target.value })}
+                className="basket-delivery-input"
+                maxLength="5"
+                required
+              />
             </div>
           </div>
         )}
-        <button onClick={confirmOrder} disabled={!isOrderValid()} className={`basket-confirm-btn ${!isOrderValid() ? 'basket-confirm-btn-disabled' : ''}`}>CONFERMA ORDINE</button>
+
+        {/* Confirm Order Button */}
+        <button
+          onClick={confirmOrder}
+          disabled={!isOrderValid()}
+          className={`basket-confirm-btn ${!isOrderValid() ? 'basket-confirm-btn-disabled' : ''}`}
+        >
+          CONFERMA ORDINE
+        </button>
       </div>
 
+      {/* ========== MODALS WITH TAP-TO-CLOSE ========== */}
+
+      {/* Delivery Warning Modal */}
       {showDeliveryWarningModal && (
-        <div className="basket-modal-overlay"><div className="basket-payment-modal"><div className="basket-pending-content"><div className="basket-pending-icon"><AlertTriangle size={40} color="#ffc107" /></div><div className="basket-status-message"><p><strong>Gli ordini a domicilio non accumulano timbri fedeltà.</strong></p></div><div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}><button onClick={() => setShowDeliveryWarningModal(false)} className="basket-cancel-btn" style={{ flex: 1 }}>Annulla</button><button onClick={() => { setOrderType('consegna'); setShowDeliveryWarningModal(false); }} className="basket-continue-btn" style={{ flex: 1 }}>Procedi</button></div></div></div></div>
+        <div
+          className="basket-modal-overlay"
+          onClick={(e) => handleOverlayClick(e, () => setShowDeliveryWarningModal(false))}
+        >
+          <div className="basket-payment-modal">
+            <div className="basket-pending-content">
+              <div className="basket-pending-icon">
+                <AlertTriangle size={40} color="#ffc107" />
+              </div>
+              <div className="basket-status-message">
+                <p><strong>Gli ordini a domicilio non accumulano timbri fedeltà.</strong></p>
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                <button
+                  onClick={() => setShowDeliveryWarningModal(false)}
+                  className="basket-cancel-btn"
+                  style={{ flex: 1 }}
+                >
+                  Annulla
+                </button>
+                <button
+                  onClick={() => {
+                    setOrderType('consegna');
+                    setShowDeliveryWarningModal(false);
+                  }}
+                  className="basket-continue-btn"
+                  style={{ flex: 1 }}
+                >
+                  Procedi
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
+      {/* Payment Method Selection Modal */}
       {showPaymentModal && (
-        <div className="basket-modal-overlay">
+        <div
+          className="basket-modal-overlay"
+          onClick={(e) => handleOverlayClick(e, () => setShowPaymentModal(false))}
+        >
           <div className="basket-payment-modal">
             <div className="basket-modal-header">
-              <button onClick={() => setShowPaymentModal(false)} className="basket-modal-close">
-                <X size={18} />
-              </button>
+              {/* Empty header for spacing */}
             </div>
             <div className="basket-payment-summary">
               <div className="basket-summary-row">
@@ -479,17 +743,21 @@ export default function Basket() {
               </div>
             </div>
             <div className="basket-payment-methods">
-              <button onClick={() => handlePaymentSelect('pay-at-till')} className="basket-payment-btn pay-till" disabled={orderProcessing}>
+              <button
+                onClick={() => handlePaymentSelect('pay-at-till')}
+                className="basket-payment-btn pay-till"
+                disabled={orderProcessing}
+              >
                 <Banknote size={24} />
-                <div>
-                  <div className="basket-payment-title">Contanti</div>
-                </div>
+                <div className="basket-payment-title">Contanti</div>
               </button>
-              <button onClick={() => handlePaymentSelect('pay-now')} className="basket-payment-btn pay-now" disabled={orderProcessing}>
+              <button
+                onClick={() => handlePaymentSelect('pay-now')}
+                className="basket-payment-btn pay-now"
+                disabled={orderProcessing}
+              >
                 <CreditCard size={24} />
-                <div>
-                  <div className="basket-payment-title">Online</div>
-                </div>
+                <div className="basket-payment-title">Online</div>
               </button>
             </div>
             {orderProcessing && (
@@ -502,17 +770,18 @@ export default function Basket() {
         </div>
       )}
 
+      {/* Stripe Payment Modal */}
       {showStripeModal && stripeClientSecret && (
-        <div className="basket-modal-overlay">
+        <div
+          className="basket-modal-overlay"
+          onClick={(e) => handleOverlayClick(e, handleStripeCancel)}
+        >
           <div className="basket-payment-modal stripe-modal">
             <div className="basket-modal-header">
               <div className="payment-authorization-notice">
                 <Info size={16} />
                 <span>Il pagamento verrà addebitato dopo l'approvazione dell'ordine.</span>
               </div>
-              <button onClick={handleStripeCancel} className="basket-modal-close">
-                <X size={18} />
-              </button>
             </div>
             <div className="basket-payment-summary">
               <div className="basket-summary-row">
@@ -541,45 +810,105 @@ export default function Basket() {
         </div>
       )}
 
+      {/* Pending Order Modal */}
       {showPendingModal && pendingOrder && (
-          <div className="basket-modal-overlay">
-            <div className="basket-pending-modal">
-              <div className="basket-pending-shine" />
-              <div className="basket-pending-content">
-                <div className="basket-pending-icon">
-                  {orderStatus === 'confirmed' ? <CheckCircle size={40} color="#28a745" /> : <Clock size={40} color="#ffc107" />}
-                </div>
-                <h2 className="basket-pending-title">{orderStatus === 'confirmed' ? '' : ''}</h2>
-                <div className="basket-order-number">Ordine #{pendingOrder.orderNumber}</div>
-                <div className="basket-status-message">
-                  {orderStatus === 'pending' && pendingOrder.paymentMethod === 'pay-now' ? (
-                    <></>
-                  ) : orderStatus === 'pending' ? (
-                    <></>
-                  ) : orderStatus === 'confirmed' ? (
-                    <>{pendingOrder.paymentMethod === 'pay-now' && <p></p>}</>
-                  ) : null}
-                </div>
-                <div className="basket-order-summary">
-                  <div className="basket-summary-item"><strong>Consegna:</strong><span>{cart.orderType === 'tavolo' ? `Tavolo ${cart.tableNumber}` : 'Consegna'}</span></div>
-                  <div className="basket-summary-item"><strong>Totale:</strong><span>€{total.toFixed(2)}</span></div>
-                  <div className="basket-summary-item"><strong>Pagamento:</strong><span>{pendingOrder.paymentMethod === 'pay-at-till' ? 'Contanti' : 'Online'}</span></div>
-                  <div className="basket-summary-item"><strong>Stato:</strong><span style={{ color: orderStatus === 'confirmed' ? '#28a745' : '#ffc107' }}>{orderStatus === 'confirmed' ? 'Confermato' : 'In Attesa'}</span></div>
-                </div>
-                {orderStatus === 'pending' && canCancel && (
-                  <div className="basket-cancel-section"><p>Puoi cancellare l'ordine entro:</p><div className="basket-countdown"><span className="basket-countdown-number">{cancelCountdown}</span><span>secondi</span></div><button onClick={cancelOrder} className="basket-cancel-btn" disabled={!canCancel}>Cancella Ordine</button></div>
-                )}
-                {orderStatus === 'confirmed' && (
-                  <div className="basket-confirmed-section"><CheckCircle size={32} color="#28a745" /><p>Stiamo preparando il tuo ordine!</p><button onClick={handleContinue} className="basket-continue-btn">Torna al Menu</button></div>
-                )}
-                {orderStatus === 'pending' && !canCancel && (
-                  <div className="basket-waiting-section"><Clock size={32} color="#ffc107" /><p className="basket-small-text">Non è più possibile cancellare l'ordine</p></div>
+        <div
+          className="basket-modal-overlay"
+          onClick={(e) => {
+            // Only allow closing if order is confirmed or cancelled
+            if (orderStatus === 'confirmed' || orderStatus === 'cancelled') {
+              handleOverlayClick(e, () => setShowPendingModal(false));
+            }
+          }}
+        >
+          <div className="basket-pending-modal">
+            <div className="basket-pending-content">
+              <div className="basket-pending-icon">
+                {orderStatus === 'confirmed' ? (
+                  <CheckCircle size={40} color="#28a745" />
+                ) : (
+                  <Clock size={40} color="#ffc107" />
                 )}
               </div>
+              <h2 className="basket-pending-title">
+                {orderStatus === 'confirmed' ? '' : ''}
+              </h2>
+              <div className="basket-order-number">Ordine #{pendingOrder.orderNumber}</div>
+              <div className="basket-status-message">
+                {orderStatus === 'pending' && pendingOrder.paymentMethod === 'pay-now' && (
+                  <p></p>
+                )}
+                {orderStatus === 'pending' && pendingOrder.paymentMethod === 'pay-at-till' && (
+                  <p>Il tuo ordine è in attesa di approvazione.</p>
+                )}
+                {orderStatus === 'confirmed' && (
+                  <p></p>
+                )}
+              </div>
+              <div className="basket-order-summary">
+                <div className="basket-summary-item">
+                  <strong>Consegna:</strong>
+                  <span>
+                    {cart.orderType === 'tavolo' ? `Tavolo ${cart.tableNumber}` : 'Consegna'}
+                  </span>
+                </div>
+                <div className="basket-summary-item">
+                  <strong>Totale:</strong>
+                  <span>€{total.toFixed(2)}</span>
+                </div>
+                <div className="basket-summary-item">
+                  <strong>Pagamento:</strong>
+                  <span>
+                    {pendingOrder.paymentMethod === 'pay-at-till' ? 'Contanti' : 'Online'}
+                  </span>
+                </div>
+                <div className="basket-summary-item">
+                  <strong>Stato:</strong>
+                  <span style={{
+                    color: orderStatus === 'confirmed' ? '#28a745' : '#ffc107'
+                  }}>
+                    {orderStatus === 'confirmed' ? 'Confermato' : 'In Attesa'}
+                  </span>
+                </div>
+              </div>
+
+              {orderStatus === 'pending' && canCancel && (
+                <div className="basket-cancel-section">
+                  <p>Puoi cancellare l'ordine entro:</p>
+                  <div className="basket-countdown">
+                    <span className="basket-countdown-number">{cancelCountdown}</span>
+                    <span>secondi</span>
+                  </div>
+                  <button
+                    onClick={cancelOrder}
+                    className="basket-cancel-btn"
+                    disabled={!canCancel}
+                  >
+                    Cancella Ordine
+                  </button>
+                </div>
+              )}
+
+              {orderStatus === 'confirmed' && (
+                <div className="basket-confirmed-section">
+                  <p>Stiamo preparando il tuo ordine!</p>
+                  <button onClick={handleContinue} className="basket-continue-btn">
+                    Torna al Menu
+                  </button>
+                </div>
+              )}
+
+              {orderStatus === 'pending' && !canCancel && (
+                <div className="basket-waiting-section">
+                  <p className="basket-small-text">Non è più possibile cancellare l'ordine</p>
+                </div>
+              )}
             </div>
           </div>
+        </div>
       )}
 
+      {/* Cancelled Order Notification */}
       {showCancelledNotification && (
         <div className="basket-custom-notification">
           <div className="basket-notification-content">
