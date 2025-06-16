@@ -315,7 +315,7 @@ export default function Orders() {
   const paymentTimers = useRef(new Map()); // Track payment timers
   const paymentCheckInterval = useRef(null); // For live updates
 
-  // Fetch orders with real-time updates
+  // Fetch orders with real-time updates - FIXED VERSION
   useEffect(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -326,6 +326,8 @@ export default function Orders() {
       limit(200)
     );
 
+    let isInitialLoad = true;
+
     const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
       const orders = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -335,32 +337,40 @@ export default function Orders() {
 
       console.log('📦 Orders updated:', orders.length);
 
-      // Detect new orders for ghosting
       const currentOrderIds = new Set(orders.map(order => order.id));
-      const newOrderIds = new Set();
 
-      currentOrderIds.forEach(id => {
-        if (!previousOrderIds.current.has(id)) {
-          newOrderIds.add(id);
-        }
-      });
+      if (!isInitialLoad) {
+        // Only detect new orders after the initial load
+        const newOrderIds = new Set();
 
-      if (newOrderIds.size > 0) {
-        console.log('👻 New orders detected:', Array.from(newOrderIds));
-        setNewOrders(prev => new Set([...prev, ...newOrderIds]));
-
-        // Set timeout to remove ghosting after 10 seconds
-        newOrderIds.forEach(orderId => {
-          setTimeout(() => {
-            setNewOrders(prev => {
-              const newSet = new Set(prev);
-              newSet.delete(orderId);
-              return newSet;
-            });
-          }, 10000);
+        currentOrderIds.forEach(id => {
+          if (!previousOrderIds.current.has(id)) {
+            newOrderIds.add(id);
+          }
         });
+
+        if (newOrderIds.size > 0) {
+          console.log('👻 New orders detected:', Array.from(newOrderIds));
+          setNewOrders(prev => new Set([...prev, ...newOrderIds]));
+
+          // Set timeout to remove ghosting after 10 seconds
+          newOrderIds.forEach(orderId => {
+            setTimeout(() => {
+              setNewOrders(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(orderId);
+                return newSet;
+              });
+            }, 10000);
+          });
+        }
+      } else {
+        // On initial load, just populate previousOrderIds without triggering new order detection
+        console.log('📋 Initial load - setting up existing order IDs:', currentOrderIds.size);
+        isInitialLoad = false;
       }
 
+      // Always update the previousOrderIds for future comparisons
       previousOrderIds.current = currentOrderIds;
       setAllOrders(orders);
 

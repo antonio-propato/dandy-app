@@ -6,138 +6,239 @@
   background-position: center;
   position: relative;
   font-family: 'Raleway', sans-serif;
-  padding: 6rem 2rem 2rem; /* Increased horizontal padding for better margin */
+  padding: 6rem 2rem 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.contacts-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1;
 }
 
 .contacts-content {
   position: relative;
   z-index: 10;
   width: 100%;
-  max-width: 1200px; /* Set a max-width for large screens */
+  max-width: 1200px;
   margin: 0 auto;
   color: #ECF0BA;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1rem; /* Consistent spacing between cards */
-  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
 }
 
-.contacts-title {
-  font-size: 2.2rem;
-  font-weight: 700;
-  text-align: center;
-  margin-bottom: 2rem;
-  color: #ECF0BA;
-  width: 100%; /* Ensure title spans full width */
+/* Logo section */
+.contacts-logo {
+  margin-bottom: 1rem;
 }
 
-/* Card layout */
-.contact-card {
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.8rem;
-  padding: 1.5rem;
-  backdrop-filter: blur(5px);
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+.logo-image {
+  width: 6.5rem; /* 120px */
+  height: 6.5rem; /* 120px */
+  border-radius: 10%;
+  object-fit: cover;
+  border: 1px solid #ECF0BA;
+  box-shadow:
+    0 4px 15px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(236, 240, 186, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  z-index: 15;
+  animation: logoGlow 10s ease-in-out 0.8s;
   transition: transform 0.3s ease;
-  flex: 1 1 calc(50% - 1rem); /* Equal sizing with consistent gap */
-  min-width: 280px; /* Minimum width for better visibility */
-  max-width: calc(50% - 1rem); /* Ensure cards don't get too wide */
-  box-sizing: border-box;
 }
 
-.contact-card:hover {
-  transform: scale(1.02);
+.logo-image:hover {
+  transform: scale(1.05);
 }
 
+/* Contact grid - 2x2 for clickable cards */
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 1rem;
+}
+
+/* Info cards - full width */
+.info-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 600px;
+}
+
+/* Base card styles */
+.contact-card {
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Clickable card styles */
+.clickable-card {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.clickable-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, rgba(236, 240, 186, 0.1), rgba(255, 255, 255, 0.05));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.clickable-card:hover::before {
+  opacity: 1;
+}
+
+.clickable-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  border-color: rgba(236, 240, 186, 0.3);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.clickable-card:active {
+  transform: translateY(-2px) scale(1.01);
+}
+
+/* Contact icon */
+.contact-icon {
+  color: #ECF0BA;
+  margin-bottom: 0.8rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Contact labels and values */
 .contact-label {
   font-weight: 700;
   color: #ffffff;
   margin-bottom: 0.5rem;
   display: block;
-  font-size: 1rem;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.contact-value,
-.contact-value a {
-  font-size: 1rem;
+.contact-value {
+  font-size: 0.95rem;
   color: #ECF0BA;
-  text-decoration: none;
-  display: block;
+  line-height: 1.4;
+  font-weight: 500;
 }
 
-.contact-value a:hover {
-  text-decoration: underline;
-  color: #ffffff;
+/* Info cards specific styling */
+.info-card {
+  text-align: left;
+  align-items: flex-start;
+  flex-direction: row;
+  gap: 1rem;
 }
 
-/* Responsive adjustments */
+.info-card .contact-icon {
+  margin-bottom: 0;
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.info-card .contact-label,
+.info-card .contact-value {
+  text-align: left;
+}
+
+.info-card .contact-label {
+  margin-bottom: 0.3rem;
+}
+
+/* Mobile responsiveness */
 @media (max-width: 768px) {
-  .contacts-content {
-    padding: 0 1rem;
-  }
-
-  .contact-card {
-    flex: 1 1 calc(100% - 1rem);
-    max-width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
   .contacts-wrapper {
     padding: 5rem 1rem 1rem;
   }
 
-  .contacts-title {
-    font-size: 1.8rem;
-    margin-bottom: 1.5rem;
+  .contact-grid {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 400px;
+    gap: 0.8rem;
+  }
+
+  /* Center the 5th card (email) on its own row */
+  .contact-grid .contact-card:nth-child(5) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    max-width: calc(50% - 0.4rem);
+  }
+
+  .info-cards {
+    max-width: 400px;
   }
 
   .contact-card {
     padding: 1.2rem;
   }
-}
 
-/* 1) global box-sizing so padding doesn’t blow out your width */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-/* 2) on phones, stack & center with no hidden overflow */
-@media (max-width: 768px) {
-  html, body {
-    overflow-x: hidden;
+  .logo-image {
+    width: 100px;
+    height: 100px;
   }
+}
 
+@media (max-width: 480px) {
   .contacts-wrapper {
-    /* equal 1rem side-padding, let width be exactly 100% */
-    padding: 5rem 1rem 1rem;
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .contacts-content {
-    display: flex;
-    flex-direction: column;      /* stack cards top→bottom */
-    flex-wrap: nowrap;           /* no wrapping into new “columns” */
-    align-items: center;         /* center each card */
-    justify-content: flex-start; /* start at top */
-    height: auto;                /* allow content to grow */
-    width: 100%;
-    padding: 0;                  /* remove any inner padding */
-    gap: 0.1rem;                   /* vertical spacing */
+    padding: 5rem 0.8rem 1rem;
   }
 
   .contact-card {
-    flex: none;                  /* don’t grow or shrink */
-    width: 100%;                 /* fill the inner width */
-    max-width: 360px;            /* cap so it isn’t edge-to-edge on large phones */
-    margin: 0.5rem 0;            /* vertical gutter between cards */
+    padding: 1rem;
   }
+
+  .contact-label {
+    font-size: 0.8rem;
+  }
+
+  .contact-value {
+    font-size: 0.85rem;
+  }
+
+  .logo-image {
+    width: 80px;
+    height: 80px;
+  }
+}
+
+/* Global box-sizing */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* Prevent horizontal overflow */
+html, body {
+  overflow-x: hidden;
 }

@@ -961,7 +961,7 @@ exports.sendOrderConfirmationNotification = onCall({
   }
 });
 
-// FIXED: createPaymentIntent function with proper amount handling
+// ✅ UPDATED: createPaymentIntent function to support automatic payment methods (Cards, Wallets, etc.)
 exports.createPaymentIntent = onCall({
   region: "europe-west2",
   secrets: ['STRIPE_SECRET_KEY']
@@ -987,48 +987,40 @@ exports.createPaymentIntent = onCall({
       throw new HttpsError('permission-denied', 'User ID mismatch');
     }
 
-    // FIXED: Amount is already in cents from frontend, don't multiply again
-    const amountInCents = Math.round(amount); // Just ensure it's an integer
-    const amountInEuros = amountInCents / 100; // For logging and metadata
+    const amountInCents = Math.round(amount); // Amount from frontend is already in cents
+    const amountInEuros = amountInCents / 100;
 
     logger.info(`💰 Processing payment - Amount: ${amountInCents} cents (€${amountInEuros.toFixed(2)}) with capture method: ${capture_method}`);
 
     const userDoc = await db.collection('users').doc(userId).get();
     const userData = userDoc.exists ? userDoc.data() : {};
 
-    const paymentIntentConfig = {
-      amount: amountInCents, // Already in cents
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amountInCents,
       currency: currency.toLowerCase(),
       capture_method: capture_method,
+      // THIS IS THE KEY CHANGE: Let Stripe automatically manage payment methods.
+      // It will show Card, Apple Pay, Google Pay, etc., based on the user's device and location.
+      automatic_payment_methods: {
+        enabled: true,
+      },
       metadata: {
         userId: userId,
         userName: `${userData.firstName || ''} ${userData.lastName || ''}`.trim(),
         userEmail: userData.email || '',
         orderType: orderData.orderType || 'N/A',
         tableNumber: orderData.tableNumber || 'N/A',
-        totalPrice: amountInEuros.toFixed(2), // Store as euros for readability
+        totalPrice: amountInEuros.toFixed(2),
         timestamp: new Date().toISOString(),
-        captureMethod: capture_method,
       },
       description: `Dandy Order - ${orderData.orderType === 'tavolo' ? `Table ${orderData.tableNumber}` : 'Delivery'} - €${amountInEuros.toFixed(2)}`,
       receipt_email: orderData.deliveryInfo?.email || userData.email || null,
-    };
+    });
 
-    if (capture_method === 'manual') {
-      paymentIntentConfig.payment_method_types = ['card'];
-    } else {
-      paymentIntentConfig.automatic_payment_methods = {
-        enabled: true,
-      };
-    }
-
-    const paymentIntent = await stripe.paymentIntents.create(paymentIntentConfig);
-
-    logger.info('✅ Payment Intent created successfully:', paymentIntent.id, 'Status:', paymentIntent.status, 'Amount:', amountInCents, 'cents');
+    logger.info('✅ Payment Intent created successfully:', paymentIntent.id, 'Status:', paymentIntent.status);
 
     return {
       client_secret: paymentIntent.client_secret,
-      payment_intent_id: paymentIntent.id,
     };
 
   } catch (error) {
