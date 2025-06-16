@@ -549,15 +549,15 @@ export default function Basket() {
                 <div className="basket-pending-icon">
                   {orderStatus === 'confirmed' ? <CheckCircle size={40} color="#28a745" /> : <Clock size={40} color="#ffc107" />}
                 </div>
-                <h2 className="basket-pending-title">{orderStatus === 'confirmed' ? 'Confermato!' : 'In Invio'}</h2>
+                <h2 className="basket-pending-title">{orderStatus === 'confirmed' ? '' : ''}</h2>
                 <div className="basket-order-number">Ordine #{pendingOrder.orderNumber}</div>
                 <div className="basket-status-message">
                   {orderStatus === 'pending' && pendingOrder.paymentMethod === 'pay-now' ? (
-                    <><p><strong>Autorizzazione Riuscita!</strong></p><p>Stiamo approvando.</p><p>Il pagamento verrà addebitato solo se l'ordine viene accettato.</p></>
+                    <></>
                   ) : orderStatus === 'pending' ? (
                     <></>
                   ) : orderStatus === 'confirmed' ? (
-                    <>{pendingOrder.paymentMethod === 'pay-now' && <p>Il pagamento è stato addebitato con successo.</p>}</>
+                    <>{pendingOrder.paymentMethod === 'pay-now' && <p></p>}</>
                   ) : null}
                 </div>
                 <div className="basket-order-summary">
