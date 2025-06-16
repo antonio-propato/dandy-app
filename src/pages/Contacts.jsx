@@ -1,7 +1,9 @@
-import React from 'react'
-import './Contacts.css'
-import Legno from '/images/Legno.png'
-import Nav from '../components/Nav'
+import React from 'react';
+import { Phone, MessageCircle, Instagram, Facebook, Mail, MapPin, Clock } from 'lucide-react';
+import './Contacts.css';
+import Legno from '/images/Legno.png';
+import DandyLogo from '/images/Dandy.jpeg';
+import Nav from '../components/Nav';
 
 export default function Contacts() {
   return (
@@ -11,74 +13,93 @@ export default function Contacts() {
       <Nav />
 
       <div className="contacts-content">
-        {/* <h1 className="contacts-title">Contatti</h1> */}
-
-        <div className="contact-card">
-          <span className="contact-label">Telefono Fisso</span>
-          <span className="contact-value">
-            <a href="tel:+390803713173">080 3713173</a>
-          </span>
+        {/* Logo at the top */}
+        <div className="contacts-logo">
+          <img src={DandyLogo} alt="Dandy Caffè" className="logo-image" />
         </div>
 
-        <div className="contact-card">
-          <span className="contact-label">WhatsApp</span>
-          <span className="contact-value">
-            <a
-              href="https://wa.me/393927249845"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              +39 392 724 9845
-            </a>
-          </span>
+        {/* Clickable contact cards with icons - 2x2 grid */}
+        <div className="contact-grid">
+          <a
+            href="tel:+390803713173"
+            className="contact-card clickable-card"
+            aria-label="Chiama il telefono fisso"
+          >
+            <Phone className="contact-icon" size={24} />
+
+            <span className="contact-value">080 3713173</span>
+          </a>
+
+          <a
+            href="https://wa.me/393927249845"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="contact-card clickable-card"
+            aria-label="Apri chat WhatsApp"
+          >
+            <MessageCircle className="contact-icon" size={24} />
+            <span className="contact-value">+39 392 724 9845</span>
+          </a>
+
+          <a
+            href="https://www.instagram.com/dandycaffe/?hl=en"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="contact-card clickable-card"
+            aria-label="Visita il profilo Instagram"
+          >
+            <Instagram className="contact-icon" size={24} />
+            <span className="contact-value">@dandycaffe</span>
+          </a>
+
+          <a
+            href="https://www.facebook.com/p/Dandy-Caff%C3%A8-100063616448651/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="contact-card clickable-card"
+            aria-label="Visita la pagina Facebook"
+          >
+            <Facebook className="contact-icon" size={24} />
+            <span className="contact-value">Dandy Caffè</span>
+          </a>
+
+          <a
+            href="mailto:Dandycaffe@libero.it"
+            className="contact-card clickable-card"
+            aria-label="Invia email"
+          >
+            <Mail className="contact-icon" size={24} />
+
+            <span className="contact-value">Dandycaffe@libero.it</span>
+          </a>
         </div>
 
-        <div className="contact-card">
-          <span className="contact-label">Instagram</span>
-          <span className="contact-value">
-            <a href="https://www.instagram.com/dandycaffe/?hl=en" target="_blank" rel="noopener noreferrer">
-              @dandycaffe
-            </a>
-          </span>
-        </div>
-
-        <div className="contact-card">
-          <span className="contact-label">Facebook</span>
-          <span className="contact-value">
-            <a href="https://www.facebook.com/p/Dandy-Caff%C3%A8-100063616448651/" target="_blank" rel="noopener noreferrer">
-              Dandy Caffè
-            </a>
-          </span>
-        </div>
-
-        <div className="contact-card">
-          <span className="contact-label">Email</span>
-          <span className="contact-value">
-            <a href="mailto:Dandycaffe@libero.it">Dandycaffe@libero.it</a>
-          </span>
-        </div>
-
-        <div className="contact-card">
-          <span className="contact-label">Indirizzo</span>
-          <span className="contact-value">
-            <a
-              href="https://maps.google.com/?q=Via+Generale+Francesco+Planelli,+60,+70032+Bitonto+(BA),+Italia"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+        {/* Location and Hours - Full width cards */}
+        <div className="info-cards">
+          <a
+            href="https://maps.google.com/?q=Via+Generale+Francesco+Planelli,+60,+70032+Bitonto+(BA),+Italia"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="contact-card info-card clickable-card"
+            aria-label="Apri in Google Maps"
+          >
+            <MapPin className="contact-icon" size={24} />
+            <span className="contact-label">Indirizzo</span>
+            <span className="contact-value">
               Via Generale Francesco Planelli, 60, 70032 Bitonto (BA), Italia
-            </a>
-          </span>
-        </div>
+            </span>
+          </a>
 
-        <div className="contact-card">
-          <span className="contact-label">Orari di Apertura</span>
-          <span className="contact-value">
-            Lunedì – Sabato: 06:00 – 21:00<br />
-            Domenica e Festivi: 06:00 – 13:00
-          </span>
+          <div className="contact-card info-card">
+            <Clock className="contact-icon" size={24} />
+            <span className="contact-label">Orari di Apertura</span>
+            <span className="contact-value">
+              Lun – Sab: 06:00 – 21:00<br />
+              Dom & Fest: 06:00 – 13:00
+            </span>
+          </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
