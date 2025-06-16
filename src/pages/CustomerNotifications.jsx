@@ -116,7 +116,6 @@ const OrderDetailsModal = ({ notification }) => {
               </div>
             ))}
           </div>
-
         </div>
       )}
 
@@ -146,32 +145,86 @@ export default function CustomerNotifications() {
 
   const touchStart = useRef({})
 
+  // Check if notification is an order confirmation
+  const isOrderConfirmation = (notification) => {
+    try {
+      return notification.data?.type === 'order_confirmation' ||
+             notification.type === 'order_confirmation' ||
+             notification.data?.orderNumber ||
+             notification.orderNumber ||
+             (notification.title && notification.title.toLowerCase().includes('ordine')) ||
+             (notification.title && notification.title.toLowerCase().includes('confermato'))
+    } catch (error) {
+      console.error('Error checking order confirmation:', error)
+      return false
+    }
+  }
+
   useEffect(() => {
+    console.log('🔔 CustomerNotifications component mounted')
+
     if (!auth.currentUser) {
+      console.log('❌ No authenticated user found')
+      setLoading(false)
       return
     }
 
     const currentUserId = auth.currentUser.uid
-    const notificationsRef = collection(firestore, 'notifications')
-    const q = query(
-      notificationsRef,
-      where('userId', '==', currentUserId),
-      orderBy('createdAt', 'desc')
-    )
+    console.log('🔔 Setting up notifications listener for user:', currentUserId)
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const notificationsList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
-      setNotifications(notificationsList)
-      setLoading(false)
-    }, (error) => {
-      console.error('Error fetching notifications:', error)
-      setLoading(false)
-    })
+    try {
+      const notificationsRef = collection(firestore, 'notifications')
+      const q = query(
+        notificationsRef,
+        where('userId', '==', currentUserId),
+        orderBy('createdAt', 'desc')
+      )
 
-    return () => unsubscribe()
+      console.log('🔔 Query created, setting up snapshot listener...')
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        console.log('🔔 Snapshot received, docs count:', snapshot.docs.length)
+
+        const notificationsList = snapshot.docs.map(doc => {
+          const data = doc.data()
+          return {
+            id: doc.id,
+            ...data
+          }
+        })
+
+        console.log('🔔 Processed notifications:', notificationsList.length)
+        if (notificationsList.length > 0) {
+          console.log('🔔 Sample notification details:', {
+            id: notificationsList[0].id,
+            title: notificationsList[0].title,
+            body: notificationsList[0].body,
+            type: notificationsList[0].type,
+            data: notificationsList[0].data,
+            createdAt: notificationsList[0].createdAt,
+            read: notificationsList[0].read
+          })
+
+          // Check if it's detected as an order
+          const isOrder = isOrderConfirmation(notificationsList[0])
+          console.log('🔔 Is this notification an order?', isOrder)
+        }
+
+        setNotifications(notificationsList)
+        setLoading(false)
+      }, (error) => {
+        console.error('❌ Error fetching notifications:', error)
+        setLoading(false)
+      })
+
+      return () => {
+        console.log('🔔 Cleaning up notifications listener')
+        unsubscribe()
+      }
+    } catch (error) {
+      console.error('❌ Error setting up notifications listener:', error)
+      setLoading(false)
+    }
   }, [])
 
   const filteredNotifications = notifications
@@ -185,6 +238,15 @@ export default function CustomerNotifications() {
       const bTime = new Date(b.createdAt)
       return sortBy === 'newest' ? bTime - aTime : aTime - bTime
     })
+
+  console.log('🔔 Filtered notifications count:', filteredNotifications.length)
+  console.log('🔔 Current filter:', filter)
+  if (filteredNotifications.length > 0) {
+    console.log('🔔 First filtered notification:', {
+      title: filteredNotifications[0].title,
+      read: filteredNotifications[0].read
+    })
+  }
 
   const handleTouchStart = (e, notificationId) => {
     touchStart.current[notificationId] = {
@@ -231,7 +293,6 @@ export default function CustomerNotifications() {
     const timeDiff = Date.now() - touchStart.current[notificationId].time
 
     if (diffX > 80 && timeDiff < 800 && diffY < 100) {
-      console.log('Deleting notification:', notificationId)
       deleteNotification(notificationId)
     } else {
       const newSwipeState = { ...swipeState }
@@ -256,7 +317,7 @@ export default function CustomerNotifications() {
 
     await updateDoc(notificationRef, { read: !currentReadStatus })
 
-    if (notification?.data?.type === 'order_confirmation') {
+    if (isOrderConfirmation(notification)) {
       setSelectedNotification(notification)
     } else {
       setExpandedNotifications(prev => ({ ...prev, [notificationId]: !prev[notificationId] }))
@@ -266,7 +327,7 @@ export default function CustomerNotifications() {
   const handleNotificationClick = (notificationId, currentReadStatus) => {
     const notification = notifications.find(n => n.id === notificationId)
 
-    if (notification?.data?.type === 'order_confirmation') {
+    if (isOrderConfirmation(notification)) {
       setSelectedNotification(notification)
     } else {
       setExpandedNotifications(prev => ({ ...prev, [notificationId]: !prev[notificationId] }))
@@ -312,35 +373,12 @@ export default function CustomerNotifications() {
     })
   }
 
-  const formatOrderType = (orderDetails) => {
-    if (!orderDetails) return 'N/A'
-    if (orderDetails.orderType === 'tavolo') return `Al Tavolo ${orderDetails.tableNumber || ''}`
-    if (orderDetails.orderType === 'consegna') return 'Consegna'
-    return 'Ritiro'
-  }
-
-  const formatPaymentMethod = (method) => {
-    if (method === 'pay-at-till') return 'Contanti'
-    if (method === 'pay-now') return 'Online'
-    return 'N/A'
-  }
-
-  const formatTimbro = (orderDetails) => {
-    const orderType = formatOrderType(orderDetails)
-    return orderType.includes('Al Tavolo') ? 'Yes' : 'No'
-  }
-
   const getNotificationIcon = (notification) => {
-    if (notification.data?.type === 'order_confirmation') return faShoppingCart
+    if (isOrderConfirmation(notification)) return faShoppingCart
     return faBell
   }
 
-  const getCleanTitle = (notification) => {
-    if (notification.data?.type === 'order_confirmation') {
-      return notification.title.replace(/\s*Confermato!\s*✅?\s*/g, '').trim()
-    }
-    return notification.title
-  }
+  console.log('🔔 Rendering CustomerNotifications, loading:', loading, 'notifications:', notifications.length)
 
   if (loading) {
     return (
@@ -427,7 +465,7 @@ export default function CustomerNotifications() {
           <AnimatePresence>
             {filteredNotifications.map((notification) => {
               const swipeInfo = swipeState[notification.id] || { type: 'idle', offset: 0 }
-              const isOrder = notification.data?.type === 'order_confirmation'
+              const isOrder = isOrderConfirmation(notification)
               const orderDetails = notification.data
               const isExpanded = expandedNotifications[notification.id]
 
@@ -469,7 +507,7 @@ export default function CustomerNotifications() {
                           />
                         </div>
                         <div className="notification-text-content">
-                           {isOrder && orderDetails ? (
+                          {isOrder && orderDetails ? (
                             <>
                               <h3 className="notification-title">
                                 {formatFullDateTime(notification.createdAt)}
@@ -491,84 +529,13 @@ export default function CustomerNotifications() {
                             {formatDate(notification.createdAt)}
                           </span>
                           {!isOrder && (
-                            // --- THIS WAS THE FIX ---
                             <FontAwesomeIcon
                               icon={isExpanded ? faChevronUp : faChevronDown}
                               className="notification-expand-icon"
                             />
-                            // --- END FIX ---
                           )}
                         </div>
                       </div>
-                      <AnimatePresence>
-                        {isExpanded && !isOrder && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="notification-expanded-content"
-                          >
-                             <div className="notification-expanded-inner">
-                              <div className="notification-full-body">
-                                <div style={{
-                                  background: 'rgba(251, 191, 36, 0.05)',
-                                  border: '1px solid rgba(251, 191, 36, 0.2)',
-                                  borderRadius: '12px',
-                                  padding: '16px'
-                                }}>
-                                  <p style={{
-                                    color: 'rgba(255, 255, 255, 0.9)',
-                                    margin: '0',
-                                    lineHeight: '1.5',
-                                    fontSize: '14px'
-                                  }}>
-                                    <strong style={{ color: '#fbbf24' }}>{notification.title}</strong>
-                                    <br />
-                                    {notification.body}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                        {isExpanded && isOrder && orderDetails && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="notification-expanded-content"
-                          >
-                             <div className="order-details-section">
-                                <div className="order-details-grid">
-                                    <div className="order-detail-item">
-                                      <FontAwesomeIcon icon={faHashtag} className="order-detail-icon" />
-                                      <span className="order-detail-value">#{orderDetails.orderNumber}</span>
-                                    </div>
-                                    <div className="order-detail-item">
-                                      <FontAwesomeIcon icon={faMapMarkerAlt} className="order-detail-icon" />
-                                      <span className="order-detail-value">{formatOrderType(orderDetails)}</span>
-                                    </div>
-                                    <div className="order-detail-item">
-                                      <FontAwesomeIcon icon={faCreditCard} className="order-detail-icon" />
-                                      <span className="order-detail-value">{formatPaymentMethod(orderDetails.paymentMethod)}</span>
-                                    </div>
-                                    <div className="order-detail-item">
-                                      <FontAwesomeIcon icon={faStamp} className="order-detail-icon" />
-                                      <span className="order-detail-value">{formatTimbro(orderDetails)}</span>
-                                    </div>
-                                    <div className="order-detail-item total">
-                                      <span className="order-detail-value">€{orderDetails.totalPrice?.toFixed(2)}</span>
-                                    </div>
-                                </div>
-                                {orderDetails.notes && (
-                                    <div className="order-notes-section">
-                                      <p>{orderDetails.notes}</p>
-                                    </div>
-                                )}
-                             </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
                     </div>
                     {!notification.read && (
                       <div className="notification-unread-indicator"></div>
