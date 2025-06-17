@@ -472,7 +472,7 @@ export default function Stamps() {
       {showQRModal && qrCode && (
         <div className="qr-modal-overlay" onClick={closeQRModal}>
           <div className="qr-modal-content" onClick={e => e.stopPropagation()}>
-            {/* <h3>Il tuo QR Code</h3> */}
+            <h3>QR Code</h3>
             <img src={qrCode} alt="QR Code" className="qr-code-image" />
             <button onClick={closeQRModal} className="close-button">Chiudi</button>
           </div>

@@ -611,11 +611,6 @@ html, body {
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
 /* ================================================= */
 /*  STRIPE MODAL ENHANCEMENTS  */
 /* ================================================= */
@@ -1060,12 +1055,12 @@ html, body {
   margin-top: 0.5rem;
 }
 
-/* Custom Notification */
+/* Custom Notification - Higher z-index to cover burger menu */
 .basket-custom-notification {
   position: fixed;
   top: 20px;
   right: 20px;
-  z-index: 10000;
+  z-index: 2500; /* Higher than modals and nav */
   animation: basketSlideInRight 0.6s ease-out;
 }
 
@@ -1096,6 +1091,7 @@ html, body {
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   min-width: 280px;
   max-width: 350px;
+  z-index: 2501; /* Ensure it's on top */
 }
 
 .basket-notification-text h3 {
@@ -1116,18 +1112,50 @@ html, body {
 /*  RESPONSIVE DESIGN  */
 /* ================================================= */
 
-/* Mobile optimizations for payment request button */
+/* Mobile optimizations */
 @media (max-width: 768px) {
   .basket-modal-overlay {
     padding: 1rem;
     align-items: center;
   }
 
-  .basket-payment-modal {
+  .basket-payment-modal,
+  .basket-stripe-loading-modal {
     max-height: 85vh;
     width: 100%;
     border-radius: 2rem;
     animation: basketCardEntrance 0.5s ease-out;
+  }
+
+  .basket-stripe-loading-content {
+    padding: 2rem 1.5rem;
+  }
+
+  .basket-loading-icon {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 1.5rem;
+  }
+
+  .loading-card-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .basket-loading-title {
+    font-size: 1.25rem;
+  }
+
+  .basket-loading-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .basket-loading-step {
+    padding: 0.625rem;
+  }
+
+  .basket-loading-step span {
+    font-size: 0.85rem;
   }
 
   .basket-modal-header {
@@ -1175,19 +1203,18 @@ html, body {
     border-radius: 10px;
   }
 
-  /* Enhanced Apple Pay button on mobile */
   #payment-request-button {
     min-height: 52px;
-    margin-bottom: 0.625rem; /* Reduced spacing on mobile too */
+    margin-bottom: 0.625rem;
   }
 
   #payment-request-button .StripeElement {
     height: 52px !important;
-    border-radius: 20% !important; /* Keep 20% border radius on mobile */
+    border-radius: 20% !important;
   }
 
   .form-divider {
-    margin: 0.875rem 0 0.625rem 0; /* Reduced margins on mobile */
+    margin: 0.875rem 0 0.625rem 0;
     font-size: 0.85rem;
   }
 
@@ -1253,10 +1280,54 @@ html, body {
   }
 
   .basket-payment-modal,
-  .basket-pending-modal {
+  .basket-pending-modal,
+  .basket-stripe-loading-modal {
     border-radius: 1.5rem;
     max-height: 90vh;
     margin: 1rem;
+  }
+
+  .basket-stripe-loading-content {
+    padding: 1.5rem 1rem;
+  }
+
+  .basket-loading-icon {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 1rem;
+  }
+
+  .loading-card-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .basket-loading-title {
+    font-size: 1.1rem;
+  }
+
+  .basket-loading-subtitle {
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .basket-loading-details {
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .basket-loading-step {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .basket-loading-step span {
+    font-size: 0.8rem;
+  }
+
+  .basket-loading-step svg {
+    width: 14px;
+    height: 14px;
   }
 
   .basket-modal-overlay {
@@ -1305,9 +1376,10 @@ html, body {
   }
 
   .basket-custom-notification {
-    top: 10px;
+    top: 80px; /* Move down to avoid burger menu overlap */
     right: 10px;
     left: 10px;
+    z-index: 2500; /* Ensure it covers burger menu */
   }
 
   .basket-pending-content {
@@ -1355,7 +1427,8 @@ html, body {
   }
 
   .basket-payment-modal,
-  .basket-pending-modal {
+  .basket-pending-modal,
+  .basket-stripe-loading-modal {
     width: 95%;
     margin: 1rem;
     max-height: 85vh;
@@ -1466,15 +1539,14 @@ html, body {
   .basket-custom-notification,
   .stripe-card-form-collapsible,
   .chevron-icon,
-  .basket-modal-close-unique,
   .stripe-pay-button,
   .basket-payment-btn,
-  .basket-processing-indicator svg {
+  .basket-processing-indicator svg,
+  .simple-loading-spinner {
     animation: none;
     transition: none;
   }
 
-  .basket-modal-close-unique:hover,
   .stripe-pay-button:hover,
   .basket-payment-btn:hover {
     transform: none;
@@ -1482,7 +1554,6 @@ html, body {
 }
 
 /* Focus styles for accessibility */
-.basket-modal-close-unique:focus,
 .basket-payment-btn:focus,
 .stripe-card-toggle-btn:focus,
 .stripe-pay-button:focus,
@@ -1509,6 +1580,7 @@ html, body {
   .basket-modal-overlay,
   .basket-payment-modal,
   .basket-pending-modal,
+  .basket-simple-loading-modal,
   .basket-custom-notification,
   .stripe-payment-form {
     display: none;
