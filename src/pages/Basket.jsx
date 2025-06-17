@@ -1,6 +1,6 @@
-// Optimized NewBasket.jsx - Complete component with tap-to-close modals
+// Optimized NewBasket.jsx - Complete component with enhanced loading states
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Minus, Plus, CreditCard, Clock, CheckCircle, AlertTriangle, Info, ChevronDown, Banknote } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, CreditCard, Clock, CheckCircle, AlertTriangle, Info, ChevronDown, Banknote, Loader } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, firestore, functions } from '../lib/firebase';
 import { doc, getDoc, addDoc, collection, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
@@ -215,7 +215,7 @@ const StripePaymentForm = ({ total, onSuccess, onError, onCancel, clientSecret, 
 };
 
 // =========================================================================
-//  MAIN Basket Component - Optimized with Tap-to-Close
+//  MAIN Basket Component - Enhanced with Loading States
 // =========================================================================
 export default function Basket() {
   const navigate = useNavigate();
@@ -240,6 +240,8 @@ export default function Basket() {
   const [showPendingModal, setShowPendingModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [orderProcessing, setOrderProcessing] = useState(false);
+  const [stripeLoading, setStripeLoading] = useState(false); // NEW: Specific loading for Stripe
+  const [stripeLoadingProgress, setStripeLoadingProgress] = useState(0); // NEW: Progress indicator
   const [pendingOrder, setPendingOrder] = useState(null);
   const [cancelCountdown, setCancelCountdown] = useState(10);
   const [canCancel, setCanCancel] = useState(true);
@@ -249,6 +251,23 @@ export default function Basket() {
 
   const createPaymentIntent = httpsCallable(functions, 'createPaymentIntent');
   const cartItems = cart.items;
+
+  const [loadingDots, setLoadingDots] = useState(''); // NEW: For animated dots
+
+  // NEW: Animated loading dots effect
+  useEffect(() => {
+    let interval;
+    if (stripeLoading) {
+      setLoadingDots('');
+      interval = setInterval(() => {
+        setLoadingDots(prev => {
+          if (prev === '...') return '';
+          return prev + '.';
+        });
+      }, 500); // Change dots every 500ms
+    }
+    return () => clearInterval(interval);
+  }, [stripeLoading]);
 
   // Effects
   useEffect(() => {
@@ -398,10 +417,17 @@ export default function Basket() {
   const handlePaymentSelect = async (method) => {
     setSelectedPayment(method);
     setShowPaymentModal(false);
-    setOrderProcessing(true);
 
     if (method === 'pay-now') {
+      // NEW: Show loading state immediately with minimum 2 second duration
+      setStripeLoading(true);
+      setStripeLoadingProgress(0);
+
+      const startTime = Date.now();
+      const minLoadingTime = 2000; // 2 seconds minimum
+
       try {
+        console.log('🔄 Creating Payment Intent...');
         const result = await createPaymentIntent({
           amount: Math.round(total * 100),
           currency: 'eur',
@@ -409,21 +435,39 @@ export default function Basket() {
           userId: auth.currentUser.uid,
           capture_method: 'manual'
         });
+
         const { client_secret } = result.data;
         if (client_secret) {
           setStripeClientSecret(client_secret);
-          setShowStripeModal(true);
+
+          // Ensure minimum loading time has passed
+          const elapsedTime = Date.now() - startTime;
+          const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+
+          // Complete the progress and show modal after minimum time
+          setStripeLoadingProgress(100);
+          setTimeout(() => {
+            setStripeLoading(false);
+            setShowStripeModal(true);
+          }, remainingTime + 300); // Small delay to show completed progress
         } else {
           throw new Error("Client secret not received");
         }
       } catch (error) {
         console.error("Failed to create Payment Intent:", error);
-        alert("Errore nell'inizializzazione del pagamento. Riprova.");
-        setSelectedPayment(null);
-      } finally {
-        setOrderProcessing(false);
+        // Ensure minimum time even for errors
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+
+        setTimeout(() => {
+          setStripeLoading(false);
+          setSelectedPayment(null);
+          alert("Errore nell'inizializzazione del pagamento. Riprova.");
+        }, remainingTime);
       }
     } else {
+      // Cash payment - immediate processing
+      setOrderProcessing(true);
       await submitOrder(method);
       setShowPendingModal(true);
       setOrderProcessing(false);
@@ -432,9 +476,11 @@ export default function Basket() {
 
   const handleStripeSuccess = async (paymentIntentId) => {
     setShowStripeModal(false);
+    setOrderProcessing(true);
     await submitOrder('pay-now', paymentIntentId);
     setShowPendingModal(true);
     setStripeClientSecret('');
+    setOrderProcessing(false);
   };
 
   const handleStripeError = (error) => {
@@ -683,6 +729,15 @@ export default function Basket() {
       </div>
 
       {/* ========== MODALS WITH TAP-TO-CLOSE ========== */}
+
+      {/* NEW: Stripe Loading Modal */}
+      {stripeLoading && (
+        <div className="basket-modal-overlay">
+          <div className="basket-simple-loading-modal">
+            <p className="loading-text">Caricamento{loadingDots}</p>
+          </div>
+        </div>
+      )}
 
       {/* Delivery Warning Modal */}
       {showDeliveryWarningModal && (
