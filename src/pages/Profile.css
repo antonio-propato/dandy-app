@@ -77,52 +77,8 @@ body:has(.profile-wrapper) {
   justify-content: center;
   overflow: hidden;
 
-  /* Faster entrance animation */
-  animation: cardEntrance 0.6s ease-out;
-}
-
-/* ─── CHIC SHINE EFFECT ─────────────────────── */
-.shine-effect {
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(
-    120deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0) 47%,
-    rgba(236, 240, 186, 0.8) 49.5%,
-    rgba(255, 255, 255, 0.9) 50%,
-    rgba(236, 240, 186, 0.8) 50.5%,
-    rgba(255, 255, 255, 0) 53%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  transform: translateX(-100%) translateY(-100%) rotate(25deg);
-  animation: chicShine 3s ease-in-out 0.3s;
-  animation-fill-mode: both;
-  z-index: 5;
-  pointer-events: none;
-}
-
-/* Alternative luxury shine with multiple layers */
-.shine-effect::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    120deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0) 48%,
-    rgba(255, 215, 0, 0.4) 49.7%,
-    rgba(255, 255, 255, 0.6) 50%,
-    rgba(255, 215, 0, 0.4) 50.3%,
-    rgba(255, 255, 255, 0) 52%,
-    rgba(255, 255, 255, 0) 100%
-  );
+  /* Extended single pulse animation */
+  animation: cardEntranceWithPulse 2.5s ease-out;
 }
 
 /* ─── PROFILE CONTENT ───────────────────────── */
@@ -247,6 +203,107 @@ body:has(.profile-wrapper) {
   transform: scale(1.05);
 }
 
+/* ─── ELEGANT LOADING CARD ─────────────────── */
+.profile-loading-card {
+  position: relative;
+  z-index: 10;
+  margin: 0 auto;
+  width: clamp(280px, 82vw, 360px);
+  height: clamp(400px, 50vh, 500px);
+  background: linear-gradient(135deg, #43221B, rgba(129, 119, 119, 0.176));
+  backdrop-filter: blur(20px);
+  border: 1px groove rgba(255, 255, 255, 0.7);
+  border-radius: 2.5rem;
+  padding: 2rem;
+  box-shadow:
+    0 8px 30px rgba(236, 240, 186, 0.7),
+    0 0 50px rgba(236, 240, 186, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  animation: loadingCardPulse 2s ease-in-out infinite;
+}
+
+.loading-logo {
+  width: 6.5rem;
+  height: 6.5rem;
+  border-radius: 10%;
+  overflow: hidden;
+  border: 1px solid #ECF0BA;
+  box-shadow:
+    0 4px 15px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(236, 240, 186, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  margin-bottom: 2rem;
+  animation: logoFloat 3s ease-in-out infinite;
+}
+
+.loading-logo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(236, 240, 186, 0.3);
+  border-top: 3px solid #ECF0BA;
+  border-radius: 50%;
+  margin-bottom: 1.5rem;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text-elegant {
+  color: #ECF0BA;
+  font-size: 1.1rem;
+  font-weight: 500;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  animation: textPulse 2s ease-in-out infinite;
+}
+
+/* ─── LOADING ANIMATIONS ───────────────────── */
+@keyframes loadingCardPulse {
+  0%, 100% {
+    box-shadow:
+      0 8px 30px rgba(236, 240, 186, 0.7),
+      0 0 50px rgba(236, 240, 186, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 12px 40px rgba(236, 240, 186, 0.9),
+      0 0 70px rgba(236, 240, 186, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+}
+
+@keyframes logoFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes textPulse {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 /* ─── LOADING STATE ────────────────────────── */
 .loading {
   color: #ECF0BA;
@@ -258,41 +315,34 @@ body:has(.profile-wrapper) {
 
 /* ─── ANIMATIONS ───────────────────────────── */
 
-/* Faster card entrance */
-@keyframes cardEntrance {
+/* Extended single pulse animation */
+@keyframes cardEntranceWithPulse {
   0% {
     opacity: 0;
     transform: scale(0.95) translateY(20px);
   }
-  100% {
+  20% {
     opacity: 1;
     transform: scale(1) translateY(0);
   }
-}
-
-/* Slower, slimmer shine animation */
-@keyframes chicShine {
-  0% {
-    transform: translateX(-100%) translateY(-100%) rotate(25deg);
-    opacity: 0;
-  }
-  20% {
-    opacity: 1;
-  }
   50% {
-    transform: translateX(50%) translateY(50%) rotate(25deg);
-    opacity: 1;
-  }
-  80% {
-    opacity: 1;
+    transform: scale(1.03) translateY(0);
+    box-shadow:
+      0 12px 40px rgba(236, 240, 186, 0.9),
+      0 0 70px rgba(236, 240, 186, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
   100% {
-    transform: translateX(100%) translateY(100%) rotate(25deg);
-    opacity: 0;
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    box-shadow:
+      0 8px 30px rgba(236, 240, 186, 0.7),
+      0 0 50px rgba(236, 240, 186, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
 }
 
-/* Faster logo glow */
+/* Logo glow animation */
 @keyframes logoGlow {
   0%, 100% {
     box-shadow:
@@ -309,7 +359,7 @@ body:has(.profile-wrapper) {
   }
 }
 
-/* Faster content fade in */
+/* Content fade in animation */
 @keyframes contentFadeIn {
   0% {
     opacity: 0;

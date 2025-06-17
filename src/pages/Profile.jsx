@@ -75,7 +75,16 @@ export default function Profile() {
         style={{ backgroundImage: `url('/images/Legno.png')` }}
       >
         <div className="profile-overlay" />
-        <div className="loading">Caricamento profilo...</div>
+        <Nav />
+
+        {/* Elegant Loading Card */}
+        <div className="profile-loading-card">
+          <div className="loading-logo">
+            <img src="/images/Dandy.jpeg" alt="Loading" className="loading-logo-image" />
+          </div>
+          <div className="loading-spinner"></div>
+          <div className="loading-text-elegant">Caricamento profilo...</div>
+        </div>
       </div>
     )
   }
@@ -97,9 +106,6 @@ export default function Profile() {
       <Nav />
 
       <div className="profile-card">
-        {/* Diamond-bling shine lives inside the card */}
-        <div className="shine-effect" />
-
         <div className="profile-content">
           <h1 className={`profile-name ${nameClass}`}>
             {profile.firstName} {profile.lastName}
