@@ -12,6 +12,7 @@ export default function Stamps() {
   const [displayStamps, setDisplayStamps] = useState([]); // For visual continuity
   const [lifetimeStats, setLifetimeStats] = useState({ lifetimeStamps: 0, rewardsEarned: 0, availableRewards: 0 });
   const [loading, setLoading] = useState(true);
+  const [contentVisible, setContentVisible] = useState(false); // NEW: Control content visibility
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
   const [showQRModal, setShowQRModal] = useState(false);
@@ -19,6 +20,7 @@ export default function Stamps() {
   const [showBirthdayModal, setShowBirthdayModal] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false); // NEW: Welcome modal for new users
   const [pendingBirthdayModal, setPendingBirthdayModal] = useState(false); // NEW: Queue birthday modal after reward modal
+  const [pendingRewardModal, setPendingRewardModal] = useState(false); // NEW: Queue reward modal after loading
   const [qrCode, setQrCode] = useState(null);
   const [rewardQRCode, setRewardQRCode] = useState(null); // NEW: For reward QR
   const [generatingQR, setGeneratingQR] = useState(false); // NEW: Loading state for QR generation
@@ -39,6 +41,24 @@ export default function Stamps() {
 
   // Initialize the Cloud Functions
   const generateRewardQR = httpsCallable(functions, 'generateRewardQR'); // NEW: Generate reward QR
+
+  // NEW: Staged loading sequence
+  useEffect(() => {
+    if (!loading && user) {
+      // Step 1: Show content with cup animation
+      setTimeout(() => {
+        setContentVisible(true);
+      }, 300);
+
+      // Step 2: Check for pending reward modal (after content is visible)
+      setTimeout(() => {
+        if (pendingRewardModal) {
+          setPendingRewardModal(false);
+          setShowRewardModal(true);
+        }
+      }, 1500); // 1.5 seconds after content appears
+    }
+  }, [loading, user, pendingRewardModal]);
 
   // NEW: Generate reward QR code
   const handleGenerateRewardQR = async () => {
@@ -148,7 +168,7 @@ export default function Stamps() {
       }
       // If showingCompletedGrid and no new stamps, keep current displayStamps
 
-      // --- CLEANED UP NOTIFICATION LOGIC ---
+      // --- UPDATED NOTIFICATION LOGIC FOR STAGED LOADING ---
 
       // 1. A reward was redeemed via QR scan (detected by decrease in availableRewards)
       if (rewardRedeemed) {
@@ -193,10 +213,16 @@ export default function Stamps() {
           setPendingBirthdayModal(true); // Queue birthday modal for after reward modal closes
         }
 
-        // Show reward modal after popup appears
-        setTimeout(() => {
-          setShowRewardModal(true);
-        }, 800);
+        // NEW: Queue reward modal instead of showing immediately
+        if (contentVisible) {
+          // Content already visible - show reward modal after delay
+          setTimeout(() => {
+            setShowRewardModal(true);
+          }, 800);
+        } else {
+          // Content not visible yet - queue for later
+          setPendingRewardModal(true);
+        }
 
         // Animate the appropriate stamp(s)
         setTimeout(() => {
@@ -217,16 +243,18 @@ export default function Stamps() {
               setTimeout(() => finalCup.classList.remove('new-stamp-highlight'), 1500);
             }
           }
-        }, 300);
+        }, contentVisible ? 300 : 1800); // Delay animation if content not visible yet
       }
       // 3. New user signup - WELCOME MODAL ONLY (no birthday mention ever)
-      else if (receivedFreeStamps && prevLifetimeStamps === 0) {
+      // Only show for genuinely new users (lifetimeStamps exactly 2 from signup bonus)
+      else if (receivedFreeStamps && prevLifetimeStamps === 0 && newLifetimeStamps === 2) {
         setTimeout(() => setShowQRModal(false), 150);
 
-        // Show welcome modal for new users - NO birthday logic here
+        // Show welcome modal for new users - delay if content not visible
+        const welcomeDelay = contentVisible ? 300 : 1800;
         setTimeout(() => {
           setShowWelcomeModal(true);
-        }, 300);
+        }, welcomeDelay);
 
         setTimeout(() => {
           // Highlight the 2 signup stamps only
@@ -237,7 +265,7 @@ export default function Stamps() {
               setTimeout(() => cupElement.classList.remove('new-stamp-highlight'), 1500);
             }
           }
-        }, 500);
+        }, contentVisible ? 500 : 2000);
       }
       // 4. Birthday bonus during QR scan (FIXED: Proper birthday detection)
       else if (birthdayBonusJustGiven && prevLifetimeStamps > 0 && lifetimeStampsAdded > 0 && !rewardEarned) {
@@ -245,9 +273,10 @@ export default function Stamps() {
         setTimeout(() => setShowQRModal(false), 150);
 
         // Show birthday modal for existing users scanning on birthday
+        const birthdayDelay = contentVisible ? 300 : 1800;
         setTimeout(() => {
           setShowBirthdayModal(true);
-        }, 300);
+        }, birthdayDelay);
 
         setTimeout(() => {
           // Highlight all new stamps from this scan (could be 1 normal + 1 birthday = 2 total)
@@ -259,7 +288,7 @@ export default function Stamps() {
               setTimeout(() => cupElement.classList.remove('new-stamp-highlight'), 1500);
             }
           }
-        }, 500);
+        }, contentVisible ? 500 : 2000);
       }
       // 5. Normal stamp scan (no birthday JUST given, no reward earned)
       else if (lifetimeStampsAdded === 1 && !rewardEarned && !birthdayBonusJustGiven) {
@@ -274,7 +303,7 @@ export default function Stamps() {
             cupElement.classList.add('new-stamp-highlight');
             setTimeout(() => cupElement.classList.remove('new-stamp-highlight'), 1500);
           }
-        }, 300);
+        }, contentVisible ? 300 : 1800);
       }
 
       // Update lifetime stats
@@ -295,7 +324,7 @@ export default function Stamps() {
     });
 
     return () => unsubscribe();
-  }, [user, isNewCycle]);
+  }, [user, isNewCycle, contentVisible]);
 
   useEffect(() => {
     const handleLogout = () => {
@@ -305,12 +334,14 @@ export default function Stamps() {
       setDisplayStamps([]);
       setLifetimeStats({ lifetimeStamps: 0, rewardsEarned: 0, availableRewards: 0 });
       setLoading(false);
+      setContentVisible(false); // NEW: Reset content visibility
       setIsNewCycle(false);
       setShowingCompletedGrid(false);
       setRewardQRCode(null);
       setShowWelcomeModal(false);
       setShowBirthdayModal(false);
       setPendingBirthdayModal(false); // NEW: Reset pending birthday modal
+      setPendingRewardModal(false); // NEW: Reset pending reward modal
       // Reset refs on logout
       lastStampCountRef.current = 0;
       lastAvailableRewardsRef.current = 0;
@@ -377,7 +408,21 @@ export default function Stamps() {
   };
 
   if (loading) {
-    return <div className="stamps-wrapper"><Nav /><div className="loading">Caricamento...</div></div>;
+    return (
+      <div className="stamps-wrapper">
+        <Nav />
+        {/* Elegant Loading State */}
+        <div className="stamps-loading-container">
+          <div className="loading-logo">
+            <img src="/images/Dandy.jpeg" alt="Loading" className="loading-logo-image" />
+          </div>
+          <div className="loading-cup-animation">
+            <img src="/images/cup.jpg" alt="Loading Cup" className="loading-cup" />
+          </div>
+          <div className="loading-text-stamps">Caricamento timbri...</div>
+        </div>
+      </div>
+    );
   }
 
   // Use displayStamps for rendering to maintain visual continuity
@@ -386,46 +431,48 @@ export default function Stamps() {
   return (
     <div className="stamps-wrapper">
       <Nav />
-      <div className="logo-container">
-        <img ref={logoRef} onClick={handleLogoTap} src="/images/Dandy.jpeg" alt="Dandy Logo" className="dandy-logo animate" />
-      </div>
-      <p className="stamps-subtitle">Raccogli 9 timbri per un caffè gratis!</p>
-      <div className="stamps-container">
-        <div className="stamps-grid">
-          {Array.from({ length: totalSlots }).map((_, i) => (
-            <div key={i} className={`stamp-box ${i < stampsToDisplay.length ? 'filled' : ''} ${isNewCycle && i < stampsToDisplay.length ? 'old-cycle' : ''}`}>
-              {i < stampsToDisplay.length && (
-                <>
-                  <div className="stamp-cup">
-                    <img src="/images/cup.jpg" alt="Coffee Cup" className="spinning-cup" ref={el => cupsRef.current[i] = el} />
-                  </div>
-                  <span className="stamp-date">{formatDate(stampsToDisplay[i].date)}</span>
-                </>
-              )}
-            </div>
-          ))}
+      <div className={`stamps-content ${contentVisible ? 'visible' : ''}`}>
+        <div className="logo-container">
+          <img ref={logoRef} onClick={handleLogoTap} src="/images/Dandy.jpeg" alt="Dandy Logo" className="dandy-logo animate" />
         </div>
-        <div className="button-container">
-          {qrCode && user && (
-            <button onClick={() => setShowQRModal(true)} className="qr-button">
-              Mostra QR Code
-            </button>
-          )}
-          {lifetimeStats.availableRewards > 0 && (
-            <button
-              onClick={() => setShowRewardModal(true)}
-              className={`reward-button ${lifetimeStats.availableRewards > 0 ? 'pulse' : ''}`}
-            >
-              Premi ({lifetimeStats.availableRewards})
-            </button>
-          )}
+        <p className="stamps-subtitle">Raccogli 9 timbri per un caffè gratis!</p>
+        <div className="stamps-container">
+          <div className="stamps-grid">
+            {Array.from({ length: totalSlots }).map((_, i) => (
+              <div key={i} className={`stamp-box ${i < stampsToDisplay.length ? 'filled' : ''} ${isNewCycle && i < stampsToDisplay.length ? 'old-cycle' : ''}`}>
+                {i < stampsToDisplay.length && (
+                  <>
+                    <div className="stamp-cup">
+                      <img src="/images/cup.jpg" alt="Coffee Cup" className="spinning-cup" ref={el => cupsRef.current[i] = el} />
+                    </div>
+                    <span className="stamp-date">{formatDate(stampsToDisplay[i].date)}</span>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="button-container">
+            {qrCode && user && (
+              <button onClick={() => setShowQRModal(true)} className="qr-button">
+                Mostra QR Code
+              </button>
+            )}
+            {lifetimeStats.availableRewards > 0 && (
+              <button
+                onClick={() => setShowRewardModal(true)}
+                className={`reward-button ${lifetimeStats.availableRewards > 0 ? 'pulse' : ''}`}
+              >
+                Premi ({lifetimeStats.availableRewards})
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {showQRModal && qrCode && (
         <div className="qr-modal-overlay" onClick={closeQRModal}>
           <div className="qr-modal-content" onClick={e => e.stopPropagation()}>
-            <h3>Il tuo QR Code</h3>
+            {/* <h3>Il tuo QR Code</h3> */}
             <img src={qrCode} alt="QR Code" className="qr-code-image" />
             <button onClick={closeQRModal} className="close-button">Chiudi</button>
           </div>
