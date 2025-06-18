@@ -1,4 +1,4 @@
-// src/contexts/CartContext.jsx
+// src/contexts/CartContext.jsx - Updated for simplified payment flow
 import React, { createContext, useContext, useReducer } from 'react'
 
 const CartContext = createContext()
@@ -94,14 +94,18 @@ const cartReducer = (state, action) => {
 
 const initialState = {
   items: [],
-  orderType: 'table', // 'table' or 'delivery'
+  orderType: 'tavolo', // 'tavolo' or 'consegna' (updated from 'table')
   tableNumber: null,
   deliveryInfo: {
-    firstName: '',
-    lastName: '',
-    phone: '',
+    nome: '',
+    cognome: '',
+    telefono: '',
     email: '',
-    address: ''
+    indirizzo: '',
+    civico: '',
+    citta: '',
+    provincia: '',
+    cap: ''
   },
   notes: '',
   promoCode: ''

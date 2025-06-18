@@ -1,4 +1,4 @@
-// Optimized NewBasket.jsx - Complete component with enhanced loading states
+// Simplified NewBasket.jsx - Direct payment method selection
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Minus, Plus, CreditCard, Clock, CheckCircle, AlertTriangle, Info, ChevronDown, Banknote, Loader } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -215,7 +215,7 @@ const StripePaymentForm = ({ total, onSuccess, onError, onCancel, clientSecret, 
 };
 
 // =========================================================================
-//  MAIN Basket Component - Enhanced with Loading States
+//  MAIN Basket Component - Simplified Payment Flow
 // =========================================================================
 export default function Basket() {
   const navigate = useNavigate();
@@ -235,13 +235,11 @@ export default function Basket() {
   const [notesSaved, setNotesSaved] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const [showDeliveryWarningModal, setShowDeliveryWarningModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showStripeModal, setShowStripeModal] = useState(false);
   const [showPendingModal, setShowPendingModal] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState(null);
   const [orderProcessing, setOrderProcessing] = useState(false);
-  const [stripeLoading, setStripeLoading] = useState(false); // NEW: Specific loading for Stripe
-  const [stripeLoadingProgress, setStripeLoadingProgress] = useState(0); // NEW: Progress indicator
+  const [stripeLoading, setStripeLoading] = useState(false);
+  const [stripeLoadingProgress, setStripeLoadingProgress] = useState(0);
   const [pendingOrder, setPendingOrder] = useState(null);
   const [cancelCountdown, setCancelCountdown] = useState(10);
   const [canCancel, setCanCancel] = useState(true);
@@ -252,9 +250,9 @@ export default function Basket() {
   const createPaymentIntent = httpsCallable(functions, 'createPaymentIntent');
   const cartItems = cart.items;
 
-  const [loadingDots, setLoadingDots] = useState(''); // NEW: For animated dots
+  const [loadingDots, setLoadingDots] = useState('');
 
-  // NEW: Animated loading dots effect
+  // Animated loading dots effect
   useEffect(() => {
     let interval;
     if (stripeLoading) {
@@ -264,7 +262,7 @@ export default function Basket() {
           if (prev === '...') return '';
           return prev + '.';
         });
-      }, 500); // Change dots every 500ms
+      }, 500);
     }
     return () => clearInterval(interval);
   }, [stripeLoading]);
@@ -325,7 +323,6 @@ export default function Basket() {
 
   // Event handlers for modal closing
   const handleOverlayClick = (e, closeFunction) => {
-    // Only close if clicking on the overlay itself, not the modal content
     if (e.target === e.currentTarget) {
       closeFunction();
     }
@@ -400,77 +397,157 @@ export default function Basket() {
     }
   };
 
-  const confirmOrder = () => {
-    if (isOrderValid()) {
-      setShowPaymentModal(true);
-    } else {
-      alert('Completa tutti i campi richiesti per procedere');
-    }
-  };
-
   const handleContinue = () => {
     setShowPendingModal(false);
     cartItems.forEach(item => updateQuantity(item.id, 0));
     navigate('/menu');
   };
 
-  const handlePaymentSelect = async (method) => {
-    setSelectedPayment(method);
-    setShowPaymentModal(false);
+  // NEW: Direct payment method handlers
+  const handleCashPayment = async () => {
+    if (!isOrderValid()) {
+      alert('Completa tutti i campi richiesti per procedere');
+      return;
+    }
 
-    if (method === 'pay-now') {
-      // NEW: Show loading state immediately with minimum 2 second duration
-      setStripeLoading(true);
-      setStripeLoadingProgress(0);
+    setOrderProcessing(true);
+    await submitOrder('pay-at-till');
+    setShowPendingModal(true);
+    setOrderProcessing(false);
+  };
 
-      const startTime = Date.now();
-      const minLoadingTime = 2000; // 2 seconds minimum
+  const handleCardPayment = async () => {
+    if (!isOrderValid()) {
+      alert('Completa tutti i campi richiesti per procedere');
+      return;
+    }
 
-      try {
-        console.log('🔄 Creating Payment Intent...');
-        const result = await createPaymentIntent({
-          amount: Math.round(total * 100),
-          currency: 'eur',
-          orderData: createOrderDataForStripe(),
-          userId: auth.currentUser.uid,
-          capture_method: 'manual'
-        });
+    // First, check if we can use digital wallets (Apple Pay/Google Pay)
+    try {
+      if (stripePromise) {
+        const stripe = await stripePromise;
+        if (stripe) {
+          // Create payment request to check digital wallet availability
+          const paymentRequest = stripe.paymentRequest({
+            country: 'IT',
+            currency: 'eur',
+            total: { label: 'Totale ordine', amount: Math.round(total * 100) },
+            requestPayerName: true,
+            requestPayerEmail: true,
+            requestPayerPhone: true,
+          });
 
-        const { client_secret } = result.data;
-        if (client_secret) {
-          setStripeClientSecret(client_secret);
+          // Check if Apple Pay/Google Pay is available
+          const canMakePayment = await paymentRequest.canMakePayment();
 
-          // Ensure minimum loading time has passed
-          const elapsedTime = Date.now() - startTime;
-          const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+          if (canMakePayment) {
+            console.log('✅ Digital wallet available - triggering immediately');
 
-          // Complete the progress and show modal after minimum time
-          setStripeLoadingProgress(100);
-          setTimeout(() => {
-            setStripeLoading(false);
-            setShowStripeModal(true);
-          }, remainingTime + 300); // Small delay to show completed progress
-        } else {
-          throw new Error("Client secret not received");
+            // Create payment intent first
+            setStripeLoading(true);
+            const result = await createPaymentIntent({
+              amount: Math.round(total * 100),
+              currency: 'eur',
+              orderData: createOrderDataForStripe(),
+              userId: auth.currentUser.uid,
+              capture_method: 'manual'
+            });
+
+            const { client_secret } = result.data;
+            if (client_secret) {
+              setStripeLoading(false);
+
+              // Set up payment method event handler
+              paymentRequest.on('paymentmethod', async (ev) => {
+                console.log('🍎 Digital wallet payment initiated');
+                setOrderProcessing(true);
+
+                try {
+                  const { paymentIntent, error: confirmError } = await stripe.confirmCardPayment(client_secret, {
+                    payment_method: ev.paymentMethod.id,
+                  });
+
+                  if (confirmError) {
+                    console.error('❌ Digital wallet payment failed:', confirmError);
+                    ev.complete('fail');
+                    alert('Errore durante il pagamento. Riprova.');
+                  } else {
+                    if (paymentIntent.status === 'requires_capture') {
+                      console.log('✅ Digital wallet payment authorized');
+                      ev.complete('success');
+                      await submitOrder('pay-now', paymentIntent.id);
+                      setShowPendingModal(true);
+                    } else {
+                      console.warn('⚠️ Unexpected payment status:', paymentIntent.status);
+                      ev.complete('fail');
+                      alert(`Errore: stato pagamento imprevisto: ${paymentIntent.status}`);
+                    }
+                  }
+                } catch (error) {
+                  console.error('❌ Digital wallet error:', error);
+                  ev.complete('fail');
+                  alert('Errore durante il pagamento. Riprova.');
+                } finally {
+                  setOrderProcessing(false);
+                }
+              });
+
+              // Show the digital wallet immediately
+              paymentRequest.show();
+              return; // Exit early - digital wallet flow initiated
+            }
+          }
         }
-      } catch (error) {
-        console.error("Failed to create Payment Intent:", error);
-        // Ensure minimum time even for errors
+      }
+    } catch (error) {
+      console.log('❌ Digital wallet check failed, falling back to card form:', error);
+    }
+
+    // Fallback: Show traditional card form modal
+    console.log('📱 No digital wallet available - showing card form');
+    setStripeLoading(true);
+    setStripeLoadingProgress(0);
+
+    const startTime = Date.now();
+    const minLoadingTime = 2000; // 2 seconds minimum
+
+    try {
+      console.log('🔄 Creating Payment Intent for card form...');
+      const result = await createPaymentIntent({
+        amount: Math.round(total * 100),
+        currency: 'eur',
+        orderData: createOrderDataForStripe(),
+        userId: auth.currentUser.uid,
+        capture_method: 'manual'
+      });
+
+      const { client_secret } = result.data;
+      if (client_secret) {
+        setStripeClientSecret(client_secret);
+
+        // Ensure minimum loading time has passed
         const elapsedTime = Date.now() - startTime;
         const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
 
+        // Complete the progress and show modal after minimum time
+        setStripeLoadingProgress(100);
         setTimeout(() => {
           setStripeLoading(false);
-          setSelectedPayment(null);
-          alert("Errore nell'inizializzazione del pagamento. Riprova.");
-        }, remainingTime);
+          setShowStripeModal(true);
+        }, remainingTime + 300); // Small delay to show completed progress
+      } else {
+        throw new Error("Client secret not received");
       }
-    } else {
-      // Cash payment - immediate processing
-      setOrderProcessing(true);
-      await submitOrder(method);
-      setShowPendingModal(true);
-      setOrderProcessing(false);
+    } catch (error) {
+      console.error("Failed to create Payment Intent:", error);
+      // Ensure minimum time even for errors
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+
+      setTimeout(() => {
+        setStripeLoading(false);
+        alert("Errore nell'inizializzazione del pagamento. Riprova.");
+      }, remainingTime);
     }
   };
 
@@ -489,7 +566,6 @@ export default function Basket() {
 
   const handleStripeCancel = () => {
     setShowStripeModal(false);
-    setSelectedPayment(null);
     setStripeClientSecret('');
   };
 
@@ -718,23 +794,42 @@ export default function Basket() {
           </div>
         )}
 
-        {/* Confirm Order Button */}
-        <button
-          onClick={confirmOrder}
-          disabled={!isOrderValid()}
-          className={`basket-confirm-btn ${!isOrderValid() ? 'basket-confirm-btn-disabled' : ''}`}
-        >
-          CONFERMA ORDINE
-        </button>
+        {/* NEW: Direct Payment Method Buttons */}
+        <div className="basket-payment-buttons">
+          <button
+            onClick={handleCashPayment}
+            disabled={!isOrderValid() || orderProcessing}
+            className={`basket-payment-direct-btn cash ${!isOrderValid() ? 'disabled' : ''}`}
+          >
+            <Banknote size={24} />
+            <span>CONTANTI</span>
+          </button>
+          <button
+            onClick={handleCardPayment}
+            disabled={!isOrderValid() || orderProcessing}
+            className={`basket-payment-direct-btn card ${!isOrderValid() ? 'disabled' : ''}`}
+          >
+            <CreditCard size={24} />
+            <span>CARTA</span>
+          </button>
+        </div>
+
+        {/* Processing Indicator */}
+        {orderProcessing && (
+          <div className="basket-processing-indicator">
+            <Clock size={20} />
+            <span>Elaborazione ordine...</span>
+          </div>
+        )}
       </div>
 
-      {/* ========== MODALS WITH TAP-TO-CLOSE ========== */}
+      {/* ========== MODALS ========== */}
 
-      {/* NEW: Stripe Loading Modal */}
+      {/* Stripe Loading Modal */}
       {stripeLoading && (
         <div className="basket-modal-overlay">
           <div className="basket-simple-loading-modal">
-            <p className="loading-text">Caricamento{loadingDots}</p>
+            <p className="loading-text">Inizializzazione pagamento{loadingDots}</p>
           </div>
         </div>
       )}
@@ -773,54 +868,6 @@ export default function Basket() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Payment Method Selection Modal */}
-      {showPaymentModal && (
-        <div
-          className="basket-modal-overlay"
-          onClick={(e) => handleOverlayClick(e, () => setShowPaymentModal(false))}
-        >
-          <div className="basket-payment-modal">
-            <div className="basket-modal-header">
-              {/* Empty header for spacing */}
-            </div>
-            <div className="basket-payment-summary">
-              <div className="basket-summary-row">
-                <span>Subtotale ({totalItems} articoli)</span>
-                <span>€{total.toFixed(2)}</span>
-              </div>
-              <div className="basket-summary-row total">
-                <span>Totale</span>
-                <span>€{total.toFixed(2)}</span>
-              </div>
-            </div>
-            <div className="basket-payment-methods">
-              <button
-                onClick={() => handlePaymentSelect('pay-at-till')}
-                className="basket-payment-btn pay-till"
-                disabled={orderProcessing}
-              >
-                <Banknote size={24} />
-                <div className="basket-payment-title">Contanti</div>
-              </button>
-              <button
-                onClick={() => handlePaymentSelect('pay-now')}
-                className="basket-payment-btn pay-now"
-                disabled={orderProcessing}
-              >
-                <CreditCard size={24} />
-                <div className="basket-payment-title">Online</div>
-              </button>
-            </div>
-            {orderProcessing && (
-              <div className="basket-processing-indicator">
-                <Clock size={20} />
-                <span>Elaborazione...</span>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -870,7 +917,6 @@ export default function Basket() {
         <div
           className="basket-modal-overlay"
           onClick={(e) => {
-            // Only allow closing if order is confirmed or cancelled
             if (orderStatus === 'confirmed' || orderStatus === 'cancelled') {
               handleOverlayClick(e, () => setShowPendingModal(false));
             }
@@ -894,7 +940,7 @@ export default function Basket() {
                   <p></p>
                 )}
                 {orderStatus === 'pending' && pendingOrder.paymentMethod === 'pay-at-till' && (
-                  <p>Il tuo ordine è in attesa di approvazione.</p>
+                  <p></p>
                 )}
                 {orderStatus === 'confirmed' && (
                   <p></p>
@@ -914,7 +960,7 @@ export default function Basket() {
                 <div className="basket-summary-item">
                   <strong>Pagamento:</strong>
                   <span>
-                    {pendingOrder.paymentMethod === 'pay-at-till' ? 'Contanti' : 'Online'}
+                    {pendingOrder.paymentMethod === 'pay-at-till' ? 'Contanti' : 'Carta'}
                   </span>
                 </div>
                 <div className="basket-summary-item">
