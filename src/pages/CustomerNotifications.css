@@ -1,4 +1,4 @@
-/* Customer Notifications CSS now*/
+/* Customer Notifications CSS with Cancelled Orders */
 
 .notifications-page {
   min-height: 100vh;
@@ -305,6 +305,40 @@
   box-shadow: 0 0 20px rgba(34, 197, 94, 0.6) !important;
 }
 
+/* NEW: Unread cancelled order notifications - Red */
+.notification-item.unread-cancelled {
+  border-left: 4px solid #ef4444 !important;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(255, 255, 255, 0.12) 100%) !important;
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.2) !important;
+}
+
+.notification-item.unread-cancelled::before {
+  background: linear-gradient(180deg, #ef4444, #dc2626) !important;
+}
+
+.notification-item.unread-cancelled:hover {
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  box-shadow:
+    0 16px 50px rgba(0, 0, 0, 0.4),
+    0 4px 20px rgba(239, 68, 68, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+.notification-item.unread-cancelled:hover::before {
+  background: linear-gradient(90deg,
+    rgba(239, 68, 68, 0.8) 0%,
+    rgba(220, 38, 38, 0.6) 50%,
+    rgba(239, 68, 68, 0.8) 100%) !important;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.6) !important;
+}
+
+/* Red unread indicator for cancelled orders */
+.notification-item.unread-cancelled .notification-unread-indicator {
+  background: #ef4444 !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.8) !important;
+  animation: pulse-glow-red 2s infinite !important;
+}
+
 /* Green unread indicator for orders */
 .notification-item.unread-order .notification-unread-indicator {
   background: #22c55e !important;
@@ -377,6 +411,14 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
 }
 
+.notification-item.unread-cancelled:hover .notification-icon {
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  box-shadow:
+    0 6px 25px rgba(0, 0, 0, 0.2),
+    0 0 15px rgba(239, 68, 68, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+
 .notification-status-icon {
   font-size: 16px;
   color: rgba(255, 255, 255, 0.7);
@@ -391,6 +433,37 @@
 .notification-item.unread-order .notification-status-icon.unread {
   color: #22c55e !important;
   filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.4)) !important;
+}
+
+.notification-item.unread-cancelled .notification-status-icon.unread {
+  color: #ef4444 !important;
+  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.4)) !important;
+}
+
+.notification-status-icon.cancelled {
+  color: #ef4444 !important;
+  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.4)) !important;
+}
+
+/* NEW: Red cross overlay for cancelled orders */
+.notification-cancel-overlay {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.6);
+  animation: pulse-glow-red 2s infinite;
+  z-index: 10;
 }
 
 .notification-text-content {
@@ -422,6 +495,12 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.notification-body-preview.cancelled {
+  color: #ef4444 !important;
+  font-weight: 600 !important;
+  text-shadow: 1px 1px 2px rgba(239, 68, 68, 0.3) !important;
 }
 
 .notification-meta-right {
@@ -467,6 +546,12 @@
   box-shadow: 0 0 12px rgba(255, 215, 0, 0.8);
   animation: pulse-glow 2s infinite;
   z-index: 3;
+}
+
+.notification-unread-indicator.cancelled {
+  background: #ef4444 !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.8) !important;
+  animation: pulse-glow-red 2s infinite !important;
 }
 
 /* Expanded content */
@@ -629,6 +714,12 @@
   margin-bottom: 24px;
 }
 
+/* NEW: Cancelled order modal styling */
+.order-modal-summary.cancelled {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}
+
 .order-modal-summary-header {
   display: flex;
   justify-content: space-between;
@@ -640,6 +731,20 @@
   color: #fbbf24;
   font-weight: 700;
   font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cancelled-badge {
+  background: #ef4444;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .order-modal-total {
@@ -650,6 +755,12 @@
   font-weight: 800;
   font-size: 1.2rem;
   border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.order-modal-total.cancelled {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
 }
 
 .order-modal-status-tick {
@@ -677,6 +788,10 @@
   flex-shrink: 0;
 }
 
+.order-modal-info-item .info-icon.cancelled {
+  color: #ef4444 !important;
+}
+
 .info-content {
   display: flex;
   flex-direction: column;
@@ -693,6 +808,11 @@
   color: white;
   font-weight: 600;
   font-size: 0.9rem;
+}
+
+.info-value.cancelled {
+  color: #ef4444 !important;
+  font-weight: 700 !important;
 }
 
 .info-total {
@@ -897,6 +1017,20 @@
   }
 }
 
+/* NEW: Red pulsing animation for cancelled orders */
+@keyframes pulse-glow-red {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 1);
+  }
+}
+
 @keyframes modalFadeIn {
   from {
     opacity: 0;
@@ -987,6 +1121,14 @@
 
   .notification-status-icon {
     font-size: 16px;
+  }
+
+  .notification-cancel-overlay {
+    width: 16px;
+    height: 16px;
+    font-size: 9px;
+    top: -1px;
+    right: -1px;
   }
 
   .notification-title {
@@ -1080,6 +1222,14 @@
 
   .notification-status-icon {
     font-size: 14px;
+  }
+
+  .notification-cancel-overlay {
+    width: 14px;
+    height: 14px;
+    font-size: 8px;
+    top: 0px;
+    right: 0px;
   }
 
   .notification-title {

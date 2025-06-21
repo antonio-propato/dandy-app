@@ -110,6 +110,52 @@
 }
 
 /* ========================================
+   DOB PICKER STYLES - NEW
+   ======================================== */
+
+.auth-dob-picker {
+  display: flex;
+  gap: 10px;
+}
+
+.auth-dob-picker select {
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 0.6rem;
+  font-size: 1rem;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
+  height: 48px;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+/* Make day selector smaller than month selector */
+.auth-dob-picker select:first-child {
+  flex: 0 0 100px; /* Fixed width for day dropdown */
+}
+
+.auth-dob-picker select:last-child {
+  flex: 1; /* Month dropdown takes remaining space */
+}
+
+.auth-dob-picker select:focus {
+  outline: none;
+  border-color: #43221B;
+  box-shadow: 0 0 0 2px rgba(67, 34, 27, 0.2);
+}
+
+.auth-dob-picker select.auth-input-error {
+  border-color: #e63946;
+  box-shadow: 0 0 0 2px rgba(230, 57, 70, 0.2);
+}
+
+.auth-dob-picker select option {
+  padding: 8px;
+}
+
+/* ========================================
    FORM VALIDATION STYLES
    ======================================== */
 
@@ -434,14 +480,16 @@
    ======================================== */
 
 .auth-error {
-  color: #e63946;
+  color: #ffffff;
   font-size: 0.9rem;
   margin-bottom: 1rem;
   text-align: center;
-  background-color: rgba(230, 57, 70, 0.1);
+  background-color: #e63946;
   padding: 0.75rem;
   border-radius: 0.5rem;
-  border: 1px solid rgba(230, 57, 70, 0.3);
+  border: 1px solid #d32f2f;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(230, 57, 70, 0.3);
 }
 
 .auth-success {
@@ -709,7 +757,7 @@
 }
 
 /* ========================================
-   MOBILE RESPONSIVENESS - FIXED CHECKBOX
+   MOBILE RESPONSIVENESS - INCLUDES DOB PICKER
    ======================================== */
 
 @media (max-width: 480px) {
@@ -740,6 +788,17 @@
   /* Validation mobile */
   .auth-field-error {
     font-size: 0.75rem;
+  }
+
+  /* DOB picker mobile responsiveness - keep on same line */
+  .auth-dob-picker {
+    gap: 8px; /* Keep flex-direction: row (default) */
+  }
+
+  .auth-dob-picker select {
+    font-size: 16px; /* Prevents zoom on iOS */
+    height: 44px;
+    min-width: 0; /* Allow selects to shrink if needed */
   }
 
   /* GDPR section mobile - FIXED CHECKBOX SIZE */

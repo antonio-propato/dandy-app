@@ -1044,11 +1044,6 @@ exports.capturePayment = onCall({
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
 
-  // Optional: Add admin role checking here if needed
-  // if (!request.auth.token.admin) {
-  //   throw new HttpsError('permission-denied', 'Only admins can capture payments');
-  // }
-
   const { paymentIntentId, orderId } = request.data;
 
   if (!paymentIntentId || !orderId) {
@@ -1103,11 +1098,6 @@ exports.cancelPayment = onCall({
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
-
-  // Optional: Add admin role checking here if needed
-  // if (!request.auth.token.admin) {
-  //   throw new HttpsError('permission-denied', 'Only admins can cancel payments');
-  // }
 
   const { paymentIntentId, orderId, reason = 'requested_by_customer' } = request.data;
 
@@ -1236,6 +1226,219 @@ exports.handleOrderStatusChange = onDocumentUpdated({
         paymentCancelError: error.message,
         paymentCancelFailedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
+    }
+  }
+});
+
+// 🚀 FIXED: Order Status Change Notifications (Confirmed & Cancelled)
+exports.onOrderStatusChanged = onDocumentUpdated({
+  document: 'orders/{orderId}',
+  region: 'europe-west2'
+}, async (event) => {
+  const beforeData = event.data.before.data();
+  const afterData = event.data.after.data();
+  const orderId = event.params.orderId;
+
+  // Check if status changed from 'pending' to 'confirmed'
+  if (beforeData.status === 'pending' && afterData.status === 'confirmed') {
+    logger.info(`📦 Order ${orderId} confirmed, creating notification...`);
+
+    try {
+      // Get user information
+      const userDoc = await db.doc(`users/${afterData.userId}`).get();
+      const userData = userDoc.exists ? userDoc.data() : {};
+
+      // Format order data for notification
+      const orderNumber = afterData.orderNumber || orderId.slice(-6);
+
+      // Fix date formatting - handle Firestore timestamps properly
+      let orderDate;
+      if (afterData.confirmedAt) {
+        orderDate = typeof afterData.confirmedAt.toDate === 'function'
+          ? afterData.confirmedAt.toDate()
+          : new Date(afterData.confirmedAt);
+      } else if (afterData.timestamp) {
+        orderDate = typeof afterData.timestamp.toDate === 'function'
+          ? afterData.timestamp.toDate()
+          : new Date(afterData.timestamp);
+      } else {
+        orderDate = new Date();
+      }
+
+      const formattedDateTime = orderDate.toLocaleString('it-IT', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      // Create notification document - SAFE VERSION
+      const notification = {
+        userId: afterData.userId,
+        title: formattedDateTime,
+        body: `Ordine #${orderNumber}`,
+        createdAt: new Date().toISOString(),
+        read: false,
+        readAt: null,
+        data: {
+          type: 'order_confirmation',
+          orderId: orderId,
+          orderNumber: orderNumber,
+          totalPrice: afterData.totalPrice || 0,
+          orderType: afterData.orderType || 'N/A',
+          tableNumber: afterData.tableNumber || null,
+          deliveryInfo: afterData.deliveryInfo || null,
+          items: afterData.items || [],
+          notes: afterData.notes || null,
+          paymentMethod: afterData.paymentMethod || 'N/A',
+          timestamp: afterData.timestamp || new Date().toISOString(),
+          confirmedAt: afterData.confirmedAt || new Date().toISOString(),
+          status: 'confirmed',
+          click_action: '/notifications'
+        },
+        sentBy: 'system',
+        campaign: 'order_confirmation'
+      };
+
+      // Save notification to Firestore
+      await db.collection('notifications').add(notification);
+
+      // Send FCM push notification if user has tokens
+      if (userData.fcmTokens && userData.fcmTokens.length > 0) {
+        try {
+          const fcmResult = await sendFCMMessage(
+            userData.fcmTokens,
+            `Ordine #${orderNumber} Confermato! ✅`,
+            `Il tuo ordine è confermato e in preparazione. Totale: €${(afterData.totalPrice || 0).toFixed(2)}`,
+            '/notifications',
+            {
+              type: 'order_confirmation',
+              orderId: orderId,
+              orderNumber: orderNumber
+            }
+          );
+
+          // Clean up invalid tokens if any
+          if (fcmResult.invalidTokens && fcmResult.invalidTokens.length > 0) {
+            await cleanupInvalidTokens(afterData.userId, fcmResult.invalidTokens);
+          }
+
+          logger.info(`✅ Order confirmation notification sent - FCM success: ${fcmResult.success}, failed: ${fcmResult.failed}`);
+        } catch (fcmError) {
+          logger.warn('FCM notification failed for order confirmation:', fcmError);
+        }
+      }
+
+      logger.info(`✅ Order confirmation notification created successfully for order ${orderId}`);
+
+    } catch (error) {
+      logger.error(`❌ Error creating order confirmation notification for ${orderId}:`, error);
+    }
+  }
+
+  // 🆕 FIXED: Check if status changed from 'pending' to 'cancelled'
+  if (beforeData.status === 'pending' && afterData.status === 'cancelled') {
+    logger.info(`❌ Order ${orderId} cancelled, creating notification...`);
+
+    try {
+      // Get user information
+      const userDoc = await db.doc(`users/${afterData.userId}`).get();
+      const userData = userDoc.exists ? userDoc.data() : {};
+
+      // Format order data for notification
+      const orderNumber = afterData.orderNumber || orderId.slice(-6);
+
+      // Fix date formatting - handle Firestore timestamps properly
+      let orderDate;
+      if (afterData.cancelledAt) {
+        orderDate = typeof afterData.cancelledAt.toDate === 'function'
+          ? afterData.cancelledAt.toDate()
+          : new Date(afterData.cancelledAt);
+      } else if (afterData.timestamp) {
+        orderDate = typeof afterData.timestamp.toDate === 'function'
+          ? afterData.timestamp.toDate()
+          : new Date(afterData.timestamp);
+      } else {
+        orderDate = new Date();
+      }
+
+      const formattedDateTime = orderDate.toLocaleString('it-IT', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      // Determine cancellation reason for user-friendly message
+      const cancelReason = afterData.cancelledBy === 'customer'
+        ? 'su tua richiesta'
+        : afterData.cancelReason || 'dal ristorante';
+
+      // 🔧 FIXED: Create notification document with safe undefined handling
+      const notification = {
+        userId: afterData.userId,
+        title: formattedDateTime,
+        body: `Ordine #${orderNumber} • CANCELLATO`,
+        createdAt: new Date().toISOString(),
+        read: false,
+        readAt: null,
+        data: {
+          type: 'order_cancelled',
+          orderId: orderId,
+          orderNumber: orderNumber,
+          totalPrice: afterData.totalPrice || 0,
+          orderType: afterData.orderType || 'N/A',
+          tableNumber: afterData.tableNumber || null,
+          deliveryInfo: afterData.deliveryInfo || null,
+          items: afterData.items || [],
+          notes: afterData.notes || null,
+          paymentMethod: afterData.paymentMethod || 'N/A',
+          timestamp: afterData.timestamp || new Date().toISOString(),
+          cancelledAt: afterData.cancelledAt || new Date().toISOString(), // FIXED: Handle undefined
+          cancelledBy: afterData.cancelledBy || 'system', // FIXED: Handle undefined
+          cancelReason: afterData.cancelReason || 'No reason provided', // FIXED: Handle undefined
+          status: 'cancelled',
+          click_action: '/notifications'
+        },
+        sentBy: 'system',
+        campaign: 'order_cancelled'
+      };
+
+      // Save notification to Firestore
+      await db.collection('notifications').add(notification);
+
+      // Send FCM push notification if user has tokens
+      if (userData.fcmTokens && userData.fcmTokens.length > 0) {
+        try {
+          const fcmResult = await sendFCMMessage(
+            userData.fcmTokens,
+            `Ordine #${orderNumber} Cancellato ❌`,
+            `Il tuo ordine è stato cancellato ${cancelReason}. ${afterData.paymentMethod === 'pay-now' ? 'Il rimborso sarà elaborato automaticamente.' : ''}`,
+            '/notifications',
+            {
+              type: 'order_cancelled',
+              orderId: orderId,
+              orderNumber: orderNumber
+            }
+          );
+
+          // Clean up invalid tokens if any
+          if (fcmResult.invalidTokens && fcmResult.invalidTokens.length > 0) {
+            await cleanupInvalidTokens(afterData.userId, fcmResult.invalidTokens);
+          }
+
+          logger.info(`✅ Order cancellation notification sent - FCM success: ${fcmResult.success}, failed: ${fcmResult.failed}`);
+        } catch (fcmError) {
+          logger.warn('FCM notification failed for order cancellation:', fcmError);
+        }
+      }
+
+      logger.info(`✅ Order cancellation notification created successfully for order ${orderId}`);
+
+    } catch (error) {
+      logger.error(`❌ Error creating order cancellation notification for ${orderId}:`, error);
     }
   }
 });
@@ -1469,114 +1672,3 @@ async function handlePaymentIntentCanceled(paymentIntent) {
     logger.error('Error handling payment cancellation:', error);
   }
 }
-
-// Add this function to your existing Cloud Functions file
-
-// 🚀 NEW: Automatic Order Confirmation Notifications
-exports.onOrderConfirmed = onDocumentUpdated({
-  document: 'orders/{orderId}',
-  region: 'europe-west2'
-}, async (event) => {
-  const beforeData = event.data.before.data();
-  const afterData = event.data.after.data();
-  const orderId = event.params.orderId;
-
-  // Check if status changed from 'pending' to 'confirmed'
-  if (beforeData.status === 'pending' && afterData.status === 'confirmed') {
-    logger.info(`📦 Order ${orderId} confirmed, creating notification...`);
-
-    try {
-      // Get user information
-      const userDoc = await db.doc(`users/${afterData.userId}`).get();
-      const userData = userDoc.exists ? userDoc.data() : {};
-
-      // Format order data for notification
-      const orderNumber = afterData.orderNumber || orderId.slice(-6);
-
-      // Fix date formatting - handle Firestore timestamps properly
-      let orderDate;
-      if (afterData.confirmedAt) {
-        orderDate = typeof afterData.confirmedAt.toDate === 'function'
-          ? afterData.confirmedAt.toDate()
-          : new Date(afterData.confirmedAt);
-      } else if (afterData.timestamp) {
-        orderDate = typeof afterData.timestamp.toDate === 'function'
-          ? afterData.timestamp.toDate()
-          : new Date(afterData.timestamp);
-      } else {
-        orderDate = new Date();
-      }
-
-      const formattedDateTime = orderDate.toLocaleString('it-IT', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-
-      // Create notification document
-      const notification = {
-        userId: afterData.userId,
-        title: formattedDateTime, // Date/time as title for order confirmations
-        body: `Ordine #${orderNumber}`, // Order number as body preview
-        createdAt: new Date().toISOString(),
-        read: false,
-        readAt: null,
-        data: {
-          type: 'order_confirmation',
-          orderId: orderId,
-          orderNumber: orderNumber,
-          totalPrice: afterData.totalPrice,
-          orderType: afterData.orderType,
-          tableNumber: afterData.tableNumber,
-          deliveryInfo: afterData.deliveryInfo,
-          items: afterData.items,
-          notes: afterData.notes,
-          paymentMethod: afterData.paymentMethod,
-          timestamp: afterData.timestamp,
-          confirmedAt: afterData.confirmedAt,
-          click_action: '/notifications'
-        },
-        sentBy: 'system',
-        campaign: 'order_confirmation'
-      };
-
-      // Save notification to Firestore
-      await db.collection('notifications').add(notification);
-
-      // Send FCM push notification if user has tokens
-      if (userData.fcmTokens && userData.fcmTokens.length > 0) {
-        try {
-          const fcmResult = await sendFCMMessage(
-            userData.fcmTokens,
-            `Ordine #${orderNumber} Confermato! ✅`,
-            `Il tuo ordine è confermato e in preparazione. Totale: €${(afterData.totalPrice || 0).toFixed(2)}`,
-            '/notifications',
-            {
-              type: 'order_confirmation',
-              orderId: orderId,
-              orderNumber: orderNumber
-            }
-          );
-
-          // Clean up invalid tokens if any
-          if (fcmResult.invalidTokens && fcmResult.invalidTokens.length > 0) {
-            await cleanupInvalidTokens(afterData.userId, fcmResult.invalidTokens);
-          }
-
-          logger.info(`✅ Order confirmation notification sent - FCM success: ${fcmResult.success}, failed: ${fcmResult.failed}`);
-        } catch (fcmError) {
-          logger.warn('FCM notification failed for order confirmation:', fcmError);
-          // Continue even if FCM fails - the in-app notification is still created
-        }
-      }
-
-      logger.info(`✅ Order confirmation notification created successfully for order ${orderId}`);
-
-    } catch (error) {
-      logger.error(`❌ Error creating order confirmation notification for ${orderId}:`, error);
-      // Don't throw - we don't want to break the order confirmation process
-    }
-  }
-});
