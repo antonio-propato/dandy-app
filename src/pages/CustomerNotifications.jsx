@@ -61,14 +61,18 @@ const OrderDetailsModal = ({ notification }) => {
     return orderType.includes('Al Tavolo') ? 'Si' : 'No'
   }
 
+  // Check if order is cancelled
+  const isCancelled = orderDetails.status === 'cancelled'
+
   return (
     <div className="order-modal-details">
-      <div className="order-modal-summary">
+      <div className={`order-modal-summary ${isCancelled ? 'cancelled' : ''}`}>
         <div className="order-modal-summary-header">
           <div className="order-modal-number">
             <span>#{orderNumber}</span>
+            {isCancelled && <span className="cancelled-badge">CANCELLATO</span>}
           </div>
-          <div className="order-modal-total">
+          <div className={`order-modal-total ${isCancelled ? 'cancelled' : ''}`}>
             <span>€{orderDetails.totalPrice?.toFixed(2)}</span>
           </div>
         </div>
@@ -94,7 +98,17 @@ const OrderDetailsModal = ({ notification }) => {
             <FontAwesomeIcon icon={faStamp} className="info-icon" />
             <div className="info-content">
               <span className="info-label">Timbro</span>
-              <span className="info-value">{formatTimbro(orderDetails)}</span>
+              <span className="info-value">{isCancelled ? 'No' : formatTimbro(orderDetails)}</span>
+            </div>
+          </div>
+
+          <div className="order-modal-info-item">
+            <FontAwesomeIcon icon={faCheckCircle} className={`info-icon ${isCancelled ? 'cancelled' : ''}`} />
+            <div className="info-content">
+              <span className="info-label">Stato</span>
+              <span className={`info-value ${isCancelled ? 'cancelled' : ''}`}>
+                {isCancelled ? 'Cancellato' : 'Confermato'}
+              </span>
             </div>
           </div>
         </div>
@@ -160,6 +174,21 @@ export default function CustomerNotifications() {
     }
   }
 
+  // Check if notification is a cancelled order
+  const isCancelledOrder = (notification) => {
+    try {
+      return (notification.data?.status === 'cancelled') ||
+             (notification.status === 'cancelled') ||
+             (notification.data?.type === 'order_cancelled') ||
+             (notification.type === 'order_cancelled') ||
+             (notification.title && notification.title.toLowerCase().includes('cancellato')) ||
+             (notification.title && notification.title.toLowerCase().includes('cancelled'))
+    } catch (error) {
+      console.error('Error checking cancelled order:', error)
+      return false
+    }
+  }
+
   useEffect(() => {
     console.log('🔔 CustomerNotifications component mounted')
 
@@ -205,9 +234,11 @@ export default function CustomerNotifications() {
             read: notificationsList[0].read
           })
 
-          // Check if it's detected as an order
+          // Check if it's detected as an order or cancelled order
           const isOrder = isOrderConfirmation(notificationsList[0])
+          const isCancelled = isCancelledOrder(notificationsList[0])
           console.log('🔔 Is this notification an order?', isOrder)
+          console.log('🔔 Is this notification a cancelled order?', isCancelled)
         }
 
         setNotifications(notificationsList)
@@ -317,7 +348,7 @@ export default function CustomerNotifications() {
 
     await updateDoc(notificationRef, { read: !currentReadStatus })
 
-    if (isOrderConfirmation(notification)) {
+    if (isOrderConfirmation(notification) || isCancelledOrder(notification)) {
       setSelectedNotification(notification)
     } else {
       setExpandedNotifications(prev => ({ ...prev, [notificationId]: !prev[notificationId] }))
@@ -327,7 +358,7 @@ export default function CustomerNotifications() {
   const handleNotificationClick = (notificationId, currentReadStatus) => {
     const notification = notifications.find(n => n.id === notificationId)
 
-    if (isOrderConfirmation(notification)) {
+    if (isOrderConfirmation(notification) || isCancelledOrder(notification)) {
       setSelectedNotification(notification)
     } else {
       setExpandedNotifications(prev => ({ ...prev, [notificationId]: !prev[notificationId] }))
@@ -374,7 +405,7 @@ export default function CustomerNotifications() {
   }
 
   const getNotificationIcon = (notification) => {
-    if (isOrderConfirmation(notification)) return faShoppingCart
+    if (isOrderConfirmation(notification) || isCancelledOrder(notification)) return faShoppingCart
     return faBell
   }
 
@@ -466,6 +497,7 @@ export default function CustomerNotifications() {
             {filteredNotifications.map((notification) => {
               const swipeInfo = swipeState[notification.id] || { type: 'idle', offset: 0 }
               const isOrder = isOrderConfirmation(notification)
+              const isCancelled = isCancelledOrder(notification)
               const orderDetails = notification.data
               const isExpanded = expandedNotifications[notification.id]
 
@@ -486,7 +518,7 @@ export default function CustomerNotifications() {
                     <FontAwesomeIcon icon={faTrash} />
                   </div>
                   <div
-                    className={`notification-item ${!notification.read ? 'unread' : ''} ${isOrder && !notification.read ? 'unread-order' : ''} ${swipeInfo.type}`}
+                    className={`notification-item ${!notification.read ? 'unread' : ''} ${isOrder && !notification.read && !isCancelled ? 'unread-order' : ''} ${isCancelled && !notification.read ? 'unread-cancelled' : ''} ${swipeInfo.type}`}
                     style={{
                       transform: `translateX(-${swipeInfo.offset}px)`
                     }}
@@ -503,17 +535,24 @@ export default function CustomerNotifications() {
                         >
                           <FontAwesomeIcon
                             icon={notification.read ? faEnvelopeOpen : getNotificationIcon(notification)}
-                            className={`notification-status-icon ${!notification.read ? 'unread' : ''}`}
+                            className={`notification-status-icon ${!notification.read ? 'unread' : ''} ${isCancelled ? 'cancelled' : ''}`}
                           />
+                          {/* Red cross overlay for cancelled orders */}
+                          {isCancelled && (
+                            <FontAwesomeIcon
+                              icon={faTimes}
+                              className="notification-cancel-overlay"
+                            />
+                          )}
                         </div>
                         <div className="notification-text-content">
-                          {isOrder && orderDetails ? (
+                          {(isOrder || isCancelled) && orderDetails ? (
                             <>
                               <h3 className="notification-title">
                                 {formatFullDateTime(notification.createdAt)}
                               </h3>
-                              <p className="notification-body-preview" style={{ marginTop: '4px', fontWeight: '600', color: '#fff' }}>
-                                Ordine #{orderDetails.orderNumber}
+                              <p className={`notification-body-preview ${isCancelled ? 'cancelled' : ''}`} style={{ marginTop: '4px', fontWeight: '600', color: isCancelled ? '#ef4444' : '#fff' }}>
+                                Ordine #{orderDetails.orderNumber} {isCancelled ? '• CANCELLATO' : ''}
                               </p>
                             </>
                           ) : (
@@ -528,7 +567,7 @@ export default function CustomerNotifications() {
                             <FontAwesomeIcon icon={faCalendar} />
                             {formatDate(notification.createdAt)}
                           </span>
-                          {!isOrder && (
+                          {!isOrder && !isCancelled && (
                             <FontAwesomeIcon
                               icon={isExpanded ? faChevronUp : faChevronDown}
                               className="notification-expand-icon"
@@ -538,7 +577,7 @@ export default function CustomerNotifications() {
                       </div>
                     </div>
                     {!notification.read && (
-                      <div className="notification-unread-indicator"></div>
+                      <div className={`notification-unread-indicator ${isCancelled ? 'cancelled' : ''}`}></div>
                     )}
                   </div>
                 </motion.div>

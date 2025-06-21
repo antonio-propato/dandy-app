@@ -375,6 +375,12 @@ export default function Basket() {
         createdAt: new Date().toISOString()
       };
       const orderRef = await addDoc(collection(firestore, 'orders'), orderData);
+
+      // Reset countdown and cancel state for new order
+      setCancelCountdown(10);
+      setCanCancel(true);
+      setOrderStatus('pending');
+
       setPendingOrder({ ...orderData, id: orderRef.id });
     } finally {
       setOrderProcessing(false);
@@ -912,7 +918,7 @@ export default function Basket() {
         </div>
       )}
 
-      {/* Pending Order Modal */}
+      {/* REORDERED: Pending Order Modal */}
       {showPendingModal && pendingOrder && (
         <div
           className="basket-modal-overlay"
@@ -924,6 +930,7 @@ export default function Basket() {
         >
           <div className="basket-pending-modal">
             <div className="basket-pending-content">
+              {/* Icon */}
               <div className="basket-pending-icon">
                 {orderStatus === 'confirmed' ? (
                   <CheckCircle size={40} color="#28a745" />
@@ -931,21 +938,46 @@ export default function Basket() {
                   <Clock size={40} color="#ffc107" />
                 )}
               </div>
-              <h2 className="basket-pending-title">
-                {orderStatus === 'confirmed' ? '' : ''}
-              </h2>
+
+              {/* Order Number */}
               <div className="basket-order-number">Ordine #{pendingOrder.orderNumber}</div>
-              <div className="basket-status-message">
-                {orderStatus === 'pending' && pendingOrder.paymentMethod === 'pay-now' && (
-                  <p></p>
-                )}
-                {orderStatus === 'pending' && pendingOrder.paymentMethod === 'pay-at-till' && (
-                  <p></p>
-                )}
-                {orderStatus === 'confirmed' && (
-                  <p></p>
-                )}
-              </div>
+
+              {/* MOVED UP: Cancel section for pending orders */}
+              {orderStatus === 'pending' && canCancel && (
+                <div className="basket-cancel-section">
+                  <p>Puoi cancellare l'ordine entro:</p>
+                  <div className="basket-countdown">
+                    <span className="basket-countdown-number">{cancelCountdown}</span>
+                    <span>secondi</span>
+                  </div>
+                  <button
+                    onClick={cancelOrder}
+                    className="basket-cancel-btn"
+                    disabled={!canCancel}
+                  >
+                    Cancella Ordine
+                  </button>
+                </div>
+              )}
+
+              {/* MOVED UP: Confirmed section */}
+              {orderStatus === 'confirmed' && (
+                <div className="basket-confirmed-section">
+                  <p>Stiamo preparando il tuo ordine!</p>
+                  <button onClick={handleContinue} className="basket-continue-btn">
+                    Torna al Menu
+                  </button>
+                </div>
+              )}
+
+              {/* MOVED UP: Waiting section */}
+              {orderStatus === 'pending' && !canCancel && (
+                <div className="basket-waiting-section">
+                  <p className="basket-small-text">Non è più possibile cancellare l'ordine</p>
+                </div>
+              )}
+
+              {/* Order Summary Details */}
               <div className="basket-order-summary">
                 <div className="basket-summary-item">
                   <strong>Consegna:</strong>
@@ -972,38 +1004,6 @@ export default function Basket() {
                   </span>
                 </div>
               </div>
-
-              {orderStatus === 'pending' && canCancel && (
-                <div className="basket-cancel-section">
-                  <p>Puoi cancellare l'ordine entro:</p>
-                  <div className="basket-countdown">
-                    <span className="basket-countdown-number">{cancelCountdown}</span>
-                    <span>secondi</span>
-                  </div>
-                  <button
-                    onClick={cancelOrder}
-                    className="basket-cancel-btn"
-                    disabled={!canCancel}
-                  >
-                    Cancella Ordine
-                  </button>
-                </div>
-              )}
-
-              {orderStatus === 'confirmed' && (
-                <div className="basket-confirmed-section">
-                  <p>Stiamo preparando il tuo ordine!</p>
-                  <button onClick={handleContinue} className="basket-continue-btn">
-                    Torna al Menu
-                  </button>
-                </div>
-              )}
-
-              {orderStatus === 'pending' && !canCancel && (
-                <div className="basket-waiting-section">
-                  <p className="basket-small-text">Non è più possibile cancellare l'ordine</p>
-                </div>
-              )}
             </div>
           </div>
         </div>

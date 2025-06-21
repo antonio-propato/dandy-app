@@ -37,10 +37,27 @@ const getTimeBasedGreeting = () => {
   }
 };
 
-// Validation functions
+// Updated validation function for dropdown picker
 const validateCompleanno = (dob) => {
-  const regex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])$/;
-  return regex.test(dob);
+  if (!dob || dob.length < 5) return false;
+
+  const [day, month] = dob.split('/');
+
+  // Basic validation - day between 1-31, month between 1-12
+  const dayNum = parseInt(day, 10);
+  const monthNum = parseInt(month, 10);
+
+  if (dayNum < 1 || dayNum > 31 || monthNum < 1 || monthNum > 12) {
+    return false;
+  }
+
+  // More sophisticated validation for days per month
+  const daysInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (dayNum > daysInMonth[monthNum - 1]) {
+    return false;
+  }
+
+  return true;
 };
 
 const validateMobile = (phone, countryCode) => {
@@ -98,6 +115,36 @@ export default function Auth({ mode = 'signin' }) {
   // 🔄 NEW: Email verification polling state
   const [pollingForVerification, setPollingForVerification] = useState(false);
   const [verificationPollingInterval, setVerificationPollingInterval] = useState(null);
+
+  // Generate day options (1-31)
+  const dayOptions = Array.from({ length: 31 }, (_, i) => {
+    const day = i + 1;
+    return (
+      <option key={day} value={day.toString().padStart(2, '0')}>
+        {day}
+      </option>
+    );
+  });
+
+  // Generate month options (1-12) with Italian month names
+  const monthOptions = [
+    { value: '01', label: 'Gennaio' },
+    { value: '02', label: 'Febbraio' },
+    { value: '03', label: 'Marzo' },
+    { value: '04', label: 'Aprile' },
+    { value: '05', label: 'Maggio' },
+    { value: '06', label: 'Giugno' },
+    { value: '07', label: 'Luglio' },
+    { value: '08', label: 'Agosto' },
+    { value: '09', label: 'Settembre' },
+    { value: '10', label: 'Ottobre' },
+    { value: '11', label: 'Novembre' },
+    { value: '12', label: 'Dicembre' }
+  ].map(month => (
+    <option key={month.value} value={month.value}>
+      {month.label}
+    </option>
+  ));
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -211,12 +258,18 @@ export default function Auth({ mode = 'signin' }) {
     }
   };
 
-  const handleDobChange = (e) => {
-    let value = e.target.value.replace(/\D/g, '');
-    if (value.length >= 3) {
-      value = value.slice(0, 2) + '/' + value.slice(2, 4);
-    }
-    setForm({ ...form, dob: value });
+  // Handler for DOB picker changes
+  const handleDobPickerChange = (type, value) => {
+    const dobParts = form.dob ? form.dob.split('/') : ['', ''];
+    const [currentDay, currentMonth] = dobParts;
+
+    let newDay = type === 'day' ? value : (currentDay || '');
+    let newMonth = type === 'month' ? value : (currentMonth || '');
+
+    // Update form with new DOB value - only create the string if both values exist
+    const newDob = newDay && newMonth ? `${newDay}/${newMonth}` : (newDay || newMonth ? `${newDay || ''}/${newMonth || ''}` : '');
+    setForm({ ...form, dob: newDob });
+
     if (validationErrors.dob) {
       setValidationErrors({ ...validationErrors, dob: null });
     }
@@ -236,7 +289,7 @@ export default function Auth({ mode = 'signin' }) {
   const validateForm = async () => {
     const errors = {};
     if (mode === 'signup') {
-      if (!validateCompleanno(form.dob)) errors.dob = 'Formato compleanno non valido. Usa GG/MM (es: 15/03)';
+      if (!validateCompleanno(form.dob)) errors.dob = 'Seleziona giorno e mese di nascita';
       if (!validateMobile(form.phone, form.countryCode)) {
         if (form.countryCode === '+39') errors.phone = 'Numero di cellulare non valido. Deve iniziare con 3 e avere 10 cifre';
         else errors.phone = 'Numero di cellulare non valido';
@@ -408,6 +461,9 @@ export default function Auth({ mode = 'signin' }) {
     setError(null); // Clear any existing errors
   };
 
+  // Parse current DOB for display
+  const [currentDay, currentMonth] = form.dob ? form.dob.split('/') : ['', ''];
+
   // 📧 UPDATED: Email verification screen with polling status
   if (emailVerificationSent) {
     return (
@@ -488,7 +544,26 @@ export default function Auth({ mode = 'signin' }) {
               </div>
               <div className="auth-form-group">
                 <label>Compleanno</label>
-                <input type="text" name="dob" placeholder="15/03" value={form.dob} onChange={handleDobChange} maxLength="5" required className={validationErrors.dob ? 'auth-input-error' : ''} />
+                <div className="auth-dob-picker">
+                  <select
+                    value={currentDay}
+                    onChange={(e) => handleDobPickerChange('day', e.target.value)}
+                    required
+                    className={validationErrors.dob ? 'auth-input-error' : ''}
+                  >
+                    <option value="">Giorno</option>
+                    {dayOptions}
+                  </select>
+                  <select
+                    value={currentMonth}
+                    onChange={(e) => handleDobPickerChange('month', e.target.value)}
+                    required
+                    className={validationErrors.dob ? 'auth-input-error' : ''}
+                  >
+                    <option value="">Mese</option>
+                    {monthOptions}
+                  </select>
+                </div>
                 {validationErrors.dob && (<div className="auth-field-error">{validationErrors.dob}</div>)}
               </div>
               <div className="auth-form-group phone">

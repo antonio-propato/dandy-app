@@ -8,6 +8,8 @@ import Nav from '../components/Nav';
 export default function Contacts() {
   return (
     <div className="contacts-wrapper" style={{ backgroundImage: `url(${Legno})` }}>
+
+
       <div className="contacts-overlay"></div>
 
       <Nav />
@@ -16,6 +18,32 @@ export default function Contacts() {
         {/* Logo at the top */}
         <div className="contacts-logo">
           <img src={DandyLogo} alt="Dandy Caffè" className="logo-image" />
+        </div>
+          <br />
+        {/* Location and Hours - Full width cards */}
+        <div className="info-cards">
+          <a
+            href="https://maps.google.com/?q=Via+Generale+Francesco+Planelli,+60,+70032+Bitonto+(BA),+Italia"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="contact-card info-card clickable-card"
+            aria-label="Apri in Google Maps"
+          >
+            <MapPin className="contact-icon" size={14} />
+            <span className="contact-label">Indirizzo</span>
+            <span className="contact-value">
+              Via Generale Francesco Planelli, 60, 70032 Bitonto (BA), Italia
+            </span>
+          </a>
+
+          <div className="contact-card info-card">
+            <Clock className="contact-icon" size={14} />
+            <span className="contact-label">Orari di Apertura</span>
+            <span className="contact-value">
+              Lun – Sab: 06:00 – 21:00<br />
+              Dom & Fest: 06:00 – 13:00
+            </span>
+          </div>
         </div>
 
         {/* Clickable contact cards with icons - 2x2 grid */}
@@ -74,31 +102,7 @@ export default function Contacts() {
           </a>
         </div>
 
-        {/* Location and Hours - Full width cards */}
-        <div className="info-cards">
-          <a
-            href="https://maps.google.com/?q=Via+Generale+Francesco+Planelli,+60,+70032+Bitonto+(BA),+Italia"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="contact-card info-card clickable-card"
-            aria-label="Apri in Google Maps"
-          >
-            <MapPin className="contact-icon" size={24} />
-            <span className="contact-label">Indirizzo</span>
-            <span className="contact-value">
-              Via Generale Francesco Planelli, 60, 70032 Bitonto (BA), Italia
-            </span>
-          </a>
 
-          <div className="contact-card info-card">
-            <Clock className="contact-icon" size={24} />
-            <span className="contact-label">Orari di Apertura</span>
-            <span className="contact-value">
-              Lun – Sab: 06:00 – 21:00<br />
-              Dom & Fest: 06:00 – 13:00
-            </span>
-          </div>
-        </div>
       </div>
     </div>
   );
