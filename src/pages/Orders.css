@@ -440,10 +440,10 @@
   font-weight: 700;
 }
 
-/* --- ITEMS SECTION --- */
+/* --- ITEMS SECTION WITH CATEGORY GROUPING --- */
 .items-section {
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid #FFD700;;
+  border: 1px solid #FFD700;
   border-radius: 12px;
   padding: 1rem;
   margin-top: 0.5rem;
@@ -467,6 +467,30 @@
   width: 16px;
 }
 
+/* Category group styling */
+.items-category-group {
+  margin-bottom: 1rem;
+}
+
+.items-category-group:last-child {
+  margin-bottom: 0;
+}
+
+/* Category header styling */
+.items-category-header {
+  background: linear-gradient(135deg, #43221B, #2c1810);
+  color: #FFD700;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.6rem;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+  border: 1px solid rgba(255, 215, 0, 0.5);
+}
+
 .items-list {
   list-style: none;
   padding: 0;
@@ -482,6 +506,12 @@
   align-items: center;
   color: #ECF0BA;
   font-size: 0.9rem;
+  padding: 0.2rem 0;
+  border-bottom: 1px solid rgba(236, 240, 186, 0.1);
+}
+
+.items-list li:last-child {
+  border-bottom: none;
 }
 
 .item-info {
@@ -496,6 +526,7 @@
   font-size: 1rem;
   font-weight: 700;
   text-align: center;
+  min-width: 25px;
 }
 
 .item-name {
@@ -1155,6 +1186,21 @@
     width: 14px;
     height: 14px;
   }
+
+  /* Mobile responsive adjustments for categories */
+  .items-category-header {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
+  }
+
+  .items-list li {
+    font-size: 0.85rem;
+  }
+
+  .item-quantity {
+    font-size: 0.9rem;
+    min-width: 20px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1271,6 +1317,12 @@
     min-width: 30px;
     height: 30px;
     font-size: 0.65rem;
+  }
+
+  /* Additional mobile styles for categories */
+  .items-category-header {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
   }
 }
 

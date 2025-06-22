@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   createUserWithEmailAndPassword,
@@ -68,6 +68,61 @@ const validateMobile = (phone, countryCode) => {
   return /^\d{7,15}$/.test(cleanPhone);
 };
 
+// Enhanced email validation function with more strict rules
+const validateEmail = (email) => {
+  if (!email || !email.trim()) return false;
+
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+
+  // Basic format check
+  if (!emailRegex.test(email.trim())) {
+    return false;
+  }
+
+  // Additional checks for common invalid patterns
+  const cleanEmail = email.trim().toLowerCase();
+
+  // Check for invalid TLDs that are too short or suspicious
+  const parts = cleanEmail.split('@');
+  if (parts.length !== 2) return false;
+
+  const [localPart, domain] = parts;
+
+  // Local part checks
+  if (localPart.length === 0 || localPart.length > 64) return false;
+  if (localPart.startsWith('.') || localPart.endsWith('.')) return false;
+  if (localPart.includes('..')) return false;
+
+  // Domain checks
+  if (domain.length === 0 || domain.length > 253) return false;
+  if (domain.startsWith('.') || domain.endsWith('.')) return false;
+  if (domain.includes('..')) return false;
+
+  // Check for suspicious/invalid domains
+  const domainParts = domain.split('.');
+  if (domainParts.length < 2) return false;
+
+  // Check TLD is at least 2 characters and not suspicious
+  const tld = domainParts[domainParts.length - 1];
+  if (tld.length < 2) return false;
+
+  // Block obvious fake domains
+  const suspiciousPatterns = [
+    /^[a-z]{1,2}\.[a-z]{1,2}$/, // Like "gm.gm", "ab.cd"
+    /test\./i,
+    /fake\./i,
+    /invalid\./i
+  ];
+
+  for (const pattern of suspiciousPatterns) {
+    if (pattern.test(domain)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 const checkEmailExists = async (email) => {
   try {
     const q = query(collection(firestore, 'users'), where('email', '==', email.toLowerCase()));
@@ -92,6 +147,7 @@ const checkPhoneExists = async (phone) => {
 
 export default function Auth({ mode = 'signin' }) {
   const navigate = useNavigate();
+  const errorRef = useRef(null); // 🔥 NEW: Reference to error message
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -115,6 +171,19 @@ export default function Auth({ mode = 'signin' }) {
   // 🔄 NEW: Email verification polling state
   const [pollingForVerification, setPollingForVerification] = useState(false);
   const [verificationPollingInterval, setVerificationPollingInterval] = useState(null);
+
+  // 🔥 NEW: Scroll to error when it appears
+  useEffect(() => {
+    if (error && errorRef.current) {
+      // Small delay to ensure the error message is rendered
+      setTimeout(() => {
+        errorRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }, 100);
+    }
+  }, [error]);
 
   // Generate day options (1-31)
   const dayOptions = Array.from({ length: 31 }, (_, i) => {
@@ -253,6 +322,8 @@ export default function Auth({ mode = 'signin' }) {
   const handleChange = e => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
+
+    // Clear validation errors as user types
     if (validationErrors[name]) {
       setValidationErrors({ ...validationErrors, [name]: null });
     }
@@ -289,16 +360,41 @@ export default function Auth({ mode = 'signin' }) {
   const validateForm = async () => {
     const errors = {};
     if (mode === 'signup') {
-      if (!validateCompleanno(form.dob)) errors.dob = 'Seleziona giorno e mese di nascita';
-      if (!validateMobile(form.phone, form.countryCode)) {
-        if (form.countryCode === '+39') errors.phone = 'Numero di cellulare non valido. Deve iniziare con 3 e avere 10 cifre';
-        else errors.phone = 'Numero di cellulare non valido';
+      // Email format validation
+      if (!validateEmail(form.email)) {
+        errors.email = 'Inserisci un indirizzo email valido';
       }
-      const emailExists = await checkEmailExists(form.email);
-      if (emailExists) errors.email = 'Questa email è già registrata';
-      const fullPhone = `${form.countryCode}${form.phone}`;
-      const phoneExists = await checkPhoneExists(fullPhone);
-      if (phoneExists) errors.phone = 'Questo numero di cellulare è già registrato';
+
+      // Date of birth validation
+      if (!validateCompleanno(form.dob)) {
+        errors.dob = 'Seleziona giorno e mese di nascita';
+      }
+
+      // Phone validation
+      if (!validateMobile(form.phone, form.countryCode)) {
+        if (form.countryCode === '+39') {
+          errors.phone = 'Numero di cellulare non valido. Deve iniziare con 3 e avere 10 cifre';
+        } else {
+          errors.phone = 'Numero di cellulare non valido';
+        }
+      }
+
+      // Only check database if email format is valid
+      if (!errors.email) {
+        const emailExists = await checkEmailExists(form.email);
+        if (emailExists) {
+          errors.email = 'Questa email è già registrata';
+        }
+      }
+
+      // Only check phone database if phone format is valid
+      if (!errors.phone) {
+        const fullPhone = `${form.countryCode}${form.phone}`;
+        const phoneExists = await checkPhoneExists(fullPhone);
+        if (phoneExists) {
+          errors.phone = 'Questo numero di cellulare è già registrato';
+        }
+      }
     }
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
@@ -350,12 +446,11 @@ export default function Auth({ mode = 'signin' }) {
 
     setLoading(true);
 
-    if (mode === 'signup') {
-      const isValid = await validateForm();
-      if (!isValid) {
-        setLoading(false);
-        return;
-      }
+    // Validate form for both signup and signin
+    const isValid = await validateForm();
+    if (!isValid) {
+      setLoading(false);
+      return;
     }
 
     try {
@@ -529,8 +624,11 @@ export default function Auth({ mode = 'signin' }) {
           className={`auth-logo ${mode === 'signin' ? 'auth-logo-signin' : ''}`}
         />
         {mode === 'signin' && <h2 className="auth-title">{getTimeBasedGreeting()}</h2>}
-        {error && <div className="auth-error">{error}</div>}
+
+        {/* 🔥 UPDATED: Error message with ref for scrolling */}
+        {error && <div ref={errorRef} className="auth-error">{error}</div>}
         {resetMessage && <div className="auth-success">{resetMessage}</div>}
+
         <form onSubmit={handleSubmit} className="auth-form">
           {mode === 'signup' && (
             <>
