@@ -115,7 +115,7 @@ const RealSafariDemo = () => {
           {step === 1 && (
             <div style={{
               position: 'absolute',
-              bottom: '52px', // Position over "Add to Home Screen" text
+              bottom: '20px', // Position over "Add to Home Screen" text
               left: '1px',
               right: '1px',
               height: '28px',
