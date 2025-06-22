@@ -1,4 +1,4 @@
-// Simplified NewBasket.jsx - Direct payment method selection
+// Simplified NewBasket.jsx - Direct payment method selection with button toggle logic
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Minus, Plus, CreditCard, Clock, CheckCircle, AlertTriangle, Info, ChevronDown, Banknote, Loader } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -233,6 +233,7 @@ export default function Basket() {
 
   // State management
   const [notesSaved, setNotesSaved] = useState(false);
+  const [promoApplied, setPromoApplied] = useState(false); // NEW: Track promo button state
   const [userProfile, setUserProfile] = useState(null);
   const [showDeliveryWarningModal, setShowDeliveryWarningModal] = useState(false);
   const [showStripeModal, setShowStripeModal] = useState(false);
@@ -320,6 +321,13 @@ export default function Basket() {
     } else if (cancelCountdown <= 0) setCanCancel(false);
     return () => clearTimeout(timer);
   }, [showPendingModal, canCancel, cancelCountdown]);
+
+  // NEW: Reset promo applied state if promo code is cleared externally
+  useEffect(() => {
+    if (!cart.promoCode || cart.promoCode.trim() === '') {
+      setPromoApplied(false);
+    }
+  }, [cart.promoCode]);
 
   // Event handlers for modal closing
   const handleOverlayClick = (e, closeFunction) => {
@@ -592,6 +600,23 @@ export default function Basket() {
     }
   };
 
+  // NEW: Handle promo code application with toggle logic
+  const applyPromoCode = () => {
+    if (cart.promoCode.trim()) {
+      setPromoApplied(true);
+      // Here you would typically validate the promo code with your backend
+      alert('Codice promozionale applicato!');
+    } else {
+      alert('Inserisci un codice promozionale prima di applicarlo!');
+    }
+  };
+
+  const removePromoCode = () => {
+    setPromoApplied(false);
+    setPromoCode('');
+    alert('Codice promozionale rimosso!');
+  };
+
   // Computed values
   const total = getTotalPrice();
   const totalItems = getTotalItems();
@@ -656,10 +681,22 @@ export default function Basket() {
             type="text"
             placeholder="Codice promozionale"
             value={cart.promoCode}
-            onChange={(e) => setPromoCode(e.target.value)}
+            onChange={(e) => {
+              setPromoCode(e.target.value);
+              // Reset promo applied state if user modifies the code
+              if (promoApplied && e.target.value !== cart.promoCode) {
+                setPromoApplied(false);
+              }
+            }}
             className="basket-promo-input"
+            disabled={promoApplied}
           />
-          <button className="basket-promo-btn">Applica</button>
+          <button
+            onClick={promoApplied ? removePromoCode : applyPromoCode}
+            className={`basket-promo-btn ${promoApplied ? 'clicked' : ''}`}
+          >
+            {promoApplied ? 'Rimuovi' : 'Applica'}
+          </button>
         </div>
 
         {/* Notes Section */}
@@ -679,7 +716,7 @@ export default function Basket() {
           />
           <button
             onClick={notesSaved ? amendNotes : saveNotes}
-            className={`basket-save-notes-btn ${notesSaved ? 'basket-amend-notes-btn' : ''}`}
+            className={`basket-save-notes-btn ${notesSaved ? 'clicked' : ''}`}
           >
             {notesSaved ? 'Modifica Note' : 'Salva Note'}
           </button>

@@ -67,9 +67,36 @@ body { background-color: #2a2522; }
   color: var(--text-muted-color);
   cursor: grab;
   margin-right: 1rem;
-  transition: color 0.2s ease;
+  transition: color 0.2s ease, transform 0.2s ease;
+  /* Enhanced touch target for mobile */
+  padding: 8px;
+  margin: -8px 8px -8px -8px;
+  border-radius: 4px;
 }
-.drag-handle:hover { color: var(--accent-color); }
+
+.drag-handle:hover {
+  color: var(--accent-color);
+  transform: scale(1.1);
+}
+
+.drag-handle:active {
+  transform: scale(1.2);
+  color: #FFD700;
+}
+
+/* Enhanced touch feedback for mobile */
+@media (hover: none) and (pointer: coarse) {
+  .drag-handle {
+    /* Larger touch target on mobile */
+    padding: 12px;
+    margin: -12px 12px -12px -12px;
+  }
+
+  .drag-handle:active {
+    background-color: rgba(228, 197, 96, 0.2);
+    transform: scale(1.3);
+  }
+}
 
 /* --- "Add Category" at the Top --- */
 .add-category-section { margin-bottom: 3rem; margin-top: 2rem;}
@@ -93,9 +120,22 @@ body { background-color: #2a2522; }
   border-top: 1px solid var(--border-color);
   border-bottom: 1px solid var(--border-color);
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+  /* Enable hardware acceleration for smooth animations */
+  will-change: transform, opacity;
+  position: relative;
 }
+
 .category-header:hover { background-color: rgba(255, 255, 255, 0.03); }
+
+/* Dragging state for categories */
+.category-header.dragging {
+  opacity: 0.7;
+  transform: scale(1.05);
+  z-index: 1000;
+  background-color: rgba(228, 197, 96, 0.1);
+  border-color: var(--accent-color);
+}
 
 .category-title-group { display: flex; align-items: center; gap: 0.5rem; }
 .category-header h2 {
@@ -137,7 +177,25 @@ body { background-color: #2a2522; }
   border-bottom: 1px solid var(--item-border-color);
   padding: 1.2rem 0.3rem;
   cursor: grab;
+  transition: background-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+  /* Enable hardware acceleration */
+  will-change: transform, opacity;
+  position: relative;
 }
+
+.menu-item-wrapper:active {
+  cursor: grabbing;
+}
+
+/* Dragging state for items */
+.menu-item-wrapper.dragging {
+  opacity: 0.7;
+  transform: scale(1.05);
+  z-index: 1000;
+  background-color: rgba(228, 197, 96, 0.1);
+  border-color: var(--accent-color);
+}
+
 .item-list-container > .menu-item-wrapper:last-child {
   border-bottom: none;
   padding-bottom: 0;
@@ -159,8 +217,26 @@ body { background-color: #2a2522; }
 .icon-btn {
   color: var(--accent-color); cursor: pointer;
   transition: transform 0.2s ease, color 0.2s ease;
+  /* Enhanced touch target */
+  padding: 8px;
+  margin: -8px;
+  border-radius: 4px;
 }
+
 .icon-btn:hover { transform: scale(1.2); }
+
+.icon-btn:active {
+  transform: scale(1.3);
+  background-color: rgba(228, 197, 96, 0.2);
+}
+
+/* Enhanced touch targets for mobile */
+@media (hover: none) and (pointer: coarse) {
+  .icon-btn {
+    padding: 12px;
+    margin: -12px;
+  }
+}
 
 /* --- Responsive Edit & Add Forms --- */
 .item-edit-form {
@@ -188,9 +264,29 @@ body { background-color: #2a2522; }
   border-radius: 8px; border: none;
   color: white; width: 48px; height: 48px;
   font-size: 1.1rem; cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
 }
-.form-action-btn.save { background-color: #e0e0e0; color: #111; }
-.form-action-btn.cancel { background-color: var(--red-color); }
+
+.form-action-btn:active {
+  transform: scale(0.95);
+}
+
+.form-action-btn.save {
+  background-color: #e0e0e0;
+  color: #111;
+}
+
+.form-action-btn.save:hover {
+  background-color: #f0f0f0;
+}
+
+.form-action-btn.cancel {
+  background-color: var(--red-color);
+}
+
+.form-action-btn.cancel:hover {
+  background-color: #d32f2f;
+}
 
 /* --- Delete Confirmation Modal --- */
 .custom-alert-overlay {
@@ -235,10 +331,14 @@ body { background-color: #2a2522; }
   font-weight: 600;
   cursor: pointer;
   font-family: 'Raleway', sans-serif;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 .alert-buttons button:hover {
   opacity: 0.9;
+}
+
+.alert-buttons button:active {
+  transform: scale(0.98);
 }
 
 .confirm-btn {
@@ -249,6 +349,26 @@ body { background-color: #2a2522; }
   background-color: var(--red-color);
   color: white;
   text-transform: uppercase;
+}
+
+/* Disable text selection during drag operations */
+.category-header,
+.menu-item-wrapper {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Visual feedback for drag over states */
+.category-header.drag-over {
+  background-color: rgba(228, 197, 96, 0.2);
+  border-color: var(--accent-color);
+}
+
+.menu-item-wrapper.drag-over {
+  background-color: rgba(228, 197, 96, 0.2);
+  border-color: var(--accent-color);
 }
 
 /* Responsive Design */
@@ -269,6 +389,34 @@ body { background-color: #2a2522; }
   .item-edit-input.price-input {
     flex-grow: 1;
   }
+
+  /* Enhance touch targets on mobile */
+  .drag-handle {
+    font-size: 1.2rem;
+    padding: 16px;
+    margin: -16px 16px -16px -16px;
+  }
+
+  .icon-btn {
+    font-size: 1.1rem;
+    padding: 16px;
+    margin: -16px;
+  }
+
+  .form-action-btn {
+    width: 52px;
+    height: 52px;
+    font-size: 1.2rem;
+  }
+
+  /* Increase spacing for easier touch interaction */
+  .category-header-actions {
+    gap: 1.5rem;
+  }
+
+  .item-actions {
+    gap: 2rem;
+  }
 }
 
 /* Tablet responsive styles */
@@ -276,4 +424,27 @@ body { background-color: #2a2522; }
   .menu-management-header h1 {
     font-size: 2.2rem;
   }
+
+  /* Medium touch targets for tablets */
+  .drag-handle {
+    padding: 12px;
+    margin: -12px 12px -12px -12px;
+  }
+
+  .icon-btn {
+    padding: 12px;
+    margin: -12px;
+  }
+}
+
+/* Prevent scrolling during touch drag operations */
+.menu-management-container.touch-dragging {
+  overflow: hidden;
+  height: 100vh;
+}
+
+.menu-management-container.touch-dragging body {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
 }
