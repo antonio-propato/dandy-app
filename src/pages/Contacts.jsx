@@ -8,10 +8,7 @@ import Nav from '../components/Nav';
 export default function Contacts() {
   return (
     <div className="contacts-wrapper" style={{ backgroundImage: `url(${Legno})` }}>
-
-
       <div className="contacts-overlay"></div>
-
       <Nav />
 
       <div className="contacts-content">
@@ -19,7 +16,7 @@ export default function Contacts() {
         <div className="contacts-logo">
           <img src={DandyLogo} alt="Dandy Caffè" className="logo-image" />
         </div>
-          <br />
+
         {/* Location and Hours - Full width cards */}
         <div className="info-cards">
           <a
@@ -29,20 +26,24 @@ export default function Contacts() {
             className="contact-card info-card clickable-card"
             aria-label="Apri in Google Maps"
           >
-            <MapPin className="contact-icon" size={14} />
-            <span className="contact-label">Indirizzo</span>
-            <span className="contact-value">
-              Via Generale Francesco Planelli, 60, 70032 Bitonto (BA), Italia
-            </span>
+            <MapPin className="contact-icon" size={20} />
+            <div className="contact-content">
+              <span className="contact-label">Indirizzo</span>
+              <span className="contact-value">
+                Via Generale Francesco Planelli, 60, 70032 Bitonto (BA), Italia
+              </span>
+            </div>
           </a>
 
           <div className="contact-card info-card">
-            <Clock className="contact-icon" size={14} />
-            <span className="contact-label">Orari di Apertura</span>
-            <span className="contact-value">
-              Lun – Sab: 06:00 – 21:00<br />
-              Dom & Fest: 06:00 – 13:00
-            </span>
+            <Clock className="contact-icon" size={20} />
+            <div className="contact-content">
+              <span className="contact-label">Orari di Apertura</span>
+              <div className="contact-value opening-hours-value">
+                <span className="opening-hours-line">Lun – Sab: 06:00 – 21:00</span>
+                <span className="opening-hours-line">Dom & Fest: 06:00 – 13:00</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -54,7 +55,6 @@ export default function Contacts() {
             aria-label="Chiama il telefono fisso"
           >
             <Phone className="contact-icon" size={24} />
-
             <span className="contact-value">080 3713173</span>
           </a>
 
@@ -97,12 +97,9 @@ export default function Contacts() {
             aria-label="Invia email"
           >
             <Mail className="contact-icon" size={24} />
-
             <span className="contact-value">Dandycaffe@libero.it</span>
           </a>
         </div>
-
-
       </div>
     </div>
   );
