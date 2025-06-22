@@ -225,6 +225,65 @@ export default function NotificationPanel() {
     }
   }, [testNotification])
 
+  // SIMPLE DEBUG FUNCTION - Shows token info without sending notifications
+  const debugTokenInfo = useCallback(async () => {
+    try {
+      const usersSnapshot = await getDocs(collection(firestore, 'users'))
+      const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+
+      console.log('=== TOKEN INFO DEBUG ===')
+      console.log('Total users in database:', users.length)
+
+      const nonSuperUsers = users.filter(u => u.role !== 'superuser')
+      console.log('Non-superuser count:', nonSuperUsers.length)
+
+      const usersWithTokens = nonSuperUsers.filter(u => u.fcmTokens && u.fcmTokens.length > 0)
+      console.log('Users with FCM tokens:', usersWithTokens.length)
+
+      // Show individual user token details
+      console.log('\n--- USER TOKEN DETAILS ---')
+      usersWithTokens.forEach((user, index) => {
+        console.log(`User ${index + 1}:`, {
+          email: user.email,
+          role: user.role,
+          tokenCount: user.fcmTokens?.length || 0,
+          firstToken: user.fcmTokens?.[0]?.substring(0, 20) + '...' || 'None'
+        })
+      })
+
+      // Analyze token sharing
+      const allTokens = usersWithTokens.flatMap(u => u.fcmTokens || [])
+      const uniqueTokens = [...new Set(allTokens)]
+      const tokenUserMap = new Map()
+
+      usersWithTokens.forEach(user => {
+        user.fcmTokens?.forEach(token => {
+          if (!tokenUserMap.has(token)) {
+            tokenUserMap.set(token, [])
+          }
+          tokenUserMap.get(token).push(user.email)
+        })
+      })
+
+      console.log('\n=== TOKEN ANALYSIS ===')
+      console.log('Total tokens:', allTokens.length)
+      console.log('Unique tokens (physical devices):', uniqueTokens.length)
+
+      console.log('\n--- DEVICE SHARING ---')
+      tokenUserMap.forEach((emails, token) => {
+        if (emails.length > 1) {
+          console.log(`🔗 Device ${token.substring(0, 15)}... shared by:`, emails)
+        }
+      })
+
+      setMessage(`📊 Debug: ${usersWithTokens.length} users, ${uniqueTokens.length} devices (check console)`)
+
+    } catch (error) {
+      console.error('Debug error:', error)
+      setMessage('❌ Debug failed')
+    }
+  }, [])
+
   // Save automated rule
   const saveAutomatedRule = useCallback(async () => {
     if (!automatedForm.title?.trim() || !automatedForm.body?.trim()) {
@@ -400,6 +459,9 @@ export default function NotificationPanel() {
               </button>
               <button onClick={sendTestNotification} className="stats-btn test" disabled={loading}>
                 {loading ? <Loader2 size={16} className="spin" /> : 'Test'}
+              </button>
+              <button onClick={debugTokenInfo} className="stats-btn debug">
+                Debug Tokens
               </button>
             </div>
           </div>
