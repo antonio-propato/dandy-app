@@ -165,11 +165,20 @@
 }
 
 .auth-field-error {
-  color: #e63946;
-  font-size: 0.8rem;
-  margin-top: 0.25rem;
+  color: #ffffff;
+  background-color: #e63946;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
   margin-bottom: 0;
-  line-height: 1.3;
+  line-height: 1.4;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.4rem;
+  font-weight: 500;
+  border: 1px solid #d32f2f;
+  box-shadow: 0 2px 8px rgba(230, 57, 70, 0.3);
+  display: block;
+  position: relative;
+  z-index: 5;
 }
 
 /* ========================================
@@ -476,7 +485,7 @@
 }
 
 /* ========================================
-   MESSAGES
+   MESSAGES - ENHANCED FOR VISIBILITY
    ======================================== */
 
 .auth-error {
@@ -490,6 +499,25 @@
   border: 1px solid #d32f2f;
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(230, 57, 70, 0.3);
+
+  /* 🔥 ENHANCED: Better visibility and animation */
+  position: relative;
+  z-index: 10;
+  animation: slideInDown 0.3s ease-out;
+  border: 2px solid #ffffff;
+  box-shadow: 0 4px 15px rgba(230, 57, 70, 0.4), 0 0 0 3px rgba(255, 255, 255, 0.3);
+}
+
+/* 🔥 NEW: Slide in animation for error messages */
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .auth-success {
@@ -501,6 +529,11 @@
   padding: 0.75rem;
   border-radius: 0.5rem;
   border: 1px solid rgba(40, 167, 69, 0.3);
+
+  /* 🔥 ENHANCED: Better visibility */
+  position: relative;
+  z-index: 10;
+  animation: slideInDown 0.3s ease-out;
 }
 
 /* ========================================
@@ -757,7 +790,7 @@
 }
 
 /* ========================================
-   MOBILE RESPONSIVENESS - INCLUDES DOB PICKER
+   MOBILE RESPONSIVENESS - ENHANCED ERROR VISIBILITY
    ======================================== */
 
 @media (max-width: 480px) {
@@ -785,9 +818,38 @@
     height: 52px;
   }
 
-  /* Validation mobile */
+  /* 🔥 ENHANCED: Mobile error message visibility */
+  .auth-error {
+    font-size: 0.85rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    /* Ensure it's always prominent on mobile */
+    position: relative;
+    z-index: 100;
+    box-shadow: 0 6px 20px rgba(230, 57, 70, 0.5), 0 0 0 4px rgba(255, 255, 255, 0.4);
+    border: 3px solid #ffffff;
+    /* Add a pulsing effect to draw attention */
+    animation: slideInDown 0.3s ease-out, errorPulse 2s ease-in-out infinite;
+  }
+
+  /* 🔥 NEW: Pulsing animation for mobile errors */
+  @keyframes errorPulse {
+    0%, 100% {
+      box-shadow: 0 6px 20px rgba(230, 57, 70, 0.5), 0 0 0 4px rgba(255, 255, 255, 0.4);
+    }
+    50% {
+      box-shadow: 0 8px 25px rgba(230, 57, 70, 0.7), 0 0 0 6px rgba(255, 255, 255, 0.6);
+    }
+  }
+
+  /* Validation mobile - enhanced visibility */
   .auth-field-error {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
+    padding: 0.6rem 0.8rem;
+    margin-top: 0.6rem;
+    /* Ensure it's visible even on small screens */
+    min-height: auto;
+    word-wrap: break-word;
   }
 
   /* DOB picker mobile responsiveness - keep on same line */

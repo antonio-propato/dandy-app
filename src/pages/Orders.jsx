@@ -142,25 +142,41 @@ const OrderCard = ({ order, onConfirm, onCancel, onConfirmPayment, onRejectPayme
           )}
         </div>
 
-        {/* Items section with notes included */}
+        {/* Items section with category grouping */}
         <div className="items-section">
           <div className="items-header">
             <FontAwesomeIcon icon={faUtensils} />
             <span>({order.items?.length || 0})</span>
           </div>
-          <ul className="items-list">
-            {order.items?.map((item, index) => (
-              <li key={index}>
-                <span className="item-info">
-                  <span className="item-quantity">{item.quantity}x</span>
-                  <span className="item-name">{item.name}</span>
-                </span>
-                {item.price && !isNaN(Number(item.price)) && (
-                  <span className="item-price">€{Number(item.price).toFixed(2)}</span>
-                )}
-              </li>
-            ))}
-          </ul>
+
+          {/* Group items by category and display dynamically */}
+          {(() => {
+            // Group items by category
+            const groupedItems = (order.items || []).reduce((acc, item) => {
+              const category = item.category || 'Altro';
+              (acc[category] = acc[category] || []).push(item);
+              return acc;
+            }, {});
+
+            return Object.entries(groupedItems).map(([category, items]) => (
+              <div key={category} className="items-category-group">
+                <div className="items-category-header">{category}</div>
+                <ul className="items-list">
+                  {items.map((item, index) => (
+                    <li key={`${category}-${index}`}>
+                      <span className="item-info">
+                        <span className="item-quantity">{item.quantity}x</span>
+                        <span className="item-name">{item.name}</span>
+                      </span>
+                      {item.price && !isNaN(Number(item.price)) && (
+                        <span className="item-price">€{Number(item.price).toFixed(2)}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ));
+          })()}
 
           {/* Notes included in items section */}
           {order.notes && (
