@@ -9,6 +9,7 @@
   background-size: cover;
   background-repeat: no-repeat;
   background-attachment: fixed; /* Keep background fixed for visual effect */
+  background-position: center;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -40,6 +41,7 @@
   position: relative;
   bottom: 50px;
   flex-shrink: 0; /* Prevent logo from shrinking */
+  transition: all 0.3s ease;
 }
 
 .landing-buttons {
@@ -61,17 +63,28 @@
   height: 64px;
   text-align: center;
   text-decoration: none;
-  transition: background-color 0.3s ease;
-  display: block;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 16px;
   border: 1px groove #ECF0BA;
   margin: 0 auto;
   bottom: 20px;
   position: relative;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .landing-button:hover {
-  background-color: #6f382d;
+  background: linear-gradient(97deg, #6f382d, #6f382dcc);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.landing-button:active {
+  transform: translateY(0);
 }
 
 .landing-link {
@@ -361,6 +374,92 @@
   }
 }
 
+/* Desktop specific styles - Enhanced for larger screens */
+@media (min-width: 769px) {
+  .landing-card {
+    max-width: 600px;
+    padding: 40px;
+  }
+
+  .landing-logo {
+    width: 150px;
+    height: 150px;
+    bottom: 30px; /* Adjust for desktop */
+  }
+
+  .landing-buttons {
+    max-width: 350px;
+    gap: 2rem;
+    width: 100%; /* Use full available width on desktop */
+    margin-top: 200px; /* Reduce spacing on desktop */
+  }
+
+  .landing-button {
+    width: 100%; /* Full width of container */
+    max-width: 350px;
+    padding: 24px 3rem;
+    font-size: 18px;
+    min-height: 70px;
+  }
+
+  .landing-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Large desktop screens */
+@media (min-width: 1200px) {
+  .landing-card {
+    max-width: 700px;
+  }
+
+  .landing-logo {
+    width: 180px;
+    height: 180px;
+    bottom: 20px;
+  }
+
+  .landing-buttons {
+    max-width: 400px;
+    margin-top: 150px;
+  }
+
+  .landing-button {
+    font-size: 20px;
+    padding: 26px 3.5rem;
+    min-height: 76px;
+  }
+}
+
+/* Tablet styles */
+@media (min-width: 481px) and (max-width: 768px) {
+  .landing-card {
+    max-width: 500px;
+    padding: 30px;
+  }
+
+  .landing-logo {
+    width: 140px;
+    height: 140px;
+    bottom: 40px;
+  }
+
+  .landing-buttons {
+    max-width: 320px;
+    gap: 1.75rem;
+    width: 80%;
+    margin-top: 250px;
+  }
+
+  .landing-button {
+    font-size: 17px;
+    padding: 23px 2.5rem;
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
 /* Mobile specific styles for PWA prompt */
 @media (max-width: 480px) {
   .landing-wrapper {
@@ -411,13 +510,6 @@
   }
 }
 
-/* Tablet adjustments */
-@media (min-width: 481px) and (max-width: 768px) {
-  .pwa-install-modal {
-    max-width: 400px;
-  }
-}
-
 /* Landscape orientation adjustments */
 @media (orientation: landscape) and (max-height: 600px) {
   .landing-card {
@@ -431,5 +523,13 @@
 
   .landing-logo {
     bottom: 20px; /* Reduce logo offset */
+  }
+}
+
+/* High resolution screens */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .landing-logo {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
   }
 }

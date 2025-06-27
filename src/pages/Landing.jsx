@@ -6,7 +6,7 @@ import PWAInstallPrompt from '../components/PWAInstallPrompt'
 import './Landing.css'
 
 export default function Landing() {
-  const [isMobile, setIsMobile] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
   const { showInstallPrompt, isInstalled, isIOS, installPWA, dismissPrompt } = usePWAInstall()
 
   useEffect(() => {
@@ -18,16 +18,6 @@ export default function Landing() {
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
-
-  if (!isMobile) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-white px-4 text-center">
-        <div className="bg-white p-6 rounded-xl shadow-md max-w-md">
-          <h1 className="text-xl font-bold text-gray-800 mb-2">App disponibile solo su mobile</h1>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="landing-wrapper">

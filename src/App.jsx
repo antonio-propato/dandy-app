@@ -5,14 +5,15 @@ import { AnimatePresence, motion } from 'framer-motion'
 import './App.css'
 import { onAuthStateChanged, applyActionCode, checkActionCode } from 'firebase/auth'
 import { auth, firestore } from './lib/firebase'
-import { doc, getDoc, updateDoc } from 'firebase/firestore'
-import { fcmManager } from './lib/fcm' // Import FCM manager
+import { doc, getDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { fcmManager } from './lib/fcm'
+import QRCode from 'qrcode'
 
-// 🔊 NEW: Import global beeping system
+// 🔊 Import global beeping system
 import { useGlobalOrderMonitor } from './hooks/useGlobalOrderMonitor'
 import GlobalBeepIndicator from './components/GlobalBeepIndicator'
 
-// 🛒 NEW: Import CartProvider
+// 🛒 Import CartProvider
 import { CartProvider } from './contexts/CartContext'
 
 // Components
@@ -32,73 +33,98 @@ import ClientManagement from './pages/ClientManagement'
 import MenuManagement from './pages/MenuManagement'
 import NotificationPanel from './components/NotificationPanel'
 import CustomerNotifications from './pages/CustomerNotifications'
-import RewardsLog from './pages/RewardsLog' // NEW: Rewards log page
-import StampsLog from './pages/StampsLog' // NEW: Stamps log page
-import OrdersLog from './pages/OrdersLog' // NEW: Orders log page
+import RewardsLog from './pages/RewardsLog'
+import StampsLog from './pages/StampsLog'
+import OrdersLog from './pages/OrdersLog'
 
-// 🛒 NEW: Import cart-related pages
+// 🛒 Cart-related pages
 import Basket from './pages/Basket'
-// import Tables from './pages/Tables'
 import Orders from './pages/Orders'
 import OrderSuccess from './pages/OrderSuccess'
 
-// 🔗 NEW: Email Verification Handler Component
+// 🔒 SECURITY: Email verification handler with input validation
 function EmailVerificationHandler() {
   const location = useLocation()
   const [verificationStatus, setVerificationStatus] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [attempts, setAttempts] = useState(0)
+
+  // 🔒 SECURITY: Rate limiting for verification attempts
+  const MAX_VERIFICATION_ATTEMPTS = 3
+  const VERIFICATION_COOLDOWN = 300000 // 5 minutes
 
   useEffect(() => {
     const handleEmailVerification = async () => {
-      console.log('🔗 Checking URL for email verification parameters')
+      // 🔒 SECURITY: Rate limiting check
+      if (attempts >= MAX_VERIFICATION_ATTEMPTS) {
+        console.warn('🔒 Too many verification attempts')
+        setVerificationStatus('rate_limited')
+        setShowModal(true)
+        setLoading(false)
+        return
+      }
 
       const urlParams = new URLSearchParams(location.search)
       const mode = urlParams.get('mode')
       const actionCode = urlParams.get('oobCode')
 
-      console.log('URL params - mode:', mode, 'actionCode:', actionCode ? 'present' : 'missing')
+      // 🔒 SECURITY: Input validation
+      if (!mode || !actionCode) {
+        setLoading(false)
+        return
+      }
 
-      if (mode === 'verifyEmail' && actionCode) {
-        console.log('📧 Processing email verification from URL')
+      // 🔒 SECURITY: Validate input format
+      if (typeof mode !== 'string' || typeof actionCode !== 'string') {
+        setVerificationStatus('invalid_params')
+        setShowModal(true)
+        setLoading(false)
+        return
+      }
+
+      // 🔒 SECURITY: Sanitize inputs
+      const sanitizedMode = mode.replace(/[<>]/g, '')
+      const sanitizedActionCode = actionCode.replace(/[<>]/g, '')
+
+      if (sanitizedMode === 'verifyEmail' && sanitizedActionCode.length > 0) {
+        setAttempts(prev => prev + 1)
 
         try {
           // Check if the action code is valid
-          const info = await checkActionCode(auth, actionCode)
-          console.log('✅ Action code is valid for:', info.data.email)
+          const info = await checkActionCode(auth, sanitizedActionCode)
 
           // Apply the email verification
-          await applyActionCode(auth, actionCode)
-          console.log('✅ Email verification applied successfully')
+          await applyActionCode(auth, sanitizedActionCode)
 
           // Update the user's emailVerified status in Firestore
           if (auth.currentUser) {
             await auth.currentUser.reload()
-            console.log('🔄 User reloaded, emailVerified:', auth.currentUser.emailVerified)
 
-            // Update Firestore
-            await updateDoc(doc(firestore, 'users', auth.currentUser.uid), {
-              emailVerified: true,
-              emailVerifiedAt: new Date().toISOString()
-            })
-            console.log('✅ Updated Firestore with verification status')
+            // 🔒 SECURITY: Only update if user is authenticated
+            if (auth.currentUser.emailVerified) {
+              await updateDoc(doc(firestore, 'users', auth.currentUser.uid), {
+                emailVerified: true,
+                emailVerifiedAt: new Date().toISOString()
+              })
+            }
           }
 
           setVerificationStatus('success')
-          setShowModal(true) // 🔄 NEW: Show modal instead of auto-redirecting
+          setShowModal(true)
 
         } catch (error) {
-          console.error('❌ Email verification failed:', error)
-          let errorMessage = 'Verification failed'
+          console.error('Email verification failed')
+          let errorStatus = 'error'
 
           if (error.code === 'auth/invalid-action-code') {
-            errorMessage = 'Invalid or expired verification link'
+            errorStatus = 'invalid_code'
           } else if (error.code === 'auth/expired-action-code') {
-            errorMessage = 'Verification link has expired'
+            errorStatus = 'expired_code'
           }
 
-          setVerificationStatus('error')
-          setShowModal(true) // 🔄 NEW: Show modal for errors too
+          setVerificationStatus(errorStatus)
+          setShowModal(true)
         }
       }
 
@@ -106,34 +132,27 @@ function EmailVerificationHandler() {
     }
 
     handleEmailVerification()
-  }, [location])
+  }, [location, attempts])
 
-  // 🔄 UPDATED: Handle modal close - smart navigation
+  // 🔒 SECURITY: Safe navigation with timeout
   const handleModalClose = () => {
     setShowModal(false)
 
-    console.log('📱 Modal closed. Attempting smart navigation...')
-
-    // Try to close the window/tab if it was opened from an email link
     try {
-      // Check if this window was opened by another window (popup/new tab from email)
-      if (window.opener || window.history.length <= 1) {
-        console.log('🔄 Attempting to close verification tab...')
-        window.close()
+      // Set a timeout to prevent hanging
+      const navigationTimeout = setTimeout(() => {
+        window.location.href = window.location.origin + '/'
+      }, 5000)
 
-        // If window.close() doesn't work (some browsers block it), redirect after a short delay
-        setTimeout(() => {
-          console.log('🔄 Window close failed, redirecting to main app...')
-          window.location.href = window.location.origin + '/'
-        }, 1000)
+      if (window.opener || window.history.length <= 1) {
+        window.close()
+        clearTimeout(navigationTimeout)
       } else {
-        // If this is the main tab, redirect to authenticated area
-        console.log('🔄 Redirecting to main app...')
+        clearTimeout(navigationTimeout)
         window.location.href = window.location.origin + '/'
       }
     } catch (error) {
-      console.error('Error during navigation:', error)
-      // Fallback: redirect to main app
+      console.error('Navigation error')
       window.location.href = window.location.origin + '/'
     }
   }
@@ -150,7 +169,6 @@ function EmailVerificationHandler() {
     )
   }
 
-  // 🔄 UPDATED: Show modal with improved styling and navigation
   if (showModal) {
     return (
       <div className="verification-handler">
@@ -162,6 +180,11 @@ function EmailVerificationHandler() {
               <>
                 <h2>✅ Email Verificata!</h2>
                 <p>Il tuo account è stato attivato con successo.</p>
+              </>
+            ) : verificationStatus === 'rate_limited' ? (
+              <>
+                <h2>⏱️ Troppi Tentativi</h2>
+                <p>Troppi tentativi di verifica. Riprova tra qualche minuto.</p>
               </>
             ) : (
               <>
@@ -201,15 +224,13 @@ function EmailVerificationHandler() {
 
 function AnimatedRoutes({ user, userRole }) {
   const location = useLocation()
-  console.log("AnimatedRoutes - Current user role:", userRole);
-  console.log("AnimatedRoutes - Current path:", location.pathname);
 
-  // 🔗 NEW: Check if this is an email verification URL
+  // 🔒 SECURITY: Input validation for URL parameters
   const urlParams = new URLSearchParams(location.search)
   const mode = urlParams.get('mode')
 
-  if (mode === 'verifyEmail') {
-    console.log('📧 Email verification URL detected')
+  // 🔒 SECURITY: Sanitize mode parameter
+  if (mode && typeof mode === 'string' && mode.replace(/[<>]/g, '') === 'verifyEmail') {
     return <EmailVerificationHandler />
   }
 
@@ -227,15 +248,9 @@ function AnimatedRoutes({ user, userRole }) {
           element={
             <ProtectedRoute user={user}>
               {userRole === 'superuser' ? (
-                <>
-                  {console.log("Profile route - User is superuser, redirecting to dashboard")}
-                  <Navigate to="/superuser-dashboard" />
-                </>
+                <Navigate to="/superuser-dashboard" />
               ) : (
-                <>
-                  {console.log("Profile route - User is customer, showing Profile")}
-                  <Profile />
-                </>
+                <Profile />
               )}
             </ProtectedRoute>
           }
@@ -246,15 +261,9 @@ function AnimatedRoutes({ user, userRole }) {
           element={
             <ProtectedRoute user={user}>
               {userRole === 'superuser' ? (
-                <>
-                  {console.log("Stamps route - User is superuser, redirecting to dashboard")}
-                  <Navigate to="/superuser-dashboard" />
-                </>
+                <Navigate to="/superuser-dashboard" />
               ) : (
-                <>
-                  {console.log("Stamps route - User is customer, showing Stamps")}
-                  <Stamps />
-                </>
+                <Stamps />
               )}
             </ProtectedRoute>
           }
@@ -265,15 +274,9 @@ function AnimatedRoutes({ user, userRole }) {
           element={
             <ProtectedRoute user={user}>
               {userRole === 'superuser' ? (
-                <>
-                  {console.log("Menu route - User is superuser, redirecting to dashboard")}
-                  <Navigate to="/superuser-dashboard" />
-                </>
+                <Navigate to="/superuser-dashboard" />
               ) : (
-                <>
-                  {console.log("Menu route - User is customer, showing Menu")}
-                  <Menu />
-                </>
+                <Menu />
               )}
             </ProtectedRoute>
           }
@@ -284,35 +287,22 @@ function AnimatedRoutes({ user, userRole }) {
           element={
             <ProtectedRoute user={user}>
               {userRole === 'superuser' ? (
-                <>
-                  {console.log("Contacts route - User is superuser, redirecting to dashboard")}
-                  <Navigate to="/superuser-dashboard" />
-                </>
+                <Navigate to="/superuser-dashboard" />
               ) : (
-                <>
-                  {console.log("Contacts route - User is customer, showing Contacts")}
-                  <Contacts />
-                </>
+                <Contacts />
               )}
             </ProtectedRoute>
           }
         />
 
-        {/* 🛒 NEW: Customer Cart Routes */}
         <Route
           path="/basket"
           element={
             <ProtectedRoute user={user}>
               {userRole === 'superuser' ? (
-                <>
-                  {console.log("Basket route - User is superuser, redirecting to dashboard")}
-                  <Navigate to="/superuser-dashboard" />
-                </>
+                <Navigate to="/superuser-dashboard" />
               ) : (
-                <>
-                  {console.log("Basket route - User is customer, showing Basket")}
-                  <Basket />
-                </>
+                <Basket />
               )}
             </ProtectedRoute>
           }
@@ -323,35 +313,22 @@ function AnimatedRoutes({ user, userRole }) {
           element={
             <ProtectedRoute user={user}>
               {userRole === 'superuser' ? (
-                <>
-                  {console.log("Order Success route - User is superuser, redirecting to dashboard")}
-                  <Navigate to="/superuser-dashboard" />
-                </>
+                <Navigate to="/superuser-dashboard" />
               ) : (
-                <>
-                  {console.log("Order Success route - User is customer, showing OrderSuccess")}
-                  <OrderSuccess />
-                </>
+                <OrderSuccess />
               )}
             </ProtectedRoute>
           }
         />
 
-        {/* Customer Notifications Route */}
         <Route
           path="/notifications"
           element={
             <ProtectedRoute user={user}>
               {userRole === 'superuser' ? (
-                <>
-                  {console.log("Notifications route - User is superuser, redirecting to dashboard")}
-                  <Navigate to="/superuser-dashboard" />
-                </>
+                <Navigate to="/superuser-dashboard" />
               ) : (
-                <>
-                  {console.log("Notifications route - User is customer, showing CustomerNotifications")}
-                  <CustomerNotifications />
-                </>
+                <CustomerNotifications />
               )}
             </ProtectedRoute>
           }
@@ -363,15 +340,9 @@ function AnimatedRoutes({ user, userRole }) {
           element={
             <ProtectedRoute user={user}>
               {userRole === 'superuser' ? (
-                <>
-                  {console.log("Dashboard route - User is superuser, showing Dashboard")}
-                  <SuperuserDashboard />
-                </>
+                <SuperuserDashboard />
               ) : (
-                <>
-                  {console.log("Dashboard route - User is customer, redirecting to Profile")}
-                  <Navigate to="/profile" />
-                </>
+                <Navigate to="/profile" />
               )}
             </ProtectedRoute>
           }
@@ -382,15 +353,9 @@ function AnimatedRoutes({ user, userRole }) {
           element={
             <ProtectedRoute user={user}>
               {userRole === 'superuser' ? (
-                <>
-                  {console.log("Scan route - User is superuser, showing Scan")}
-                  <Scan />
-                </>
+                <Scan />
               ) : (
-                <>
-                  {console.log("Scan route - User is customer, redirecting to Profile")}
-                  <Navigate to="/profile" />
-                </>
+                <Navigate to="/profile" />
               )}
             </ProtectedRoute>
           }
@@ -401,15 +366,9 @@ function AnimatedRoutes({ user, userRole }) {
           element={
             <ProtectedRoute user={user}>
               {userRole === 'superuser' ? (
-                <>
-                  {console.log("Client Management route - User is superuser, showing ClientManagement")}
-                  <ClientManagement />
-                </>
+                <ClientManagement />
               ) : (
-                <>
-                  {console.log("Client Management route - User is customer, redirecting to Profile")}
-                  <Navigate to="/profile" />
-                </>
+                <Navigate to="/profile" />
               )}
             </ProtectedRoute>
           }
@@ -420,15 +379,9 @@ function AnimatedRoutes({ user, userRole }) {
           element={
             <ProtectedRoute user={user}>
               {userRole === 'superuser' ? (
-                <>
-                  {console.log("Menu Management route - User is superuser, showing MenuManagement")}
-                  <MenuManagement />
-                </>
+                <MenuManagement />
               ) : (
-                <>
-                  {console.log("Menu Management route - User is customer, redirecting to Profile")}
-                  <Navigate to="/profile" />
-                </>
+                <Navigate to="/profile" />
               )}
             </ProtectedRoute>
           }
@@ -439,95 +392,61 @@ function AnimatedRoutes({ user, userRole }) {
           element={
             <ProtectedRoute user={user}>
               {userRole === 'superuser' ? (
-                <>
-                  {console.log("Orders route - User is superuser, showing Orders")}
-                  <Orders />
-                </>
+                <Orders />
               ) : (
-                <>
-                  {console.log("Orders route - User is customer, redirecting to Profile")}
-                  <Navigate to="/profile" />
-                </>
+                <Navigate to="/profile" />
               )}
             </ProtectedRoute>
           }
         />
 
-        {/* NEW: Superuser Rewards Log Route */}
         <Route
           path="/rewards-log"
           element={
             <ProtectedRoute user={user}>
               {userRole === 'superuser' ? (
-                <>
-                  {console.log("Rewards Log route - User is superuser, showing RewardsLog")}
-                  <RewardsLog />
-                </>
+                <RewardsLog />
               ) : (
-                <>
-                  {console.log("Rewards Log route - User is customer, redirecting to Profile")}
-                  <Navigate to="/profile" />
-                </>
+                <Navigate to="/profile" />
               )}
             </ProtectedRoute>
           }
         />
 
-        {/* NEW: Superuser Stamps Log Route */}
         <Route
           path="/stamps-log"
           element={
             <ProtectedRoute user={user}>
               {userRole === 'superuser' ? (
-                <>
-                  {console.log("Stamps Log route - User is superuser, showing StampsLog")}
-                  <StampsLog />
-                </>
+                <StampsLog />
               ) : (
-                <>
-                  {console.log("Stamps Log route - User is customer, redirecting to Profile")}
-                  <Navigate to="/profile" />
-                </>
+                <Navigate to="/profile" />
               )}
             </ProtectedRoute>
           }
         />
 
-        {/* NEW: Superuser Orders Log Route */}
         <Route
           path="/orders-log"
           element={
             <ProtectedRoute user={user}>
               {userRole === 'superuser' ? (
-                <>
-                  {console.log("Orders Log route - User is superuser, showing OrdersLog")}
-                  <OrdersLog />
-                </>
+                <OrdersLog />
               ) : (
-                <>
-                  {console.log("Orders Log route - User is customer, redirecting to Profile")}
-                  <Navigate to="/profile" />
-                </>
+                <Navigate to="/profile" />
               )}
             </ProtectedRoute>
           }
         />
 
-        {/* Superuser Notifications Panel Route */}
         <Route
           path="/superuser-notifications"
           element={
             <ProtectedRoute user={user}>
               {userRole === 'superuser' ? (
-                <>
-                  {console.log("Superuser Notifications route - User is superuser, showing NotificationPanel")}
-                  <NotificationPanel />
-                </>
+                <NotificationPanel />
               ) : (
-                <>
-                  {console.log("Superuser Notifications route - User is customer, redirecting to Profile")}
-                  <Navigate to="/profile" />
-                </>
+                <Navigate to="/profile" />
               )}
             </ProtectedRoute>
           }
@@ -544,9 +463,9 @@ function App() {
   const [user, setUser] = useState(null)
   const [userRole, setUserRole] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [keyboardVisible, setKeyboardVisible] = useState(false) // Track keyboard state
+  const [keyboardVisible, setKeyboardVisible] = useState(false)
 
-  // 🔊 NEW: Initialize global order monitoring for superusers
+  // 🔊 Initialize global order monitoring for superusers
   const {
     pendingOrderCount,
     isBeeping,
@@ -554,10 +473,72 @@ function App() {
     startBeeping
   } = useGlobalOrderMonitor(userRole)
 
+  // 🔒 SECURITY: User document recovery function
+  const createMissingUserDocument = async (user) => {
+    try {
+      const userDocRef = doc(firestore, 'users', user.uid)
+      const userDoc = await getDoc(userDocRef)
+
+      if (!userDoc.exists()) {
+        // Generate QR code
+        const qrData = `https://dandy.app/profile/${user.uid}`
+        const qrCodeURL = await QRCode.toDataURL(qrData)
+
+        // Check if superuser
+        const isSuperUser = user.email === 'antonio@propato.co.uk'
+
+        // Create user document
+        const userDocData = {
+          firstName: 'User', // Placeholder - user can update later
+          lastName: 'Name',  // Placeholder - user can update later
+          dob: '01/01',      // Placeholder - user can update later
+          phone: '+39',      // Placeholder - user can update later
+          email: user.email.toLowerCase(),
+          qrCode: qrCodeURL,
+          role: isSuperUser ? 'superuser' : 'customer',
+          emailVerified: user.emailVerified,
+          createdAt: serverTimestamp(),
+          gdprConsent: {
+            accepted: true,
+            acceptedAt: new Date().toISOString(),
+            version: '1.0',
+            marketingConsent: true,
+            pushNotificationConsent: true
+          },
+          // Flag to indicate this was a recovery creation
+          isRecoveryAccount: true
+        }
+
+        await setDoc(userDocRef, userDocData)
+
+        // Create stamps document for customers
+        if (!isSuperUser) {
+          const stampsRef = doc(firestore, 'stamps', user.uid)
+          await setDoc(stampsRef, {
+            stamps: [
+              { date: new Date().toISOString() },
+              { date: new Date().toISOString() }
+            ],
+            lifetimeStamps: 2,
+            rewardsEarned: 0,
+            availableRewards: 0,
+            receivedFreeStamps: true,
+            birthdayBonusYear: null,
+          })
+        }
+
+        return true
+      }
+
+      return true
+    } catch (error) {
+      console.error('Error creating user document')
+      return false
+    }
+  }
+
   // 📱 UNIVERSAL KEYBOARD & SCROLL HANDLING
   useEffect(() => {
-    console.log('🔧 Setting up universal keyboard and scroll handling')
-
     // Set proper viewport for mobile
     const setViewportMeta = () => {
       let viewportMeta = document.querySelector('meta[name="viewport"]')
@@ -571,7 +552,6 @@ function App() {
 
     // Handle keyboard visibility changes
     const handleKeyboardShow = () => {
-      console.log('⌨️ Virtual keyboard shown')
       setKeyboardVisible(true)
 
       // Scroll focused input into view with delay
@@ -588,14 +568,11 @@ function App() {
     }
 
     const handleKeyboardHide = () => {
-      console.log('⌨️ Virtual keyboard hidden')
       setKeyboardVisible(false)
     }
 
     // Method 1: Visual Viewport API (Modern browsers)
     if (window.visualViewport) {
-      console.log('✅ Using Visual Viewport API for keyboard detection')
-
       const initialHeight = window.visualViewport.height
 
       const handleViewportChange = () => {
@@ -618,8 +595,6 @@ function App() {
 
     // Method 2: Window resize fallback (Older browsers)
     else {
-      console.log('⚠️ Using window resize fallback for keyboard detection')
-
       const initialHeight = window.innerHeight
 
       const handleWindowResize = () => {
@@ -648,8 +623,6 @@ function App() {
   useEffect(() => {
     const handleFocusIn = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-        console.log('🎯 Input focused:', e.target.type || e.target.tagName)
-
         // Add a small delay then scroll element into view
         setTimeout(() => {
           e.target.scrollIntoView({
@@ -663,7 +636,7 @@ function App() {
 
     const handleFocusOut = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-        console.log('🎯 Input unfocused')
+        // Input unfocused
       }
     }
 
@@ -697,34 +670,37 @@ function App() {
     }
   }, [])
 
+  // 🔒 SECURITY: Enhanced auth state listener with recovery
   useEffect(() => {
-    console.log("App - Setting up auth listener");
-
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      console.log("Auth state changed - User:", currentUser ? currentUser.uid : "No user");
       setUser(currentUser)
 
       if (currentUser) {
         try {
+          // 🔒 SECURITY: Create missing user document if needed
+          const documentCreated = await createMissingUserDocument(currentUser)
+
+          if (!documentCreated) {
+            console.error('Failed to create/verify user document')
+            setUserRole('customer') // Fallback
+            setLoading(false)
+            return
+          }
+
           // Get user role
-          console.log("Fetching user role from Firestore");
           const userDoc = await getDoc(doc(firestore, 'users', currentUser.uid))
 
           if (userDoc.exists()) {
-            const role = userDoc.data().role || 'customer';
-            console.log("User role from Firestore:", role);
+            const role = userDoc.data().role || 'customer'
             setUserRole(role)
           } else {
-            console.log("User document doesn't exist, defaulting to customer role");
             setUserRole('customer') // Default role if document doesn't exist
           }
         } catch (error) {
-          console.error('Error fetching user role:', error)
-          console.log("Setting default 'customer' role due to error");
+          console.error('Error fetching user role')
           setUserRole('customer') // Default role on error
         }
       } else {
-        console.log("No user authenticated, clearing user role");
         setUserRole(null)
       }
 
@@ -732,36 +708,27 @@ function App() {
     })
 
     return () => {
-      console.log("App - Cleaning up auth listener");
       unsubscribe()
     }
   }, [])
 
-  // 🔔 FCM INITIALIZATION - New useEffect for push notifications
+  // 🔔 FCM INITIALIZATION - Enhanced with error handling
   useEffect(() => {
     const initializeFCM = async () => {
       if (user && user.uid && userRole) {
-        console.log('🔔 Initializing FCM for user:', user.uid, 'Role:', userRole)
-
         try {
           const success = await fcmManager.initialize(user.uid)
 
           if (success) {
-            console.log('✅ FCM initialized successfully!')
-            console.log('🔔 Push notifications are now enabled')
-
             // Set up custom message handler for foreground notifications
             fcmManager.setOnMessageCallback((payload) => {
-              console.log('📱 Foreground notification received:', payload)
-
               // Show custom notification in the app
               showCustomNotification(payload)
             })
-          } else {
-            console.log('❌ FCM initialization failed - notifications disabled')
           }
         } catch (error) {
-          console.error('Error initializing FCM:', error)
+          console.error('Error initializing FCM')
+          // FCM failure shouldn't block the app
         }
       }
     }
@@ -774,7 +741,6 @@ function App() {
     // Cleanup when user logs out
     return () => {
       if (user?.uid) {
-        console.log('🔄 Cleaning up FCM for user logout')
         fcmManager.cleanup(user.uid)
       }
     }
@@ -782,21 +748,14 @@ function App() {
 
   // 📱 Custom notification handler for foreground messages
   const showCustomNotification = (payload) => {
-    console.log('Foreground message received - letting service worker handle notification:', payload)
-
     // Don't create notification here to avoid duplicates
     // The service worker will handle all notifications
-
-    // Optional: You could show an in-app toast/banner here instead
-    // showInAppToast(payload) // Custom in-app notification
   }
 
   // 🔔 Listen for service worker messages (notification clicks)
   useEffect(() => {
     const handleServiceWorkerMessage = (event) => {
       if (event.data?.type === 'NOTIFICATION_CLICKED') {
-        console.log('📱 Notification clicked, navigating to:', event.data.data?.click_action)
-
         // Navigate to the specified page
         const clickAction = event.data.data?.click_action || '/'
         window.location.href = clickAction
@@ -811,22 +770,6 @@ function App() {
       }
     }
   }, [])
-
-  // 🔊 Debug logging for beeping system
-  useEffect(() => {
-    if (userRole === 'superuser') {
-      console.log('🔊 Global beeping status:', {
-        pendingOrderCount,
-        isBeeping,
-        userRole
-      })
-    }
-  }, [pendingOrderCount, isBeeping, userRole])
-
-  // Log current state for debugging
-  console.log("App rendering - User:", user ? "Authenticated" : "Not authenticated");
-  console.log("App rendering - User role:", userRole);
-  console.log("App rendering - Loading state:", loading);
 
   if (loading) {
     return (
@@ -844,7 +787,6 @@ function App() {
   }
 
   return (
-    // 🛒 NEW: Wrap entire app with CartProvider
     <CartProvider>
       <Router>
         <motion.div
@@ -853,7 +795,6 @@ function App() {
           exit={{ opacity: 0 }}
           className={`min-h-screen bg-gray-50 ${keyboardVisible ? 'keyboard-visible' : ''}`}
           style={{
-            // Dynamic styles for keyboard handling
             minHeight: keyboardVisible ? 'auto' : '100vh',
             paddingBottom: keyboardVisible ? '20px' : '0'
           }}
@@ -861,7 +802,7 @@ function App() {
           <AnimatedRoutes user={user} userRole={userRole} />
           <Nav userRole={userRole} />
 
-          {/* 🔊 NEW: Global beep indicator for superusers */}
+          {/* 🔊 Global beep indicator for superusers */}
           <GlobalBeepIndicator
             pendingOrderCount={pendingOrderCount}
             isBeeping={isBeeping}

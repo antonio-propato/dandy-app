@@ -84,18 +84,46 @@ body { background-color: #2a2522; }
   color: #FFD700;
 }
 
-/* Enhanced touch feedback for mobile */
-@media (hover: none) and (pointer: coarse) {
-  .drag-handle {
-    /* Larger touch target on mobile */
-    padding: 12px;
-    margin: -12px 12px -12px -12px;
-  }
+/* Mobile reorder controls */
+.mobile-reorder-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-right: 1rem;
+}
 
-  .drag-handle:active {
-    background-color: rgba(228, 197, 96, 0.2);
-    transform: scale(1.3);
-  }
+.arrow-btn {
+  background: rgba(228, 197, 96, 0.1);
+  border: 1px solid rgba(228, 197, 96, 0.3);
+  color: var(--accent-color);
+  width: 32px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.8rem;
+}
+
+.arrow-btn:hover:not(:disabled) {
+  background: rgba(228, 197, 96, 0.2);
+  border-color: var(--accent-color);
+  transform: scale(1.05);
+}
+
+.arrow-btn:active:not(:disabled) {
+  transform: scale(0.95);
+  background: rgba(228, 197, 96, 0.3);
+}
+
+.arrow-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  background: rgba(128, 128, 128, 0.1);
+  border-color: rgba(128, 128, 128, 0.2);
+  color: #666;
 }
 
 /* --- "Add Category" at the Top --- */
@@ -204,9 +232,19 @@ body { background-color: #2a2522; }
 .menu-item-display {
   display: flex; justify-content: space-between;
   align-items: center; gap: 1rem;
+  min-width: 0; /* Ensures flex items can shrink below their content size */
 }
 
-.item-name { font-size: 1.1rem; font-weight: 500; flex-grow: 1; margin-left: 0.5rem; }
+.item-name {
+  font-size: 1.1rem; font-weight: 500;
+  flex-grow: 1; margin-left: 0.5rem;
+  /* Handle long text properly */
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  min-width: 0; /* Allows the element to shrink */
+  max-width: calc(100% - 200px); /* Reserve space for price and buttons */
+}
 .item-right-group {
   display: flex; align-items: center;
   gap: 1.5rem; flex-shrink: 0;
@@ -372,7 +410,7 @@ body { background-color: #2a2522; }
 }
 
 /* Responsive Design */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .menu-management-header h1 {
     font-size: 2rem;
   }
@@ -390,13 +428,24 @@ body { background-color: #2a2522; }
     flex-grow: 1;
   }
 
-  /* Enhance touch targets on mobile */
-  .drag-handle {
-    font-size: 1.2rem;
-    padding: 16px;
-    margin: -16px 16px -16px -16px;
+  /* Mobile-specific adjustments for long text */
+  .item-name {
+    max-width: calc(100% - 160px); /* Less space needed on mobile for buttons */
+    font-size: 1rem; /* Slightly smaller on mobile */
   }
 
+  /* Mobile-specific arrow button adjustments */
+  .mobile-reorder-controls {
+    gap: 0.3rem;
+  }
+
+  .arrow-btn {
+    width: 36px;
+    height: 28px;
+    font-size: 0.9rem;
+  }
+
+  /* Enhance touch targets on mobile */
   .icon-btn {
     font-size: 1.1rem;
     padding: 16px;
@@ -419,32 +468,39 @@ body { background-color: #2a2522; }
   }
 }
 
-/* Tablet responsive styles */
-@media (max-width: 768px) and (min-width: 481px) {
+@media (max-width: 480px) {
   .menu-management-header h1 {
-    font-size: 2.2rem;
+    font-size: 1.8rem;
   }
 
-  /* Medium touch targets for tablets */
-  .drag-handle {
-    padding: 12px;
-    margin: -12px 12px -12px -12px;
+  .menu-management-content {
+    padding: 0.8rem 1rem;
   }
 
-  .icon-btn {
-    padding: 12px;
-    margin: -12px;
+  /* Better text handling on very small screens */
+  .item-name {
+    max-width: calc(100% - 140px); /* Even less space for very small screens */
+    font-size: 0.95rem;
   }
-}
 
-/* Prevent scrolling during touch drag operations */
-.menu-management-container.touch-dragging {
-  overflow: hidden;
-  height: 100vh;
-}
+  /* Smaller arrow buttons for very small screens */
+  .arrow-btn {
+    width: 32px;
+    height: 24px;
+    font-size: 0.8rem;
+  }
 
-.menu-management-container.touch-dragging body {
-  overflow: hidden;
-  position: fixed;
-  width: 100%;
+  .mobile-reorder-controls {
+    gap: 0.2rem;
+    margin-right: 0.8rem;
+  }
+
+  /* Compact button spacing on small screens */
+  .item-actions {
+    gap: 1.5rem;
+  }
+
+  .item-right-group {
+    gap: 1rem;
+  }
 }
