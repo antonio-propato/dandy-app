@@ -401,10 +401,13 @@ export default function Stamps() {
     }
   }, [showRewardModal, lifetimeStats.availableRewards]);
 
+  // Updated format function to include both date and time on same line
   const formatDate = (d) => {
     if (!d) return '';
     const dt = new Date(d);
-    return `${dt.getDate()}/${dt.getMonth() + 1}/${dt.getFullYear()}`;
+    const date = `${dt.getDate()}/${dt.getMonth() + 1}/${dt.getFullYear().toString().slice(-2)}`;
+    const time = `${dt.getHours().toString().padStart(2, '0')}:${dt.getMinutes().toString().padStart(2, '0')}`;
+    return `${date} ${time}`;
   };
 
   if (loading) {

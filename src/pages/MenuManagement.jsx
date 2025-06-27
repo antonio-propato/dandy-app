@@ -3,7 +3,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { firestore } from '../lib/firebase';
 import Nav from '../components/Nav';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPen, faTrash, faCheck, faTimes, faPlus, faTh } from '@fortawesome/free-solid-svg-icons';
+import { faPen, faTrash, faCheck, faTimes, faPlus, faTh, faChevronUp, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import './MenuManagement.css';
 
 const initialNewItemState = { name: '', price: '' };
@@ -30,22 +30,24 @@ export default function MenuManagement() {
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState(initialNewCategoryState);
 
-  // State for Drag and Drop (both mouse and touch)
+  // State for Drag and Drop (desktop only)
   const [draggedItem, setDraggedItem] = useState(null);
   const [draggedCategory, setDraggedCategory] = useState(null);
   const dragOverItem = useRef(null);
   const dragOverCategory = useRef(null);
 
-  // Touch drag state
-  const [touchDrag, setTouchDrag] = useState({
-    isDragging: false,
-    dragType: null, // 'category' or 'item'
-    draggedIndex: null,
-    category: null,
-    startY: 0,
-    currentY: 0,
-    element: null
-  });
+  // Detect if we're on mobile
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768 || 'ontouchstart' in window);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     fetchMenuData();
@@ -90,96 +92,9 @@ export default function MenuManagement() {
   };
 
   const toggleCategoryCollapse = (category) => {
-    // Prevent collapsing when an action button is clicked or during drag
-    if (editingCategory.oldName === category || touchDrag.isDragging) return;
+    // Prevent collapsing when an action button is clicked
+    if (editingCategory.oldName === category) return;
     setCollapsedCategories(prev => ({ ...prev, [category]: !prev[category] }));
-  };
-
-  // --- Touch Drag Handlers ---
-  const handleTouchStart = (e, type, index, category = null) => {
-    e.preventDefault();
-    const touch = e.touches[0];
-    const element = e.currentTarget;
-
-    setTouchDrag({
-      isDragging: true,
-      dragType: type,
-      draggedIndex: index,
-      category: category,
-      startY: touch.clientY,
-      currentY: touch.clientY,
-      element: element
-    });
-
-    // Add visual feedback
-    element.style.opacity = '0.7';
-    element.style.transform = 'scale(1.05)';
-    element.style.zIndex = '1000';
-  };
-
-  const handleTouchMove = (e) => {
-    if (!touchDrag.isDragging) return;
-    e.preventDefault();
-
-    const touch = e.touches[0];
-    const currentY = touch.clientY;
-    const deltaY = currentY - touchDrag.startY;
-
-    setTouchDrag(prev => ({ ...prev, currentY }));
-
-    // Update element position
-    if (touchDrag.element) {
-      touchDrag.element.style.transform = `scale(1.05) translateY(${deltaY}px)`;
-    }
-
-    // Find drop target
-    const elementsBelow = document.elementsFromPoint(touch.clientX, touch.clientY);
-    const dropTarget = elementsBelow.find(el =>
-      el.classList.contains('menu-item-wrapper') ||
-      el.classList.contains('category-header')
-    );
-
-    if (dropTarget) {
-      if (touchDrag.dragType === 'category' && dropTarget.classList.contains('category-header')) {
-        const categoryIndex = Array.from(dropTarget.parentElement.parentElement.children)
-          .findIndex(child => child.contains(dropTarget));
-        dragOverCategory.current = categoryIndex;
-      } else if (touchDrag.dragType === 'item' && dropTarget.classList.contains('menu-item-wrapper')) {
-        const itemIndex = Array.from(dropTarget.parentElement.children)
-          .findIndex(child => child === dropTarget);
-        dragOverItem.current = itemIndex;
-      }
-    }
-  };
-
-  const handleTouchEnd = async (e) => {
-    if (!touchDrag.isDragging) return;
-    e.preventDefault();
-
-    // Reset visual feedback
-    if (touchDrag.element) {
-      touchDrag.element.style.opacity = '';
-      touchDrag.element.style.transform = '';
-      touchDrag.element.style.zIndex = '';
-    }
-
-    // Perform the drop action
-    if (touchDrag.dragType === 'category') {
-      await handleCategoryDrop();
-    } else if (touchDrag.dragType === 'item') {
-      await handleItemDrop(touchDrag.category);
-    }
-
-    // Reset touch drag state
-    setTouchDrag({
-      isDragging: false,
-      dragType: null,
-      draggedIndex: null,
-      category: null,
-      startY: 0,
-      currentY: 0,
-      element: null
-    });
   };
 
   // --- Category Handlers ---
@@ -228,6 +143,25 @@ export default function MenuManagement() {
     setShowDeleteCategoryConfirm({ show: false, category: null });
   };
 
+  // --- Mobile Arrow Controls for Categories ---
+  const moveCategoryUp = async (currentIndex) => {
+    if (currentIndex === 0) return;
+    const newCategoryOrder = [...categoryOrder];
+    [newCategoryOrder[currentIndex], newCategoryOrder[currentIndex - 1]] =
+    [newCategoryOrder[currentIndex - 1], newCategoryOrder[currentIndex]];
+    setCategoryOrder(newCategoryOrder);
+    await saveMenuData(menuData, newCategoryOrder);
+  };
+
+  const moveCategoryDown = async (currentIndex) => {
+    if (currentIndex === categoryOrder.length - 1) return;
+    const newCategoryOrder = [...categoryOrder];
+    [newCategoryOrder[currentIndex], newCategoryOrder[currentIndex + 1]] =
+    [newCategoryOrder[currentIndex + 1], newCategoryOrder[currentIndex]];
+    setCategoryOrder(newCategoryOrder);
+    await saveMenuData(menuData, newCategoryOrder);
+  };
+
   // --- Item Handlers ---
   const handleEditItem = (category, index) => setEditingItem({ category, index, data: { ...menuData[category][index] } });
 
@@ -263,17 +197,31 @@ export default function MenuManagement() {
     setAddingToCategory(null);
   };
 
-  // --- Drag and Drop Handlers (Mouse) ---
-  const handleCategoryDrop = async () => {
-    let sourceIndex, targetIndex;
+  // --- Mobile Arrow Controls for Items ---
+  const moveItemUp = async (category, currentIndex) => {
+    if (currentIndex === 0) return;
+    const items = [...menuData[category]];
+    [items[currentIndex], items[currentIndex - 1]] =
+    [items[currentIndex - 1], items[currentIndex]];
+    const newMenuData = { ...menuData, [category]: items };
+    setMenuData(newMenuData);
+    await saveMenuData(newMenuData, categoryOrder);
+  };
 
-    if (touchDrag.isDragging) {
-      sourceIndex = touchDrag.draggedIndex;
-      targetIndex = dragOverCategory.current;
-    } else {
-      sourceIndex = draggedCategory;
-      targetIndex = dragOverCategory.current;
-    }
+  const moveItemDown = async (category, currentIndex) => {
+    if (currentIndex === menuData[category].length - 1) return;
+    const items = [...menuData[category]];
+    [items[currentIndex], items[currentIndex + 1]] =
+    [items[currentIndex + 1], items[currentIndex]];
+    const newMenuData = { ...menuData, [category]: items };
+    setMenuData(newMenuData);
+    await saveMenuData(newMenuData, categoryOrder);
+  };
+
+  // --- Desktop Drag and Drop Handlers ---
+  const handleCategoryDrop = async () => {
+    const sourceIndex = draggedCategory;
+    const targetIndex = dragOverCategory.current;
 
     if (sourceIndex === null || targetIndex === null) return;
 
@@ -288,15 +236,8 @@ export default function MenuManagement() {
   };
 
   const handleItemDrop = async (category) => {
-    let sourceIndex, targetIndex;
-
-    if (touchDrag.isDragging) {
-      sourceIndex = touchDrag.draggedIndex;
-      targetIndex = dragOverItem.current;
-    } else {
-      sourceIndex = draggedItem;
-      targetIndex = dragOverItem.current;
-    }
+    const sourceIndex = draggedItem;
+    const targetIndex = dragOverItem.current;
 
     if (sourceIndex === null || targetIndex === null) return;
 
@@ -362,39 +303,56 @@ export default function MenuManagement() {
             <div
               className="category-header"
               onClick={() => toggleCategoryCollapse(category)}
-              draggable
-              onDragStart={(e) => {
-                e.stopPropagation();
-                setDraggedCategory(catIndex);
-              }}
-              onDragEnter={(e) => {
-                e.stopPropagation();
-                dragOverCategory.current = catIndex;
-              }}
-              onDragEnd={(e) => {
-                e.stopPropagation();
-                handleCategoryDrop();
-              }}
-              onDragOver={(e) => e.preventDefault()}
+              {...(!isMobile && {
+                draggable: true,
+                onDragStart: (e) => {
+                  e.stopPropagation();
+                  setDraggedCategory(catIndex);
+                },
+                onDragEnter: (e) => {
+                  e.stopPropagation();
+                  dragOverCategory.current = catIndex;
+                },
+                onDragEnd: (e) => {
+                  e.stopPropagation();
+                  handleCategoryDrop();
+                },
+                onDragOver: (e) => e.preventDefault()
+              })}
             >
               <div className="category-title-group">
-                <FontAwesomeIcon
-                  icon={faTh}
-                  className="drag-handle"
-                  onTouchStart={(e) => {
-                    e.stopPropagation();
-                    handleTouchStart(e, 'category', catIndex);
-                  }}
-                  onTouchMove={(e) => {
-                    e.stopPropagation();
-                    handleTouchMove(e);
-                  }}
-                  onTouchEnd={(e) => {
-                    e.stopPropagation();
-                    handleTouchEnd(e);
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                />
+                {isMobile ? (
+                  <div className="mobile-reorder-controls">
+                    <button
+                      className="arrow-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        moveCategoryUp(catIndex);
+                      }}
+                      disabled={catIndex === 0}
+                      title="Sposta su"
+                    >
+                      <FontAwesomeIcon icon={faChevronUp} />
+                    </button>
+                    <button
+                      className="arrow-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        moveCategoryDown(catIndex);
+                      }}
+                      disabled={catIndex === categoryOrder.length - 1}
+                      title="Sposta giù"
+                    >
+                      <FontAwesomeIcon icon={faChevronDown} />
+                    </button>
+                  </div>
+                ) : (
+                  <FontAwesomeIcon
+                    icon={faTh}
+                    className="drag-handle"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                )}
                 {editingCategory.oldName === category ? (
                   <>
                     <input
@@ -427,6 +385,10 @@ export default function MenuManagement() {
                   onClick={(e) => {
                     e.stopPropagation();
                     setAddingToCategory(category);
+                    // Expand category if it's collapsed
+                    if (collapsedCategories[category]) {
+                      setCollapsedCategories(prev => ({ ...prev, [category]: false }));
+                    }
                   }}
                   title="Aggiungi Prodotto"
                 />
@@ -485,11 +447,13 @@ export default function MenuManagement() {
                     <div
                       key={itemIndex}
                       className="menu-item-wrapper"
-                      draggable
-                      onDragStart={() => setDraggedItem(itemIndex)}
-                      onDragEnter={() => dragOverItem.current = itemIndex}
-                      onDragEnd={() => handleItemDrop(category)}
-                      onDragOver={(e) => e.preventDefault()}
+                      {...(!isMobile && {
+                        draggable: true,
+                        onDragStart: () => setDraggedItem(itemIndex),
+                        onDragEnter: () => dragOverItem.current = itemIndex,
+                        onDragEnd: () => handleItemDrop(category),
+                        onDragOver: (e) => e.preventDefault()
+                      })}
                     >
                       {editingItem.category === category && editingItem.index === itemIndex ? (
                         <div className="item-edit-form">
@@ -524,22 +488,31 @@ export default function MenuManagement() {
                         </div>
                       ) : (
                         <div className="menu-item-display">
-                          <FontAwesomeIcon
-                            icon={faTh}
-                            className="drag-handle item-drag-handle"
-                            onTouchStart={(e) => {
-                              e.stopPropagation();
-                              handleTouchStart(e, 'item', itemIndex, category);
-                            }}
-                            onTouchMove={(e) => {
-                              e.stopPropagation();
-                              handleTouchMove(e);
-                            }}
-                            onTouchEnd={(e) => {
-                              e.stopPropagation();
-                              handleTouchEnd(e);
-                            }}
-                          />
+                          {isMobile ? (
+                            <div className="mobile-reorder-controls">
+                              <button
+                                className="arrow-btn"
+                                onClick={() => moveItemUp(category, itemIndex)}
+                                disabled={itemIndex === 0}
+                                title="Sposta su"
+                              >
+                                <FontAwesomeIcon icon={faChevronUp} />
+                              </button>
+                              <button
+                                className="arrow-btn"
+                                onClick={() => moveItemDown(category, itemIndex)}
+                                disabled={itemIndex === menuData[category].length - 1}
+                                title="Sposta giù"
+                              >
+                                <FontAwesomeIcon icon={faChevronDown} />
+                              </button>
+                            </div>
+                          ) : (
+                            <FontAwesomeIcon
+                              icon={faTh}
+                              className="drag-handle item-drag-handle"
+                            />
+                          )}
                           <span className="item-name">{item.name}</span>
                           <div className="item-right-group">
                             <span className="item-price">{item.price}</span>

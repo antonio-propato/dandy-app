@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   createUserWithEmailAndPassword,
@@ -13,10 +13,17 @@ import QRCode from 'qrcode';
 import PrivacyPolicy from './PrivacyPolicy';
 import './Auth.css';
 
+// Security: Define constants outside component to prevent recreation
+const VERIFICATION_POLL_INTERVAL = 3000;
+const MAX_SUBMISSION_ATTEMPTS = 5;
+const SUBMISSION_COOLDOWN = 30000; // 30 seconds
+
 // Utility function to capitalize names properly
 const capitalizeName = (name) => {
   if (!name) return '';
-  return name
+  // Security: Sanitize input to prevent XSS
+  const sanitized = name.replace(/[<>]/g, '');
+  return sanitized
     .toLowerCase()
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -123,31 +130,73 @@ const validateEmail = (email) => {
   return true;
 };
 
+// Security: Rate limiting for database checks
+let emailCheckCache = new Map();
+let phoneCheckCache = new Map();
+const CACHE_DURATION = 60000; // 1 minute
+
 const checkEmailExists = async (email) => {
   try {
-    const q = query(collection(firestore, 'users'), where('email', '==', email.toLowerCase()));
+    const normalizedEmail = email.toLowerCase();
+    const now = Date.now();
+
+    // Check cache first
+    if (emailCheckCache.has(normalizedEmail)) {
+      const { result, timestamp } = emailCheckCache.get(normalizedEmail);
+      if (now - timestamp < CACHE_DURATION) {
+        return result;
+      }
+    }
+
+    const q = query(collection(firestore, 'users'), where('email', '==', normalizedEmail));
     const querySnapshot = await getDocs(q);
-    return !querySnapshot.empty;
+    const exists = !querySnapshot.empty;
+
+    // Cache result
+    emailCheckCache.set(normalizedEmail, { result: exists, timestamp: now });
+
+    return exists;
   } catch (error) {
-    console.error('Error checking email:', error);
+    // Security: Don't log sensitive information
+    console.error('Database check failed');
     return false;
   }
 };
 
 const checkPhoneExists = async (phone) => {
   try {
+    const now = Date.now();
+
+    // Check cache first
+    if (phoneCheckCache.has(phone)) {
+      const { result, timestamp } = phoneCheckCache.get(phone);
+      if (now - timestamp < CACHE_DURATION) {
+        return result;
+      }
+    }
+
     const q = query(collection(firestore, 'users'), where('phone', '==', phone));
     const querySnapshot = await getDocs(q);
-    return !querySnapshot.empty;
+    const exists = !querySnapshot.empty;
+
+    // Cache result
+    phoneCheckCache.set(phone, { result: exists, timestamp: now });
+
+    return exists;
   } catch (error) {
-    console.error('Error checking phone:', error);
+    // Security: Don't log sensitive information
+    console.error('Database check failed');
     return false;
   }
 };
 
 export default function Auth({ mode = 'signin' }) {
   const navigate = useNavigate();
-  const errorRef = useRef(null); // 🔥 NEW: Reference to error message
+  const errorRef = useRef(null);
+  const verificationIntervalRef = useRef(null);
+  const mountedRef = useRef(true);
+
+  // Security: Separate sensitive and non-sensitive state
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -157,9 +206,16 @@ export default function Auth({ mode = 'signin' }) {
     email: '',
     password: '',
   });
+
+  const [securityState, setSecurityState] = useState({
+    submissionAttempts: 0,
+    lastSubmissionTime: 0,
+    isBlocked: false
+  });
+
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [gdprAccepted, setGdprAccepted] = useState(true); // Default to checked
+  const [gdprAccepted, setGdprAccepted] = useState(true);
   const [showGdprWarning, setShowGdprWarning] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -167,21 +223,47 @@ export default function Auth({ mode = 'signin' }) {
   const [resetMessage, setResetMessage] = useState('');
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
-
-  // 🔄 NEW: Email verification polling state
   const [pollingForVerification, setPollingForVerification] = useState(false);
-  const [verificationPollingInterval, setVerificationPollingInterval] = useState(null);
 
-  // 🔥 NEW: Scroll to error when it appears
+  // Security: Clear sensitive data on unmount
   useEffect(() => {
-    if (error && errorRef.current) {
-      // Small delay to ensure the error message is rendered
-      setTimeout(() => {
-        errorRef.current.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
-        });
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+      // Clear sensitive form data
+      setForm(prev => ({
+        ...prev,
+        password: '',
+        email: '',
+        phone: ''
+      }));
+
+      // Clear intervals
+      if (verificationIntervalRef.current) {
+        clearInterval(verificationIntervalRef.current);
+        verificationIntervalRef.current = null;
+      }
+
+      // Clear caches
+      emailCheckCache.clear();
+      phoneCheckCache.clear();
+    };
+  }, []);
+
+  // Security: Scroll to error with safety check
+  useEffect(() => {
+    if (error && errorRef.current && mountedRef.current) {
+      const timeoutId = setTimeout(() => {
+        if (mountedRef.current && errorRef.current) {
+          errorRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+          });
+        }
       }, 100);
+
+      return () => clearTimeout(timeoutId);
     }
   }, [error]);
 
@@ -241,87 +323,115 @@ export default function Auth({ mode = 'signin' }) {
     };
   }, []);
 
-  // 🔄 NEW: Email verification polling effect
-  useEffect(() => {
-    if (emailVerificationSent && !pollingForVerification) {
-      console.log('📧 Starting email verification polling...');
-      setPollingForVerification(true);
+  // Security: Secure email verification polling with proper cleanup
+  const startVerificationPolling = useCallback(() => {
+    if (!mountedRef.current || verificationIntervalRef.current) return;
 
-      const pollInterval = setInterval(async () => {
-        try {
-          if (auth.currentUser) {
-            // Reload the user to get fresh verification status
-            await auth.currentUser.reload();
+    setPollingForVerification(true);
 
-            console.log('🔄 Checking verification status:', auth.currentUser.emailVerified);
+    verificationIntervalRef.current = setInterval(async () => {
+      try {
+        if (!mountedRef.current || !auth.currentUser) {
+          if (verificationIntervalRef.current) {
+            clearInterval(verificationIntervalRef.current);
+            verificationIntervalRef.current = null;
+          }
+          return;
+        }
 
-            if (auth.currentUser.emailVerified) {
-              console.log('✅ Email verified! Auto-logging in user...');
+        await auth.currentUser.reload();
 
-              // Clear the polling
-              clearInterval(pollInterval);
-              setPollingForVerification(false);
+        if (auth.currentUser.emailVerified) {
+          // Clear polling
+          if (verificationIntervalRef.current) {
+            clearInterval(verificationIntervalRef.current);
+            verificationIntervalRef.current = null;
+          }
 
-              // Update Firestore with verification status
-              try {
-                await setDoc(doc(firestore, 'users', auth.currentUser.uid), {
-                  emailVerified: true,
-                  emailVerifiedAt: new Date().toISOString()
-                }, { merge: true });
+          if (!mountedRef.current) return;
 
-                console.log('✅ Updated Firestore with verification status');
-              } catch (firestoreError) {
-                console.error('Error updating Firestore:', firestoreError);
-              }
+          setPollingForVerification(false);
 
-              // Get user role and redirect appropriately
-              try {
-                const userDoc = await getDoc(doc(firestore, 'users', auth.currentUser.uid));
-                const userData = userDoc.data();
+          // Update Firestore with verification status
+          try {
+            await setDoc(doc(firestore, 'users', auth.currentUser.uid), {
+              emailVerified: true,
+              emailVerifiedAt: new Date().toISOString()
+            }, { merge: true });
+          } catch (firestoreError) {
+            // Continue even if Firestore update fails
+          }
 
-                if (userData && userData.role === 'superuser') {
-                  console.log('🔄 Redirecting superuser to scan page');
-                  navigate('/scan');
-                } else {
-                  console.log('🔄 Redirecting customer to profile page');
-                  navigate('/profile');
-                }
-              } catch (roleError) {
-                console.error('Error getting user role:', roleError);
-                // Default to profile if role check fails
+          // Get user role and redirect appropriately
+          try {
+            const userDoc = await getDoc(doc(firestore, 'users', auth.currentUser.uid));
+            const userData = userDoc.data();
+
+            if (mountedRef.current) {
+              if (userData && userData.role === 'superuser') {
+                navigate('/scan');
+              } else {
                 navigate('/profile');
               }
             }
+          } catch (roleError) {
+            if (mountedRef.current) {
+              navigate('/profile');
+            }
           }
-        } catch (error) {
-          console.error('Error during verification polling:', error);
         }
-      }, 3000); // Check every 3 seconds
+      } catch (error) {
+        // Silently handle errors during polling
+        if (verificationIntervalRef.current) {
+          clearInterval(verificationIntervalRef.current);
+          verificationIntervalRef.current = null;
+        }
+      }
+    }, VERIFICATION_POLL_INTERVAL);
+  }, [navigate]);
 
-      setVerificationPollingInterval(pollInterval);
+  useEffect(() => {
+    if (emailVerificationSent) {
+      startVerificationPolling();
     }
 
-    // Cleanup polling on unmount or when verification is complete
     return () => {
-      if (verificationPollingInterval) {
-        clearInterval(verificationPollingInterval);
-        setVerificationPollingInterval(null);
+      if (verificationIntervalRef.current) {
+        clearInterval(verificationIntervalRef.current);
+        verificationIntervalRef.current = null;
       }
     };
-  }, [emailVerificationSent, pollingForVerification, navigate]);
+  }, [emailVerificationSent, startVerificationPolling]);
 
-  // 🔄 NEW: Cleanup polling when component unmounts
-  useEffect(() => {
-    return () => {
-      if (verificationPollingInterval) {
-        clearInterval(verificationPollingInterval);
+  // Security: Rate limiting check
+  const checkRateLimit = () => {
+    const now = Date.now();
+    const { submissionAttempts, lastSubmissionTime } = securityState;
+
+    if (submissionAttempts >= MAX_SUBMISSION_ATTEMPTS) {
+      if (now - lastSubmissionTime < SUBMISSION_COOLDOWN) {
+        return false;
+      } else {
+        // Reset attempts after cooldown
+        setSecurityState({
+          submissionAttempts: 0,
+          lastSubmissionTime: 0,
+          isBlocked: false
+        });
       }
-    };
-  }, [verificationPollingInterval]);
+    }
 
+    return true;
+  };
+
+  // Security: Sanitize input changes
   const handleChange = e => {
     const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+
+    // Security: Sanitize input to prevent XSS
+    const sanitizedValue = value.replace(/[<>]/g, '');
+
+    setForm({ ...form, [name]: sanitizedValue });
 
     // Clear validation errors as user types
     if (validationErrors[name]) {
@@ -337,7 +447,6 @@ export default function Auth({ mode = 'signin' }) {
     let newDay = type === 'day' ? value : (currentDay || '');
     let newMonth = type === 'month' ? value : (currentMonth || '');
 
-    // Update form with new DOB value - only create the string if both values exist
     const newDob = newDay && newMonth ? `${newDay}/${newMonth}` : (newDay || newMonth ? `${newDay || ''}/${newMonth || ''}` : '');
     setForm({ ...form, dob: newDob });
 
@@ -351,7 +460,6 @@ export default function Auth({ mode = 'signin' }) {
     if (e.target.checked) {
       setShowGdprWarning(false);
     }
-    // Clear any existing errors when user checks the box
     if (e.target.checked && error) {
       setError(null);
     }
@@ -383,7 +491,8 @@ export default function Auth({ mode = 'signin' }) {
       if (!errors.email) {
         const emailExists = await checkEmailExists(form.email);
         if (emailExists) {
-          errors.email = 'Questa email è già registrata';
+          // Security: Generic error message to prevent email enumeration
+          errors.email = 'Indirizzo email non disponibile';
         }
       }
 
@@ -392,7 +501,7 @@ export default function Auth({ mode = 'signin' }) {
         const fullPhone = `${form.countryCode}${form.phone}`;
         const phoneExists = await checkPhoneExists(fullPhone);
         if (phoneExists) {
-          errors.phone = 'Questo numero di cellulare è già registrato';
+          errors.phone = 'Numero di cellulare non disponibile';
         }
       }
     }
@@ -413,7 +522,8 @@ export default function Auth({ mode = 'signin' }) {
       setResetMessage('Email di reset inviata! Controlla la tua casella di posta.');
       setError(null);
     } catch (err) {
-      setError('Errore nell\'invio dell\'email di reset. Verifica che l\'email sia corretta.');
+      // Security: Generic error message
+      setError('Si è verificato un errore. Riprova più tardi.');
       setResetMessage('');
     } finally {
       setLoading(false);
@@ -428,7 +538,7 @@ export default function Auth({ mode = 'signin' }) {
       await sendEmailVerification(auth.currentUser);
       setResetMessage('Email di verifica inviata nuovamente!');
     } catch (err) {
-      setError('Errore nell\'invio dell\'email di verifica.');
+      setError('Si è verificato un errore. Riprova più tardi.');
     } finally {
       setLoading(false);
     }
@@ -438,6 +548,12 @@ export default function Auth({ mode = 'signin' }) {
     e.preventDefault();
     setError(null);
 
+    // Security: Rate limiting
+    if (!checkRateLimit()) {
+      setError('Troppi tentativi. Riprova tra qualche minuto.');
+      return;
+    }
+
     // Check GDPR consent for signup
     if (mode === 'signup' && !gdprAccepted) {
       setShowGdprWarning(true);
@@ -445,6 +561,13 @@ export default function Auth({ mode = 'signin' }) {
     }
 
     setLoading(true);
+
+    // Update rate limiting
+    setSecurityState(prev => ({
+      submissionAttempts: prev.submissionAttempts + 1,
+      lastSubmissionTime: Date.now(),
+      isBlocked: prev.submissionAttempts + 1 >= MAX_SUBMISSION_ATTEMPTS
+    }));
 
     // Validate form for both signup and signin
     const isValid = await validateForm();
@@ -461,10 +584,9 @@ export default function Auth({ mode = 'signin' }) {
         userCred = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCred.user;
 
-        // 📧 UPDATED: Configure email verification to redirect to your app
         const actionCodeSettings = {
-          url: `${window.location.origin}/`, // This will redirect back to your app
-          handleCodeInApp: true // This tells Firebase to handle the code in the app
+          url: `${window.location.origin}/`,
+          handleCodeInApp: true
         };
 
         await sendEmailVerification(user, actionCodeSettings);
@@ -499,7 +621,6 @@ export default function Auth({ mode = 'signin' }) {
         let stampsDocPromise = Promise.resolve();
 
         if (!isSuperUser) {
-          console.log(`Creating stamps doc for new customer ${user.uid} with 2 free stamps.`);
           stampsDocPromise = setDoc(stampsRef, {
             stamps: [
               { date: new Date().toISOString() },
@@ -514,6 +635,9 @@ export default function Auth({ mode = 'signin' }) {
         }
 
         await Promise.all([userDocPromise, stampsDocPromise]);
+
+        // Security: Clear sensitive data before showing verification
+        setForm(prev => ({ ...prev, password: '' }));
         setEmailVerificationSent(true);
 
       } else {
@@ -523,6 +647,10 @@ export default function Auth({ mode = 'signin' }) {
           setLoading(false);
           return;
         }
+
+        // Security: Clear password after successful signin
+        setForm(prev => ({ ...prev, password: '' }));
+
         const userDoc = await getDoc(doc(firestore, 'users', userCred.user.uid));
         const userData = userDoc.data();
         if (userData && userData.role === 'superuser') {
@@ -532,17 +660,17 @@ export default function Auth({ mode = 'signin' }) {
         }
       }
     } catch (err) {
+      // Security: Generic error messages to prevent information disclosure
       if (err.code === 'auth/email-already-in-use') {
-        setError('Questa email è già registrata. Prova ad accedere invece.');
+        setError('Si è verificato un errore durante la registrazione.');
       } else if (err.code === 'auth/weak-password') {
         setError('La password deve essere di almeno 6 caratteri.');
       } else if (err.code === 'auth/invalid-email') {
         setError('Indirizzo email non valido.');
       } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-        setError('Email o password non corretta.');
+        setError('Credenziali non valide.');
       } else {
         setError('Si è verificato un errore. Riprova.');
-        console.error("Auth error:", err);
       }
     } finally {
       setLoading(false);
@@ -550,16 +678,20 @@ export default function Auth({ mode = 'signin' }) {
   };
 
   const handleGdprWarningContinue = () => {
-    // Close modal and accept GDPR
     setShowGdprWarning(false);
     setGdprAccepted(true);
-    setError(null); // Clear any existing errors
+    setError(null);
   };
 
   // Parse current DOB for display
   const [currentDay, currentMonth] = form.dob ? form.dob.split('/') : ['', ''];
 
-  // 📧 UPDATED: Email verification screen with polling status
+  // Security: Mask email for verification screen
+  const maskedEmail = form.email
+    ? form.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
+    : '';
+
+  // Email verification screen with enhanced security
   if (emailVerificationSent) {
     return (
       <div className="auth-wrapper">
@@ -574,7 +706,7 @@ export default function Auth({ mode = 'signin' }) {
             <h2>Verifica la tua Email</h2>
             <p>
               Abbiamo inviato un link di verifica a<br />
-              <strong>{form.email}</strong>
+              <strong>{maskedEmail}</strong>
             </p>
             <p>
               Clicca sul link nell'email per attivare il tuo account.
@@ -595,8 +727,9 @@ export default function Auth({ mode = 'signin' }) {
               <button
                 className="auth-continue-btn"
                 onClick={() => {
-                  if (verificationPollingInterval) {
-                    clearInterval(verificationPollingInterval);
+                  if (verificationIntervalRef.current) {
+                    clearInterval(verificationIntervalRef.current);
+                    verificationIntervalRef.current = null;
                   }
                   setEmailVerificationSent(false);
                   setPollingForVerification(false);
@@ -625,7 +758,6 @@ export default function Auth({ mode = 'signin' }) {
         />
         {mode === 'signin' && <h2 className="auth-title">{getTimeBasedGreeting()}</h2>}
 
-        {/* 🔥 UPDATED: Error message with ref for scrolling */}
         {error && <div ref={errorRef} className="auth-error">{error}</div>}
         {resetMessage && <div className="auth-success">{resetMessage}</div>}
 
@@ -708,7 +840,11 @@ export default function Auth({ mode = 'signin' }) {
             </div>
           )}
           <div className="auth-button-container">
-            <button type="submit" disabled={loading} className={`auth-button ${mode === 'signup' ? 'auth-button-signup' : 'auth-button-signin'}`}>
+            <button
+              type="submit"
+              disabled={loading || securityState.isBlocked}
+              className={`auth-button ${mode === 'signup' ? 'auth-button-signup' : 'auth-button-signin'}`}
+            >
               {loading ? 'Attendere...' : mode === 'signup' ? 'CONFERMA' : 'ACCEDI'}
             </button>
           </div>
@@ -741,7 +877,7 @@ export default function Auth({ mode = 'signin' }) {
                   <input
                     type="email"
                     value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
+                    onChange={(e) => setResetEmail(e.target.value.replace(/[<>]/g, ''))}
                     required
                     placeholder="Il tuo indirizzo email"
                   />

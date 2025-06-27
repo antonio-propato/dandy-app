@@ -11,6 +11,7 @@ export default function SuperuserDashboard() {
   const [userData, setUserData] = useState(null);
   const [todayStamps, setTodayStamps] = useState([]);
   const [showTodayLog, setShowTodayLog] = useState(false);
+  const [userStampCounts, setUserStampCounts] = useState({}); // NEW: Track stamps per user today
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalStamps: 0,
@@ -79,6 +80,7 @@ export default function SuperuserDashboard() {
       let totalOrdersLifetime = 0;
       let ordersToday = 0;
       const todayStampsActivity = [];
+      const dailyUserStampCounts = {}; // NEW: Track stamps per user today
 
       // Process each stamps document
       for (const stampDoc of stampsSnapshot.docs) {
@@ -112,12 +114,16 @@ export default function SuperuserDashboard() {
         totalLifetimeStamps += lifetimeStamps;
         totalRewardsLifetime += rewardsEarned;
 
+        // Initialize user stamp count for today
+        dailyUserStampCounts[userId] = 0;
+
         // Count today's stamps and build enhanced activity log
         if (stampsData.stamps && Array.isArray(stampsData.stamps)) {
           stampsData.stamps.forEach(stamp => {
             const stampDate = new Date(stamp.date);
             if (stampDate >= today && stampDate < tomorrow) {
               stampsToday++;
+              dailyUserStampCounts[userId]++; // NEW: Increment user's daily count
 
               // Add to today's stamps log with client info
               todayStampsActivity.push({
@@ -177,7 +183,7 @@ export default function SuperuserDashboard() {
       // Sort today's activities by timestamp (newest first)
       todayStampsActivity.sort((a, b) => b.timestamp - a.timestamp);
 
-      // Enrich today's stamps activity with user names
+      // Enrich today's stamps activity with user names and high activity detection
       const enrichedTodayStamps = await Promise.all(
         todayStampsActivity.map(async (activity) => {
           try {
@@ -211,17 +217,25 @@ export default function SuperuserDashboard() {
               addedByText = 'Sistema';
             }
 
+            // NEW: Check if user has high activity today (>3 stamps)
+            const userTodayCount = dailyUserStampCounts[activity.userId] || 0;
+            const isHighActivity = userTodayCount > 3;
+
             return {
               ...activity,
               userName: customerName,
-              addedByText: addedByText
+              addedByText: addedByText,
+              isHighActivity: isHighActivity, // NEW: Flag for high activity
+              dailyStampCount: userTodayCount // NEW: Total stamps today for this user
             };
           } catch (err) {
             console.error('Error fetching today activity details:', err);
             return {
               ...activity,
               userName: 'Utente Sconosciuto',
-              addedByText: 'Sistema'
+              addedByText: 'Sistema',
+              isHighActivity: false,
+              dailyStampCount: 0
             };
           }
         })
@@ -229,6 +243,7 @@ export default function SuperuserDashboard() {
 
       // Update state
       setTodayStamps(enrichedTodayStamps);
+      setUserStampCounts(dailyUserStampCounts); // NEW: Set user stamp counts
       setStats({
         totalUsers,
         totalStamps: totalLifetimeStamps,
@@ -293,6 +308,21 @@ export default function SuperuserDashboard() {
     });
   };
 
+  // NEW: Get high activity users for alert summary with names
+  const getHighActivitySummary = () => {
+    const highActivityUsers = Object.entries(userStampCounts)
+      .filter(([userId, count]) => count > 3)
+      .map(([userId, count]) => {
+        // Find the user's name from today's stamps data
+        const userStamp = todayStamps.find(stamp => stamp.userId === userId);
+        const userName = userStamp ? userStamp.userName : `ID: ${userId.slice(-4)}`;
+
+        return { userId, count, userName };
+      });
+
+    return highActivityUsers;
+  };
+
   if (loading) {
     return (
       <div className="global-loading-container">
@@ -302,6 +332,8 @@ export default function SuperuserDashboard() {
     );
   }
 
+  const highActivityUsers = getHighActivitySummary();
+
   return (
     <div className="superuser-dashboard-container" ref={scrollRef}>
       <div className="superuser-dashboard-header">
@@ -310,6 +342,8 @@ export default function SuperuserDashboard() {
           <p>Ciao {userData?.firstName} </p>
         </div>
       </div>
+
+
 
       {/* Action buttons */}
       <div className="superuser-dashboard-actions">
@@ -387,6 +421,29 @@ export default function SuperuserDashboard() {
       </div>
 
       {/* Enhanced Today's Stamps Log with client info */}
+
+            {/* NEW: High activity alert banner */}
+      {highActivityUsers.length > 0 && (
+        <div className="superuser-high-activity-alert">
+          <div className="superuser-alert-icon">⚠️</div>
+          <div className="superuser-alert-content">
+            <strong>Attività Alta Oggi:</strong> {highActivityUsers.length} cliente{highActivityUsers.length > 1 ? 'i' : ''} con più di 3 timbri
+            <div className="superuser-alert-details">
+              {highActivityUsers.slice(0, 3).map((user, index) => (
+                <span key={user.userId} className="superuser-alert-user">
+                  {user.userName} ({user.count} timbri)
+                </span>
+              ))}
+              {highActivityUsers.length > 3 && (
+                <span className="superuser-alert-more">
+                  +{highActivityUsers.length - 3} altri...
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+<br />
       {showTodayLog && (
         <div className="superuser-todays-stamps-log" ref={todayLogRef}>
           <div className="superuser-log-header">
@@ -396,11 +453,22 @@ export default function SuperuserDashboard() {
           <div className="superuser-enhanced-log-list">
             {todayStamps.length > 0 ? (
               todayStamps.map((stamp, index) => (
-                <div className="superuser-enhanced-log-item" key={index}>
+                <div
+                  className={`superuser-enhanced-log-item ${stamp.isHighActivity ? 'superuser-high-activity' : ''}`}
+                  key={index}
+                >
                   {/* First line: Time, Name, Added By */}
                   <div className="superuser-log-main-line">
                     <div className="superuser-log-time">{formatTime(stamp.date)}</div>
-                    <div className="superuser-log-customer">{stamp.userName}</div>
+                    <div className="superuser-log-customer">
+                      {stamp.userName}
+                      {/* NEW: High activity indicator */}
+                      {stamp.isHighActivity && (
+                        <span className="superuser-high-activity-badge">
+                          🔥 {stamp.dailyStampCount} oggi
+                        </span>
+                      )}
+                    </div>
                     <div className="superuser-log-addedby">{stamp.addedByText}</div>
                   </div>
 

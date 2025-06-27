@@ -6,7 +6,7 @@ const RealSafariDemo = () => {
 
   // Real Safari screenshots - Fixed syntax
   const screenshots = [
-    '/images/Landing-1.png',  // Share button in Safari toolbar
+    '/images/Landing-1b.png',  // Share button in Safari toolbar
     '/images/Landing-2.png',  // Share menu full-screen with "Add to Home Screen"
     '/images/Landing-3.png'   // App installed on the home screen
   ];
